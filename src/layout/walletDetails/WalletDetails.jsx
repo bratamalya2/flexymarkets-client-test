@@ -1,0 +1,217 @@
+import { useState } from 'react';
+import Box from '@mui/material/Box';
+import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
+import PersonAdd from '@mui/icons-material/PersonAdd';
+import Settings from '@mui/icons-material/Settings';
+import Logout from '@mui/icons-material/Logout';
+import SwitchComponent from '../../components/SwitchComponent';
+import { Stack, Button } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Accordion from '@mui/material/Accordion';
+import AccordionActions from '@mui/material/AccordionActions';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import { useGetUserDataQuery } from '../../globalState/userState/userStateApis';
+import { useDispatch, useSelector } from 'react-redux';
+import { useMt5AccountListQuery } from '../../globalState/mt5State/mt5StateApis';
+import AddIcon from '@mui/icons-material/Add';
+import { Link, useNavigate } from 'react-router-dom';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import { setHideBalance } from '../../globalState/profileState/profileStateSlices';
+
+function WalletDetails({ sidebarOpen, toggleSidebarOpen }) {
+
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
+
+    const { token } = useSelector((state) => state.auth);
+    const { data, isLoading } = useGetUserDataQuery(undefined, {
+        skip: !token,
+        refetchOnMountOrArgChange: true,
+    })
+
+    const mainBalance = !isLoading && data?.data?.assetData?.mainBalance
+
+    // const { activeMT5AccountLogin } = useSelector(state => state.mt5)
+
+    // const isKycVerified = !isLoading && data?.data?.userData?.isKycVerified
+    // const mt5Accounts = !isLoading && data?.data?.mt5AccountList
+
+    // const { data: mt5Account, isLoading: mt5AccountLoading } = useMt5AccountListQuery({
+    //     page: 1,
+    //     sizePerPage: 10,
+    //     search: activeMT5AccountLogin || mt5Accounts?.[0]?.Login
+    // })
+
+    // const activeLogIn = mt5Account?.data?.mt5AccountList?.[0]
+
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (text) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => {
+            setCopied(false);
+        }, 1500);
+    };
+
+    const handleNavigate = (url) => {
+        navigate(url)
+        if (sidebarOpen) {
+            toggleSidebarOpen(false)
+        }
+    };
+
+    const handleBalanceHide = (e) => {
+        dispatch(setHideBalance(e.target.checked))
+    }
+
+    const { hideBalance } = useSelector(state => state.profile)
+
+    return (
+        <div>
+            <Accordion sx={{ boxShadow: "none", m: 0, p: 0 }}>
+                <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1-content"
+                    id="panel1-header"
+                    sx={{ px: ".5rem" }}
+                >
+                    <AccountBalanceWalletOutlinedIcon />
+                    <Typography fontWeight={"bold"} fontSize={"1.1rem"}>  {
+                        hideBalance
+                            ?
+                            <>
+                                <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                            </>
+                            :
+                            Number(mainBalance || 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                            })
+                    } <Typography component={"span"}>USD</Typography></Typography>
+                </AccordionSummary>
+                {/* {
+                    mt5Accounts?.length > 0
+                        ? */}
+                <AccordionDetails sx={{ m: 0, p: 0 }}>
+                    <Stack>
+                        <MenuItem sx={{ justifyContent: "space-between" }}>
+                            Hide balance
+                            <SwitchComponent onChange={handleBalanceHide} checked={hideBalance} />
+                        </MenuItem>
+                        <Divider />
+                        <MenuItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                            {/* <Stack sx={{ alignItems: "flex-start" }}> */}
+                            {/* <Typography fontSize={"13px"} color="textSecondary">Trading account</Typography> */}
+                            {/* <Typography fontSize={"13px"} color="textSecondary">{activeLogIn?.Login}</Typography> */}
+                            {/* </Stack> */}
+                            <Stack sx={{ flexDirection: "row", gap: "10px", mt: ".8rem" }}>
+                                <Button
+                                    // component={Link}
+                                    onClick={() => handleNavigate("/client/transactions/internalTransfer")}
+                                    // to={"/client/transactions/internalTransfer"}
+                                    variant='contained'
+                                    size='small'
+                                    sx={{
+                                        textTransform: "capitalize",
+                                        boxShadow: "none",
+                                        color: "white",
+                                        alignSelf: "self-start",
+                                        "&:hover": {
+                                            boxShadow: "none",
+                                        },
+                                    }}
+                                >
+                                    Transfer
+                                </Button>
+                                <Button
+                                    // component={Link}
+                                    // to={"/client/transactions/withdrawal"}
+                                    onClick={() => handleNavigate("/client/transactions/withdrawal")}
+                                    variant='contained'
+                                    size='small'
+                                    sx={{
+                                        textTransform: "capitalize",
+                                        boxShadow: "none",
+                                        color: "white",
+                                        alignSelf: "self-start",
+                                        "&:hover": {
+                                            boxShadow: "none",
+                                        },
+                                    }}
+                                >
+                                    Withdraw
+                                </Button>
+                            </Stack>
+                        </MenuItem>
+                        <MenuItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                            <Typography fontWeight={"bold"} fontSize={"1.1rem"}>
+                                {
+                                    hideBalance
+                                        ?
+                                        <>
+                                            <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                            <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                            <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                            <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                            <FiberManualRecordIcon sx={{ fontSize: "10px" }} />
+                                        </>
+                                        :
+                                        Number(mainBalance || 0).toLocaleString(undefined, {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 2,
+                                        })
+                                } <Typography component={"span"}>USD</Typography></Typography>
+                            {/* <Stack sx={{ alignItems: "flex-start" }}> */}
+                            {/* <Typography fontSize={"13px"} color="textSecondary">Trading account</Typography> */}
+                            {/* <Box sx={{ display: "flex", gap: "15px" }}>
+                                            <Typography fontSize={"13px"} color="textSecondary">{activeLogIn?.Login}</Typography>
+                                            <Tooltip title={copied ? "Copied!" : "Copy"}>
+                                                <IconButton sx={{ p: 0 }} onClick={() => handleCopy(activeLogIn?.Login)}>
+                                                    <ContentCopyIcon sx={{ fontSize: "14px" }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box> */}
+                            {/* </Stack> */}
+                        </MenuItem>
+                    </Stack>
+                </AccordionDetails>
+                {/* :
+                        <Tooltip title={!isKycVerified && "Complete profile verification"}>
+                            <Button
+                                component={isKycVerified && Link}
+                                to={"/client/newAccount"}
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                sx={{
+                                    textTransform: "capitalize",
+                                    bgcolor: "transparent",
+                                    color: "black",
+                                    boxShadow: "none !important",
+                                    px: "1.5rem"
+                                }}
+                            >
+                                Open New Account
+                            </Button>
+                        </Tooltip>
+                } */}
+            </Accordion>
+        </div>
+    );
+}
+
+export default WalletDetails

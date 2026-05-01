@@ -1,0 +1,19 @@
+.slick-dots li button:before {
+    color: #17433d !important;
+}
+
+.slick-dots li.slick-active button:before {
+    color: #699d89 !important;
+}
+
+.slick-prev:before,
+.slick-next:before {
+    font-family: 'slick';
+    font-size: 2rem;
+    border-radius: none;
+    line-height: 1;
+    opacity: .75;
+    color: #17433d !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

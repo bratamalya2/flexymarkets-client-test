@@ -1,0 +1,74 @@
+/* body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+
+
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #17433d;
+  border-radius: 10px;
+} */
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-LightSlanted.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-SemiBoldSlanted.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-Slanted.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Tomato Grotesk';
+  src: url('/fonts/TomatoGrotesk-ThinSlanted.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+}
