@@ -92,17 +92,26 @@ export function initiatePaymentSocketConnection({
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
         timeout: 10000,
+        auth: {
+            token,
+            authorization: token,
+        },
         extraHeaders: {
             authorization: token,
         },
     });
 
-    socket.connect();
-
     socket.on("connect", () => {
 
         if (!hasStarted && network && amount && !depositQRData) {
             dispatch(setHasStarted(true))
+            dispatch(
+                setNotification({
+                    open: true,
+                    message: "Creating payment invoice...",
+                    severity: "info",
+                })
+            );
             socket.emit("startPayment", { network, amount });
         }
     });
@@ -117,7 +126,24 @@ export function initiatePaymentSocketConnection({
                 severity: "error",
             })
         );
+        dispatch(setHasStarted(false));
     });
+
+    const handlePaymentError = (err, ack) => {
+        dispatch(
+            setNotification({
+                open: true,
+                message: err?.message || "Payment gateways could not create an invoice. Please try again.",
+                severity: "error",
+            })
+        );
+        dispatch(setHasStarted(false));
+        if (typeof ack === "function") ack();
+        socket.disconnect();
+    };
+
+    socket.on("paymentError", handlePaymentError);
+    socket.on("error", handlePaymentError);
 
     socket.on("disconnect", (reason) => {
 
@@ -178,6 +204,8 @@ export function initiatePaymentSocketConnection({
         socket.removeAllListeners();
         socket.disconnect();
     };
+
+    socket.connect();
 
     return { socket, cleanup };
 }
