@@ -5,6 +5,7 @@ import {
   InputAdornment,
   InputLabel,
   OutlinedInput,
+  CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +18,7 @@ import Selector from "../../../../components/Selector";
 import { cryptoDepositSchema } from "./cryptoDepositSchema";
 import { useGetUserDataQuery } from "../../../../globalState/userState/userStateApis";
 import { setNotification } from "../../../../globalState/notificationState/notificationStateSlice";
+import { setHasStarted } from "../../../../globalState/paymentState/paymentSlice";
 import { initiatePaymentSocketConnection } from "../../../../socketENV/paymentSocketENV";
 
 const networks = [
@@ -62,6 +64,7 @@ function CryptoDepositForm({ typeParam }) {
   }, [typeParam]);
 
   useEffect(() => {
+    dispatch(setHasStarted(false));
     return () => {
       if (socketRef.current) {
         socketRef.current.cleanup?.();
@@ -200,11 +203,13 @@ function CryptoDepositForm({ typeParam }) {
           "&:hover": { boxShadow: "none" },
         }}
       >
-        {loading
-          ? "Connecting..."
-          : depositState === "details"
-            ? "Continue"
-            : "Confirm"}
+        {loading || hasStarted ? (
+          <CircularProgress size={24} color="inherit" />
+        ) : depositState === "details" ? (
+          "Continue"
+        ) : (
+          "Confirm"
+        )}
       </Button>
     </Stack>
   );

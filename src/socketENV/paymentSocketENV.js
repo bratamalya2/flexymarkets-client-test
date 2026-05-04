@@ -243,6 +243,7 @@ export function initiatePaymentSocketConnection({
         dispatch(setDepositQRData(normalizedDepositData));
         dispatch(setCreatedTime(invoice?.created_time || Date.now()));
         dispatch(setExpireTime(invoice?.expire_time || Date.now() + 60 * 60 * 1000));
+        dispatch(setHasStarted(false));
 
         if (normalizedDepositData.invoice_payment_url) {
             let url = normalizedDepositData.invoice_payment_url;
