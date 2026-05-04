@@ -22,7 +22,11 @@ const authSlice = createSlice({
         },
         logout: (state) => {
             state.token = null;
+            state.tempToken = null;
+            state.tokenExpTime = null;
             localStorage.removeItem("token");
+            localStorage.removeItem("tempToken");
+            localStorage.removeItem("tokenExpTime");
         },
         setTempToken: (state, action) => {
             if (action.payload) {
@@ -60,6 +64,7 @@ const authSlice = createSlice({
                 state.tokenExpTime = action.payload
             } else {
                 localStorage.removeItem("tokenExpTime")
+                state.tokenExpTime = null
             }
         },
         setResendOtpCreatedTime: (state, action) => {

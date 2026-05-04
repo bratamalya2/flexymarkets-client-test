@@ -10,14 +10,16 @@ export function initiateAuthSocketConnection({ token, dispatch, currentUserId })
 
     const socket = io(import.meta.env.VITE_BASE_URL, {
         autoConnect: false,
+        auth: {
+            token,
+            authorization: token,
+        },
         extraHeaders: {
             authorization: token
         }
     });
 
     existingSocket = socket;
-    socket.connect();
-
     const handleLogout = (data) => {
 
         if (data?.userId === currentUserId) {
@@ -33,6 +35,7 @@ export function initiateAuthSocketConnection({ token, dispatch, currentUserId })
     };
 
     socket.on("logOut", handleLogout);
+    socket.connect();
 
     return socket;
 }

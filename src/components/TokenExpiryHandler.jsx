@@ -8,16 +8,23 @@ import { logoutThunk } from "../globalState/auth/authThunk";
 function TokenExpiryHandler() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { tokenExpTime } = useSelector((state) => state.auth);
+    const { token, tokenExpTime } = useSelector((state) => state.auth);
 
     useEffect(() => {
-        if (!tokenExpTime) return;
+        if (!token || !tokenExpTime) return;
 
         let timeoutId;
 
         const checkExpiry = () => {
             const currentTime = Math.floor(Date.now() / 1000);
-            const timeLeft = tokenExpTime - currentTime;
+            const expiryTime = Number(tokenExpTime);
+
+            if (!Number.isFinite(expiryTime)) {
+                dispatch(logoutThunk());
+                return;
+            }
+
+            const timeLeft = expiryTime - currentTime;
 
             if (timeLeft <= 0) {
                 dispatch(logoutThunk());
@@ -40,7 +47,7 @@ function TokenExpiryHandler() {
         checkExpiry();
 
         return () => clearTimeout(timeoutId);
-    }, [tokenExpTime, dispatch, navigate]);
+    }, [token, tokenExpTime, dispatch, navigate]);
 
     return null;
 }
