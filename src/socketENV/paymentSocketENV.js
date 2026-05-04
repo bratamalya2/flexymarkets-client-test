@@ -145,10 +145,11 @@ export function initiatePaymentSocketConnection({
         },
     });
 
-    socket.on("connect", () => {
+    let timeoutId;
 
+    const onConnect = () => {
         if (!hasStarted && network && amount && !depositQRData) {
-            dispatch(setHasStarted(true))
+            dispatch(setHasStarted(true));
             dispatch(
                 setNotification({
                     open: true,
@@ -157,8 +158,19 @@ export function initiatePaymentSocketConnection({
                 })
             );
             socket.emit("startPayment", { network, amount });
+
+            // Set a frontend timeout in case the backend hangs
+            timeoutId = setTimeout(() => {
+                handlePaymentError({ message: "Payment request timed out from the server. Please try again." });
+            }, 60000);
         }
-    });
+    };
+
+    socket.on("connect", onConnect);
+
+    if (socket.connected) {
+        onConnect();
+    }
 
     socket.on("connect_error", (err) => {
         console.warn("⚠️ Socket connection error:", err.message);
@@ -174,6 +186,7 @@ export function initiatePaymentSocketConnection({
     });
 
     const handlePaymentError = (err, ack) => {
+        if (timeoutId) clearTimeout(timeoutId);
         dispatch(
             setNotification({
                 open: true,
@@ -204,6 +217,7 @@ export function initiatePaymentSocketConnection({
     });
 
     socket.on("paymentReady", (data) => {
+        if (timeoutId) clearTimeout(timeoutId);
         if (!data || depositQRData) return;
 
         const invoice = data?.data || {};
@@ -273,6 +287,7 @@ export function initiatePaymentSocketConnection({
 
 
     const cleanup = () => {
+        if (timeoutId) clearTimeout(timeoutId);
         socket.removeAllListeners();
         socket.disconnect();
     };

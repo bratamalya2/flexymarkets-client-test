@@ -101,6 +101,10 @@ function CryptoDepositForm({ typeParam }) {
 
       // 
 
+      if (socketRef.current) {
+          socketRef.current.cleanup();
+      }
+
       const result = initiatePaymentSocketConnection({
         token,
         network: data.network.toUpperCase(),
