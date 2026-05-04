@@ -132,6 +132,7 @@ export function initiatePaymentSocketConnection({
 
     const socket = io(import.meta.env.VITE_BASE_URL, {
         autoConnect: false,
+        forceNew: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,

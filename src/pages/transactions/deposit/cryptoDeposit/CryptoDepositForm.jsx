@@ -86,7 +86,7 @@ function CryptoDepositForm({ typeParam }) {
     }
 
     try {
-      if (socketRef.current) {
+      if (hasStarted) {
         dispatch(
           setNotification({
             open: true,
