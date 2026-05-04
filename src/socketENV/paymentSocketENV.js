@@ -72,6 +72,50 @@ import {
 } from "../globalState/paymentState/paymentSlice";
 import { setNotification } from "../globalState/notificationState/notificationStateSlice";
 
+const ADDRESS_FIELDS = [
+    "payment_address",
+    "to_address",
+    "address",
+    "wallet_address",
+    "deposit_address",
+    "pay_address",
+    "paymentAddress",
+    "toAddress",
+    "walletAddress",
+    "depositAddress",
+    "payAddress",
+];
+const PAYMENT_URL_FIELDS = [
+    "invoice_payment_url",
+    "checkout_url",
+    "payment_url",
+    "pay_url",
+    "redirect_url",
+    "payment_link",
+    "hosted_url",
+    "url",
+    "link",
+    "checkoutUrl",
+    "paymentUrl",
+    "payUrl",
+    "redirectUrl",
+    "paymentLink",
+    "hostedUrl",
+];
+
+function firstPopulatedValue(source, fields) {
+    if (!source || typeof source !== "object") return null;
+
+    for (const field of fields) {
+        const value = source[field];
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+            return value;
+        }
+    }
+
+    return null;
+}
+
 export function initiatePaymentSocketConnection({
     token,
     network,
@@ -91,7 +135,7 @@ export function initiatePaymentSocketConnection({
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
-        timeout: 10000,
+        timeout: 60000,
         auth: {
             token,
             authorization: token,
@@ -164,20 +208,16 @@ export function initiatePaymentSocketConnection({
 
         const invoice = data?.data || {};
         const paymentInfo = invoice?.payment_info?.[0] || {};
-        const invoicePaymentUrl = invoice?.invoice_payment_url
-            || invoice?.checkout_url
-            || invoice?.payment_url
-            || invoice?.url
-            || paymentInfo?.invoice_payment_url
-            || paymentInfo?.checkout_url
-            || paymentInfo?.payment_url
-            || null;
+        const paymentAddress = firstPopulatedValue(paymentInfo, ADDRESS_FIELDS)
+            || firstPopulatedValue(invoice, ADDRESS_FIELDS);
+        const invoicePaymentUrl = firstPopulatedValue(invoice, PAYMENT_URL_FIELDS)
+            || firstPopulatedValue(paymentInfo, PAYMENT_URL_FIELDS);
 
         const normalizedDepositData = {
             ...paymentInfo,
-            payment_address: paymentInfo?.payment_address || invoice?.payment_address || invoice?.to_address || null,
-            receive_amount: paymentInfo?.receive_amount || invoice?.receive_amount || invoice?.order_amount || invoice?.amount_usd || null,
-            token_symbol: paymentInfo?.token_symbol || invoice?.token_symbol || invoice?.coinname || "USDT",
+            payment_address: paymentAddress,
+            receive_amount: paymentInfo?.receive_amount || paymentInfo?.amount || invoice?.receive_amount || invoice?.order_amount || invoice?.amount_usd || invoice?.amount || null,
+            token_symbol: paymentInfo?.token_symbol || paymentInfo?.coinname || invoice?.token_symbol || invoice?.coinname || "USDT",
             token_name: paymentInfo?.token_name || invoice?.token_name || invoice?.coinname || "USDT",
             blockchain: paymentInfo?.blockchain || invoice?.blockchain || invoice?.networkname || null,
             invoice_payment_url: invoicePaymentUrl,
@@ -203,6 +243,18 @@ export function initiatePaymentSocketConnection({
         dispatch(setDepositQRData(normalizedDepositData));
         dispatch(setCreatedTime(invoice?.created_time || Date.now()));
         dispatch(setExpireTime(invoice?.expire_time || Date.now() + 60 * 60 * 1000));
+
+        if (normalizedDepositData.invoice_payment_url) {
+            let url = normalizedDepositData.invoice_payment_url;
+            if (typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined') {
+                if (!url.match(/^https?:\/\//i)) {
+                    url = 'https://' + url;
+                }
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                }, 500);
+            }
+        }
     });
 
 
