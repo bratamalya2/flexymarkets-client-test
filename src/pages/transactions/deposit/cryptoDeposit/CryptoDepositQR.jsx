@@ -9,7 +9,8 @@ import {
     Box,
     ListItem,
     List,
-    Skeleton
+    Skeleton,
+    Button
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 // import CountdownTimer from "../../../../components/CountdownTimer"
@@ -27,6 +28,7 @@ function CryptoDepositQR() {
 
 
     const { depositQRData, createdTime, expireTime } = useSelector(state => state.payment);
+    const qrValue = depositQRData?.payment_address || depositQRData?.invoice_payment_url;
 
     const timeLeft = useCountdownTimer(createdTime, expireTime, () => {
         dispatch(removeDepositQRData());
@@ -77,10 +79,12 @@ function CryptoDepositQR() {
                     wordBreak: "break-word",
                 }}
             >
-                <Typography variant='h6'>Scan QR Code to Complete Deposit</Typography>
-                {depositQRData ? (
+                <Typography variant='h6'>
+                    {depositQRData?.payment_address ? "Scan QR Code to Complete Deposit" : "Open Checkout to Complete Deposit"}
+                </Typography>
+                {qrValue ? (
                     <QRCodeCanvas
-                        value={depositQRData?.payment_address}
+                        value={qrValue}
                         size={200}
                         bgColor="#ffffff"
                         fgColor="#000000"
@@ -91,6 +95,17 @@ function CryptoDepositQR() {
                     <Typography color="text.secondary">
                         QR Code not available
                     </Typography>
+                )}
+                {depositQRData?.invoice_payment_url && (
+                    <Button
+                        href={depositQRData.invoice_payment_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        variant="contained"
+                        sx={{ textTransform: "none", color: "white" }}
+                    >
+                        Open payment page
+                    </Button>
                 )}
                 <Typography color="red">Your transaction will automatically complete after payment confirmation</Typography>
                 {/* <CountdownTimer /> */}
@@ -104,17 +119,19 @@ function CryptoDepositQR() {
                     </Box>
                     <Typography>{depositQRData?.token_name}</Typography>
                 </Stack>
-                <Stack>
-                    <Typography fontWeight={"bold"}>Deposit Address:</Typography>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Typography>{depositQRData?.payment_address}</Typography>
-                        <Tooltip title={copied ? "Copied!" : "Copy"}>
-                            <IconButton onClick={() => handleCopy(depositQRData?.payment_address)}>
-                                <ContentCopyOutlinedIcon sx={{ fontSize: "20px" }} />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                </Stack>
+                {depositQRData?.payment_address && (
+                    <Stack>
+                        <Typography fontWeight={"bold"}>Deposit Address:</Typography>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Typography>{depositQRData?.payment_address}</Typography>
+                            <Tooltip title={copied ? "Copied!" : "Copy"}>
+                                <IconButton onClick={() => handleCopy(depositQRData?.payment_address)}>
+                                    <ContentCopyOutlinedIcon sx={{ fontSize: "20px" }} />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                    </Stack>
+                )}
                 <List sx={{ listStyleType: "disc", pl: 2, py: 0 }}>
                     <Typography fontWeight={"bold"} fontSize={"1.5rem"}>Important Note:</Typography>
                     <ListItem sx={{ display: "list-item", p: 0 }}>The system will automatically confirm your payments.</ListItem>

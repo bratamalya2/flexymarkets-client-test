@@ -162,6 +162,36 @@ export function initiatePaymentSocketConnection({
     socket.on("paymentReady", (data) => {
         if (!data || depositQRData) return;
 
+        const invoice = data?.data || {};
+        const paymentInfo = invoice?.payment_info?.[0] || {};
+        const invoicePaymentUrl = invoice?.invoice_payment_url
+            || invoice?.checkout_url
+            || invoice?.payment_url
+            || invoice?.url
+            || paymentInfo?.invoice_payment_url
+            || paymentInfo?.checkout_url
+            || paymentInfo?.payment_url
+            || null;
+
+        const normalizedDepositData = {
+            ...paymentInfo,
+            payment_address: paymentInfo?.payment_address || invoice?.payment_address || invoice?.to_address || null,
+            receive_amount: paymentInfo?.receive_amount || invoice?.receive_amount || invoice?.order_amount || invoice?.amount_usd || null,
+            token_symbol: paymentInfo?.token_symbol || invoice?.token_symbol || invoice?.coinname || "USDT",
+            token_name: paymentInfo?.token_name || invoice?.token_name || invoice?.coinname || "USDT",
+            blockchain: paymentInfo?.blockchain || invoice?.blockchain || invoice?.networkname || null,
+            invoice_payment_url: invoicePaymentUrl,
+            payment_gateway: invoice?.payment_gateway,
+            order_no: invoice?.gateway_order_id || invoice?.cregis_id || invoice?.orderno || null,
+        };
+
+        if (!normalizedDepositData.payment_address && !normalizedDepositData.invoice_payment_url) {
+            handlePaymentError({
+                message: "Payment invoice was created, but no deposit address or checkout link was returned.",
+            });
+            return;
+        }
+
         dispatch(
             setNotification({
                 open: true,
@@ -170,9 +200,9 @@ export function initiatePaymentSocketConnection({
             })
         );
 
-        dispatch(setDepositQRData(data?.data?.payment_info[0]));
-        dispatch(setCreatedTime(data?.data?.created_time));
-        dispatch(setExpireTime(data?.data?.expire_time));
+        dispatch(setDepositQRData(normalizedDepositData));
+        dispatch(setCreatedTime(invoice?.created_time || Date.now()));
+        dispatch(setExpireTime(invoice?.expire_time || Date.now() + 60 * 60 * 1000));
     });
 
 
