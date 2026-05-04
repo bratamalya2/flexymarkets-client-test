@@ -245,17 +245,6 @@ export function initiatePaymentSocketConnection({
         dispatch(setExpireTime(invoice?.expire_time || Date.now() + 60 * 60 * 1000));
         dispatch(setHasStarted(false));
 
-        if (normalizedDepositData.invoice_payment_url) {
-            let url = normalizedDepositData.invoice_payment_url;
-            if (typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined') {
-                if (!url.match(/^https?:\/\//i)) {
-                    url = 'https://' + url;
-                }
-                setTimeout(() => {
-                    window.open(url, '_blank');
-                }, 500);
-            }
-        }
     });
 
 

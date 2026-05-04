@@ -41,6 +41,9 @@ export const userStateApis = createApi({
             query: () => `/updated/data`,
             providesTags: ["userData"]
         }),
+        checkPaymentStatus: builder.query({
+            query: (orderNo) => `/payment/status/${orderNo}`,
+        }),
         bankDeposit: builder.mutation({
             query: (data) => {
                 const formData = new FormData();
@@ -210,5 +213,6 @@ export const {
     useCryptoWithdrawMutation,
     useActiveMT5AccountBalanceQuery,
     useGetEconomicCalenderDataQuery,
-    useAcceptPromotionMutation
+    useAcceptPromotionMutation,
+    useLazyCheckPaymentStatusQuery,
 } = userStateApis;

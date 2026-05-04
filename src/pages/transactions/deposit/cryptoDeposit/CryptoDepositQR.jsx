@@ -19,6 +19,8 @@ import { useState } from "react";
 import { QRCodeCanvas } from 'qrcode.react';
 import useCountdownTimer from "../../../../hooks/useCountdownTimer";
 import { removeDepositQRData, removeCreatedTime, removeExpireTime, setHasStarted } from "../../../../globalState/paymentState/paymentSlice";
+import { setNotification } from '../../../../globalState/notificationState/notificationStateSlice';
+import { useLazyCheckPaymentStatusQuery } from '../../../../globalState/userState/userStateApis';
 import CloseIcon from '@mui/icons-material/Close';
 
 
@@ -52,6 +54,30 @@ function CryptoDepositQR() {
         setTimeout(() => {
             setCopied(false);
         }, 1500);
+    };
+
+    const [checkPaymentStatus, { isFetching }] = useLazyCheckPaymentStatusQuery();
+
+    const handleCheckStatus = async () => {
+        if (!depositQRData?.order_no) {
+            dispatch(setNotification({ open: true, message: 'Order ID not found.', severity: 'error' }));
+            return;
+        }
+        
+        try {
+            const res = await checkPaymentStatus(depositQRData.order_no).unwrap();
+            dispatch(setNotification({
+                open: true,
+                message: res.message || 'Status checked.',
+                severity: res.status ? 'success' : 'info'
+            }));
+        } catch (err) {
+            dispatch(setNotification({
+                open: true,
+                message: err?.data?.message || 'Failed to check status.',
+                severity: 'error'
+            }));
+        }
     };
 
     const handlePaymentWindowClose = () => {
@@ -107,6 +133,17 @@ function CryptoDepositQR() {
                         Open payment page
                     </Button>
                 )}
+                
+                <Button 
+                    variant="outlined" 
+                    color="primary" 
+                    onClick={handleCheckStatus} 
+                    disabled={isFetching}
+                    sx={{ mt: 1, textTransform: "none" }}
+                >
+                    {isFetching ? "Checking..." : "Check Payment Status"}
+                </Button>
+
                 <Typography color="red">Your transaction will automatically complete after payment confirmation</Typography>
                 {/* <CountdownTimer /> */}
                 <Typography fontSize={"1.2rem"} fontWeight={600} color={isTimedOut ? 'error' : 'text.primary'}>
