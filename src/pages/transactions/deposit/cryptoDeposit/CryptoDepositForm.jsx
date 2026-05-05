@@ -18,7 +18,7 @@ import Selector from "../../../../components/Selector";
 import { cryptoDepositSchema } from "./cryptoDepositSchema";
 import { useGetUserDataQuery } from "../../../../globalState/userState/userStateApis";
 import { setNotification } from "../../../../globalState/notificationState/notificationStateSlice";
-import { setHasStarted } from "../../../../globalState/paymentState/paymentSlice";
+import { setHasStarted, removeDepositQRData } from "../../../../globalState/paymentState/paymentSlice";
 import { initiatePaymentSocketConnection } from "../../../../socketENV/paymentSocketENV";
 
 const networks = [
@@ -105,6 +105,9 @@ function CryptoDepositForm({ typeParam }) {
           socketRef.current.cleanup();
       }
 
+      dispatch(removeDepositQRData());
+      dispatch(setHasStarted(false));
+
       const result = initiatePaymentSocketConnection({
         token,
         network: data.network.toUpperCase(),
@@ -112,8 +115,8 @@ function CryptoDepositForm({ typeParam }) {
         dispatch,
         refetch,
         navigate,
-        depositQRData,
-        hasStarted
+        depositQRData: null,
+        hasStarted: false
       });
 
       socketRef.current = result;
