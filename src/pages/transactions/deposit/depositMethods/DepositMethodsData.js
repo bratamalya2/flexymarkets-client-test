@@ -24,7 +24,7 @@ export const DepositMethodsData = [
     {
         img: "/transactionIcons/binance.png",
         methodName: "BinancePay",
-        specification: "Unavailable",
+        to: "/client/transactions/deposit/cryptoDeposit?typeParam=Binance",
         details: {
             "Processing time": "Instant - 30 minutes",
             "Fee": "0%",
