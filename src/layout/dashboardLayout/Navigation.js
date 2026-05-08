@@ -15,6 +15,7 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import { useGetUserDataQuery } from '../../globalState/userState/userStateApis';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 
 
 // export const NAVIGATION = [
@@ -360,6 +361,27 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
     //     title: 'News',
     //     icon: ArticleOutlinedIcon,
     // },
+    {
+        title: 'Social Trading',
+        icon: PeopleAltOutlinedIcon,
+        children: [
+            {
+                segment: '/client/socialTrading/discover',
+                title: 'Discover Traders',
+                icon: CircleOutlinedIcon,
+            },
+            {
+                segment: '/client/socialTrading/mySubscriptions',
+                title: 'My Subscriptions',
+                icon: CircleOutlinedIcon,
+            },
+            {
+                segment: '/client/socialTrading/myWatchlist',
+                title: 'My Watchlist',
+                icon: CircleOutlinedIcon,
+            },
+        ],
+    },
     {
         title: 'Help Desk',
         icon: HelpCenterOutlinedIcon,

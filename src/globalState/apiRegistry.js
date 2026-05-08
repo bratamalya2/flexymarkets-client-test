@@ -8,6 +8,7 @@ import { groupStateApis } from './groupState/groupStateApis';
 import { supportStateApis } from './supportState/supportStateApis';
 import { otherContentStateApis } from './otherContentState/otherContentStateApis';
 import { tradeStateApis } from './trade/tradeApis';
+import { socialTradingApis } from './socialTradingState/socialTradingApis';
 
 export const allApiSlices = [
   authApi,
@@ -19,5 +20,6 @@ export const allApiSlices = [
   ibStateApis,
   mt5StateApis,
   otherContentStateApis,
-  tradeStateApis
+  tradeStateApis,
+  socialTradingApis,
 ];

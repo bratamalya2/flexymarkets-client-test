@@ -267,6 +267,12 @@ const IBCommission = lazy(() => import('../pages/IBProgramme/IBDashboard/IBCommi
 const Promotions = lazy(() => import('../pages/promotions/Promotions.jsx'));
 const MT5Requestlist = lazy(() => import('../pages/MT5Account/MT5Requestlist/MT5Requestlist.jsx'));
 
+// Social Trading
+const MasterTraderDiscovery = lazy(() => import('../pages/socialTrading/masterTraderDiscovery/MasterTraderDiscovery.jsx'));
+const MasterTraderDetail = lazy(() => import('../pages/socialTrading/masterTraderDetail/MasterTraderDetail.jsx'));
+const MySubscriptions = lazy(() => import('../pages/socialTrading/mySubscriptions/MySubscriptions.jsx'));
+const MyWatchlist = lazy(() => import('../pages/socialTrading/myWatchlist/MyWatchlist.jsx'));
+
 // Routes
 export const routing = [
     { path: "/accounts/:tab", element: <Auth /> },
@@ -338,5 +344,11 @@ export const routing = [
     // { path: "/client/promotions/tradeOrTreatLuckyDraw", element: <TradeOrTreatLuckyDraw /> },
     // { path: "/client/promotions/freeVPS", element: <FreeVPS /> },
 
-    { path: "/terminal", element: <TradingTerminal /> }
+    { path: "/terminal", element: <TradingTerminal /> },
+
+    // Social Trading
+    { path: "/client/socialTrading/discover", element: <MasterTraderDiscovery /> },
+    { path: "/client/socialTrading/masterTrader/:masterTraderId", element: <MasterTraderDetail /> },
+    { path: "/client/socialTrading/mySubscriptions", element: <MySubscriptions /> },
+    { path: "/client/socialTrading/myWatchlist", element: <MyWatchlist /> },
 ];
