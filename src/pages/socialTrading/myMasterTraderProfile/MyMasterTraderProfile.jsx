@@ -276,7 +276,7 @@ export default function MyMasterTraderProfile() {
                                             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Risk Level <span className="text-red-500">*</span></h2>
                                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">How would you characterise your trading style?</p>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                             {RISK_OPTIONS.map((opt) => {
                                                 const selected = riskLevel === opt.value;
                                                 return (
@@ -316,7 +316,7 @@ export default function MyMasterTraderProfile() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Help copiers understand how you trade</p>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div className="space-y-1.5">
                                                 <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Trading Style</Label>
                                                 <Controller name="tradingStyle" control={control} render={({ field }) => (
@@ -386,7 +386,7 @@ export default function MyMasterTraderProfile() {
                                             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Copy Settings</h2>
                                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Set limits for copiers joining your strategy</p>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div className="space-y-1.5">
                                                 <Label htmlFor="minimumCopyBalance" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Min Copy Balance ($) <span className="text-red-500">*</span>
@@ -423,7 +423,7 @@ export default function MyMasterTraderProfile() {
                                 <div className="lg:col-span-5 space-y-5">
 
                                     {/* Profile preview card */}
-                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden sticky top-4">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden sm:sticky top-4">
                                         {/* Gradient cover */}
                                         <div className="h-24 relative overflow-hidden" style={{ background: grad }}>
                                             <div className="absolute top-[-20px] right-[-20px] w-28 h-28 rounded-full bg-white/10" />

@@ -182,7 +182,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                 {/* ── Card 4: PnL Chart ── */}
                 <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
                     <BCardContent className="grid pt-6 sm:grid-cols-[190px_1fr]">
-                        <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
+                        <div className="relative z-10 flex flex-col justify-between space-y-4 sm:space-y-10 lg:space-y-6">
                             <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 dark:border-gray-700 items-center justify-center">
                                 <TrendingUp className="size-5" strokeWidth={1} />
                             </div>
@@ -213,7 +213,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                             </div>
                         </div>
 
-                        <div className="relative -mb-6 -mr-6 mt-6 h-[200px] overflow-hidden border-l border-t p-3 sm:ml-6" style={{ borderRadius: '8px 0 0 0' }}>
+                        <div className="relative sm:-mb-6 sm:-mr-6 mt-6 h-[200px] overflow-hidden sm:border-l sm:border-t p-3 sm:ml-6 rounded-xl sm:rounded-tl-lg sm:rounded-none">
                             {pnlChart.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={pnlChart} margin={{ top: 4, right: 2, bottom: 0, left: -22 }}>
@@ -246,7 +246,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                 {/* ── Card 5: Copy Trading Snapshot ── */}
                 <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
                     <BCardContent className="grid h-full pt-6 sm:grid-cols-2">
-                        <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
+                        <div className="relative z-10 flex flex-col justify-between space-y-4 sm:space-y-10 lg:space-y-6">
                             <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 dark:border-gray-700 items-center justify-center">
                                 <Users className="size-5" strokeWidth={1} />
                             </div>
@@ -258,17 +258,17 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                             </div>
                         </div>
 
-                        <div className="relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-gray-100 dark:before:bg-gray-700 sm:-my-6 sm:-mr-6">
+                        <div className="relative mt-6 before:hidden sm:before:block before:absolute before:inset-0 before:mx-auto before:w-px before:bg-gray-100 dark:before:bg-gray-700 sm:-my-6 sm:-mr-6">
                             <div className="relative flex h-full flex-col justify-center space-y-6 py-6">
-                                <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+                                <div className="relative flex items-center gap-2 sm:w-[calc(50%+0.875rem)] sm:justify-end">
+                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 sm:order-last">
+                                        <PeopleOutlineIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                                    </div>
                                     <span className="block h-fit rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-2 py-1 text-xs shadow-sm">
                                         {copiers} copying
                                     </span>
-                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                                        <PeopleOutlineIcon sx={{ fontSize: 14, color: '#6366f1' }} />
-                                    </div>
                                 </div>
-                                <div className="relative ml-[calc(50%-1rem)] flex items-center gap-2">
+                                <div className="relative flex items-center gap-2 sm:ml-[calc(50%-1rem)]">
                                     <div className="ring-4 ring-white dark:ring-gray-900 size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
                                         <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 14, color: '#10b981' }} />
                                     </div>
@@ -276,7 +276,10 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                         Min ${trader.minimumCopyBalance}
                                     </span>
                                 </div>
-                                <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+                                <div className="relative flex items-center gap-2 sm:w-[calc(50%+0.875rem)] sm:justify-end">
+                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0 sm:order-last">
+                                        <Activity className="size-3 text-violet-500" />
+                                    </div>
                                     <span className={cn(
                                         "block h-fit rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs shadow-sm font-semibold",
                                         monthlyPnL !== null && parseFloat(monthlyPnL) >= 0 ? "text-emerald-600" : "text-red-500"
@@ -285,9 +288,6 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                             ? `${parseFloat(monthlyPnL) >= 0 ? '+' : ''}$${parseFloat(monthlyPnL).toFixed(2)}/mo`
                                             : '— /mo'}
                                     </span>
-                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-                                        <Activity className="size-3 text-violet-500" />
-                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -196,21 +196,32 @@ export function GlassTraderCard({ trader, onView, className }) {
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/[0.08] pt-3 mt-auto">
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
-                            <Users className="h-3 w-3" />
-                            <span className="text-[11px]">{copiers} copying</span>
-                        </div>
-                        {trader.reviewsCount > 0 && (
+                    <div className="border-t border-gray-100 dark:border-white/[0.08] pt-3 mt-auto space-y-2.5">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
-                                <Star className="h-3 w-3" />
-                                <span className="text-[11px]">{parseFloat(trader.reviewsRating).toFixed(1)}</span>
+                                <Users className="h-3 w-3" />
+                                <span className="text-[11px]">{copiers} copying</span>
                             </div>
-                        )}
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
-                            <TrendingUp className="h-3 w-3" />
-                            <span className="text-[11px]">Min ${trader.minimumCopyBalance}</span>
+                            {trader.reviewsCount > 0 && (
+                                <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
+                                    <Star className="h-3 w-3" />
+                                    <span className="text-[11px]">{parseFloat(trader.reviewsRating).toFixed(1)}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
+                                <TrendingUp className="h-3 w-3" />
+                                <span className="text-[11px]">Min ${trader.minimumCopyBalance}</span>
+                            </div>
                         </div>
+
+                        {/* Persistent CTA — always visible; complements hover overlay on desktop */}
+                        <button
+                            onClick={() => onView(trader.id)}
+                            className="w-full flex items-center justify-center gap-2 rounded-full bg-gray-900 dark:bg-white/10 dark:border dark:border-white/20 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 dark:hover:bg-white/20 active:opacity-80 transition-colors"
+                        >
+                            <Eye className="h-4 w-4" />
+                            View Profile
+                        </button>
                     </div>
                 </div>
             </Card>
