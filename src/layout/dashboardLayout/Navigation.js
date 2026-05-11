@@ -380,6 +380,11 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
                 title: 'My Watchlist',
                 icon: CircleOutlinedIcon,
             },
+            {
+                segment: '/client/socialTrading/myProfile',
+                title: 'My Trader Profile',
+                icon: CircleOutlinedIcon,
+            },
         ],
     },
     {

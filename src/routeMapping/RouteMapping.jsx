@@ -272,6 +272,7 @@ const MasterTraderDiscovery = lazy(() => import('../pages/socialTrading/masterTr
 const MasterTraderDetail = lazy(() => import('../pages/socialTrading/masterTraderDetail/MasterTraderDetail.jsx'));
 const MySubscriptions = lazy(() => import('../pages/socialTrading/mySubscriptions/MySubscriptions.jsx'));
 const MyWatchlist = lazy(() => import('../pages/socialTrading/myWatchlist/MyWatchlist.jsx'));
+const MyMasterTraderProfile = lazy(() => import('../pages/socialTrading/myMasterTraderProfile/MyMasterTraderProfile.jsx'));
 
 // Routes
 export const routing = [
@@ -351,4 +352,5 @@ export const routing = [
     { path: "/client/socialTrading/masterTrader/:masterTraderId", element: <MasterTraderDetail /> },
     { path: "/client/socialTrading/mySubscriptions", element: <MySubscriptions /> },
     { path: "/client/socialTrading/myWatchlist", element: <MyWatchlist /> },
+    { path: "/client/socialTrading/myProfile", element: <MyMasterTraderProfile /> },
 ];

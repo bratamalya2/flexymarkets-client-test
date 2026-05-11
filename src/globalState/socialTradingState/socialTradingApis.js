@@ -12,7 +12,7 @@ export const socialTradingApis = createApi({
             return headers;
         },
     }),
-    tagTypes: ["MasterTraderList", "MySubscriptions", "MyWatchlist"],
+    tagTypes: ["MasterTraderList", "MySubscriptions", "MyWatchlist", "MyMasterTraderProfile"],
     endpoints: (builder) => ({
 
         // Discovery - paginated list of all active master traders
@@ -162,6 +162,19 @@ export const socialTradingApis = createApi({
             refetchOnMountOrArgChange: true,
         }),
 
+        // My master trader profile (self-service)
+        getMyMasterTraderProfile: builder.query({
+            query: () => ({ url: "/my-profile" }),
+            providesTags: ["MyMasterTraderProfile"],
+            keepUnusedDataFor: 60,
+            refetchOnMountOrArgChange: true,
+        }),
+
+        updateMyMasterTraderProfile: builder.mutation({
+            query: (body) => ({ url: "/my-profile", method: "PUT", body }),
+            invalidatesTags: ["MyMasterTraderProfile"],
+        }),
+
         // Toggle watchlist notifications for a master trader
         toggleWatchlistNotifications: builder.mutation({
             query: ({ masterTraderId, notificationsEnabled }) => ({
@@ -190,4 +203,6 @@ export const {
     useUnwatchMasterTraderMutation,
     useGetMyWatchlistQuery,
     useToggleWatchlistNotificationsMutation,
+    useGetMyMasterTraderProfileQuery,
+    useUpdateMyMasterTraderProfileMutation,
 } = socialTradingApis;
