@@ -69,12 +69,21 @@ function TraderCard({ trader, onView }) {
                                 {trader.user?.name || trader.user?.userName || ''}
                             </Typography>
                         </Box>
-                        <Chip
-                            label={trader.riskLevel}
-                            color={riskColor(trader.riskLevel)}
-                            size="small"
-                            variant="outlined"
-                        />
+                        <Stack direction="row" spacing={0.5}>
+                            <Chip
+                                label={trader.riskLevel}
+                                color={riskColor(trader.riskLevel)}
+                                size="small"
+                                variant="outlined"
+                            />
+                            {trader.tradingStyle && (
+                                <Chip
+                                    label={trader.tradingStyle.charAt(0) + trader.tradingStyle.slice(1).toLowerCase()}
+                                    size="small"
+                                    variant="outlined"
+                                />
+                            )}
+                        </Stack>
                     </Stack>
 
                     <MiniChart data={trader.pnlPerformanceChart} />

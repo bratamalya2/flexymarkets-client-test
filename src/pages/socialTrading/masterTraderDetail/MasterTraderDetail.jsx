@@ -464,6 +464,31 @@ export default function MasterTraderDetail() {
                 </CardContent>
             </Card>
 
+            {/* Strategy */}
+            {(trader.tradingStyle || (trader.instruments && trader.instruments.length > 0) || trader.avgTradeDuration || trader.description) && (
+                <Card variant="outlined" sx={{ mb: 3 }}>
+                    <CardContent>
+                        <Typography variant="subtitle1" fontWeight={600} mb={1.5}>Strategy</Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={trader.description ? 1.5 : 0}>
+                            {trader.tradingStyle && (
+                                <Chip label={`Style: ${trader.tradingStyle.charAt(0) + trader.tradingStyle.slice(1).toLowerCase()}`} size="small" color="primary" variant="outlined" />
+                            )}
+                            {trader.avgTradeDuration && (
+                                <Chip label={`Holds: ${trader.avgTradeDuration.charAt(0) + trader.avgTradeDuration.slice(1).toLowerCase()}`} size="small" variant="outlined" />
+                            )}
+                            {(trader.instruments || []).map((inst) => (
+                                <Chip key={inst} label={inst.charAt(0) + inst.slice(1).toLowerCase()} size="small" variant="outlined" color="secondary" />
+                            ))}
+                        </Stack>
+                        {trader.description && (
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {trader.description}
+                            </Typography>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Stats row */}
             <Grid container spacing={2} mb={3}>
                 <Grid item xs={6} sm={4} md={2}>
