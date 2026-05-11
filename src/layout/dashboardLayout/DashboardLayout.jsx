@@ -64,6 +64,10 @@ function DashboardLayout() {
         if (isMobile) setSidebarOpen(false);
     }, [isMobile]);
 
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
+    }, [selectedTheme]);
+
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />

@@ -10,13 +10,15 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useEffect, useRef, useState as useLocalState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { setNotification } from '../../../globalState/notificationState/notificationStateSlice';
 import {
     useGetMyMasterTraderProfileQuery,
     useUpdateMyMasterTraderProfileMutation,
+    useUploadMasterTraderPhotoMutation,
 } from '../../../globalState/socialTradingState/socialTradingApis';
+import { Camera, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
@@ -53,9 +55,9 @@ const RISK_OPTIONS = [
         description: 'Conservative, stable returns',
         color: 'emerald',
         border: 'border-emerald-500',
-        bg: 'bg-emerald-50',
+        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
         dot: 'bg-emerald-500',
-        selectedText: 'text-emerald-700',
+        selectedText: 'text-emerald-700 dark:text-emerald-400',
         iconBg: 'bg-emerald-100',
         iconColor: 'text-emerald-600',
     },
@@ -65,9 +67,9 @@ const RISK_OPTIONS = [
         description: 'Balanced growth & safety',
         color: 'amber',
         border: 'border-amber-500',
-        bg: 'bg-amber-50',
+        bg: 'bg-amber-50 dark:bg-amber-900/20',
         dot: 'bg-amber-500',
-        selectedText: 'text-amber-700',
+        selectedText: 'text-amber-700 dark:text-amber-400',
         iconBg: 'bg-amber-100',
         iconColor: 'text-amber-600',
     },
@@ -77,9 +79,9 @@ const RISK_OPTIONS = [
         description: 'Aggressive, high potential',
         color: 'red',
         border: 'border-red-500',
-        bg: 'bg-red-50',
+        bg: 'bg-red-50 dark:bg-red-900/20',
         dot: 'bg-red-500',
-        selectedText: 'text-red-700',
+        selectedText: 'text-red-700 dark:text-red-400',
         iconBg: 'bg-red-100',
         iconColor: 'text-red-600',
     },
@@ -108,8 +110,15 @@ function FieldError({ message }) {
 
 export default function MyMasterTraderProfile() {
     const dispatch = useDispatch();
+    const { selectedTheme } = useSelector((state) => state.themeMode);
+    const isDark = selectedTheme === 'dark';
     const { data, isLoading, isError } = useGetMyMasterTraderProfileQuery();
     const [updateProfile, { isLoading: isSaving }] = useUpdateMyMasterTraderProfileMutation();
+    const [uploadPhoto, { isLoading: isUploading }] = useUploadMasterTraderPhotoMutation();
+
+    const fileInputRef = useRef(null);
+    const [photoPreview, setPhotoPreview] = useLocalState(null);
+    const [selectedFile, setSelectedFile] = useLocalState(null);
 
     const trader = data?.data;
     const grad = traderGradient(trader?.id);
@@ -157,6 +166,33 @@ export default function MyMasterTraderProfile() {
     };
 
     const riskLevel = watch('riskLevel');
+    const handleFileSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedFile(file);
+        setPhotoPreview(URL.createObjectURL(file));
+        e.target.value = '';
+    };
+
+    const handlePhotoUpload = async () => {
+        if (!selectedFile) return;
+        const fd = new FormData();
+        fd.append('photo', selectedFile);
+        try {
+            const res = await uploadPhoto(fd).unwrap();
+            dispatch(setNotification({ open: true, message: res?.message || 'Photo updated!', severity: 'success' }));
+            setPhotoPreview(null);
+            setSelectedFile(null);
+        } catch (err) {
+            dispatch(setNotification({ open: true, message: err?.data?.message || 'Upload failed.', severity: 'error' }));
+        }
+    };
+
+    const cancelPhotoPreview = () => {
+        setPhotoPreview(null);
+        setSelectedFile(null);
+    };
+
     const instruments = watch('instruments') || [];
 
     return (
@@ -175,7 +211,7 @@ export default function MyMasterTraderProfile() {
                 </MuiTypography>
             </Box>
 
-            <div className="bg-gray-50 min-h-screen py-8 px-4">
+            <div className="bg-gray-50 dark:bg-[#121212] min-h-screen py-8 px-4">
                 <div className="max-w-5xl mx-auto">
 
                     {isLoading && (
@@ -201,14 +237,14 @@ export default function MyMasterTraderProfile() {
                                 <div className="lg:col-span-7 space-y-6">
 
                                     {/* Basic info card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-5">
                                         <div>
-                                            <h2 className="text-base font-semibold text-gray-900">Basic Information</h2>
-                                            <p className="text-sm text-gray-500 mt-0.5">Your public display name and description</p>
+                                            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Basic Information</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Your public display name and description</p>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="displayName" className="text-sm font-medium text-gray-700">
+                                            <Label htmlFor="displayName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Display Name <span className="text-red-500">*</span>
                                             </Label>
                                             <Input
@@ -221,7 +257,7 @@ export default function MyMasterTraderProfile() {
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                                            <Label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Description
                                             </Label>
                                             <Textarea
@@ -235,10 +271,10 @@ export default function MyMasterTraderProfile() {
                                     </div>
 
                                     {/* Risk level card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-4">
                                         <div>
-                                            <h2 className="text-base font-semibold text-gray-900">Risk Level <span className="text-red-500">*</span></h2>
-                                            <p className="text-sm text-gray-500 mt-0.5">How would you characterise your trading style?</p>
+                                            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Risk Level <span className="text-red-500">*</span></h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">How would you characterise your trading style?</p>
                                         </div>
                                         <div className="grid grid-cols-3 gap-3">
                                             {RISK_OPTIONS.map((opt) => {
@@ -250,14 +286,14 @@ export default function MyMasterTraderProfile() {
                                                         onClick={() => setValue('riskLevel', opt.value, { shouldValidate: true })}
                                                         className={cn(
                                                             "relative rounded-xl border-2 p-4 text-left transition-all duration-200 cursor-pointer",
-                                                            selected ? `${opt.border} ${opt.bg}` : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                                                            selected ? `${opt.border} ${opt.bg}` : "border-gray-200 dark:border-gray-600 bg-white dark:bg-[#2a2a2a] hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-[#333]"
                                                         )}
                                                     >
-                                                        <div className={cn("h-2 w-2 rounded-full mb-2.5", selected ? opt.dot : "bg-gray-300")} />
-                                                        <p className={cn("text-sm font-semibold leading-tight", selected ? opt.selectedText : "text-gray-700")}>
+                                                        <div className={cn("h-2 w-2 rounded-full mb-2.5", selected ? opt.dot : "bg-gray-300 dark:bg-gray-600")} />
+                                                        <p className={cn("text-sm font-semibold leading-tight", selected ? opt.selectedText : "text-gray-700 dark:text-gray-300")}>
                                                             {opt.label}
                                                         </p>
-                                                        <p className={cn("text-[11px] mt-0.5 leading-tight", selected ? opt.selectedText + '/80' : "text-gray-400")}>
+                                                        <p className={cn("text-[11px] mt-0.5 leading-tight", selected ? opt.selectedText + '/80' : "text-gray-400 dark:text-gray-500")}>
                                                             {opt.description}
                                                         </p>
                                                         {selected && (
@@ -274,15 +310,15 @@ export default function MyMasterTraderProfile() {
                                     </div>
 
                                     {/* Strategy card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-5">
                                         <div>
-                                            <h2 className="text-base font-semibold text-gray-900">Strategy Details</h2>
-                                            <p className="text-sm text-gray-500 mt-0.5">Help copiers understand how you trade</p>
+                                            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Strategy Details</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Help copiers understand how you trade</p>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <Label className="text-sm font-medium text-gray-700">Trading Style</Label>
+                                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Trading Style</Label>
                                                 <Controller name="tradingStyle" control={control} render={({ field }) => (
                                                     <FormControl fullWidth size="small">
                                                         <MuiSelect
@@ -298,7 +334,7 @@ export default function MyMasterTraderProfile() {
                                             </div>
 
                                             <div className="space-y-1.5">
-                                                <Label className="text-sm font-medium text-gray-700">Avg Trade Duration</Label>
+                                                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Trade Duration</Label>
                                                 <Controller name="avgTradeDuration" control={control} render={({ field }) => (
                                                     <FormControl fullWidth size="small">
                                                         <MuiSelect
@@ -315,7 +351,7 @@ export default function MyMasterTraderProfile() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-sm font-medium text-gray-700">Instruments Traded</Label>
+                                            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Instruments Traded</Label>
                                             <div className="flex flex-wrap gap-2">
                                                 {INSTRUMENT_OPTIONS.map((inst) => {
                                                     const active = instruments.includes(inst);
@@ -333,7 +369,7 @@ export default function MyMasterTraderProfile() {
                                                                 "px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150",
                                                                 active
                                                                     ? "bg-indigo-500 text-white border-indigo-500 shadow-sm"
-                                                                    : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+                                                                    : "bg-white dark:bg-[#2a2a2a] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-indigo-300 hover:text-indigo-600"
                                                             )}
                                                         >
                                                             {inst.charAt(0) + inst.slice(1).toLowerCase()}
@@ -345,14 +381,14 @@ export default function MyMasterTraderProfile() {
                                     </div>
 
                                     {/* Copy settings card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-5">
                                         <div>
-                                            <h2 className="text-base font-semibold text-gray-900">Copy Settings</h2>
-                                            <p className="text-sm text-gray-500 mt-0.5">Set limits for copiers joining your strategy</p>
+                                            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Copy Settings</h2>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Set limits for copiers joining your strategy</p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <Label htmlFor="minimumCopyBalance" className="text-sm font-medium text-gray-700">
+                                                <Label htmlFor="minimumCopyBalance" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Min Copy Balance ($) <span className="text-red-500">*</span>
                                                 </Label>
                                                 <Input
@@ -366,7 +402,7 @@ export default function MyMasterTraderProfile() {
                                                 <FieldError message={errors.minimumCopyBalance?.message} />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <Label htmlFor="maxCopiers" className="text-sm font-medium text-gray-700">
+                                                <Label htmlFor="maxCopiers" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                     Max Copiers <span className="text-red-500">*</span>
                                                 </Label>
                                                 <Input
@@ -387,7 +423,7 @@ export default function MyMasterTraderProfile() {
                                 <div className="lg:col-span-5 space-y-5">
 
                                     {/* Profile preview card */}
-                                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
+                                    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden sticky top-4">
                                         {/* Gradient cover */}
                                         <div className="h-24 relative overflow-hidden" style={{ background: grad }}>
                                             <div className="absolute top-[-20px] right-[-20px] w-28 h-28 rounded-full bg-white/10" />
@@ -401,11 +437,67 @@ export default function MyMasterTraderProfile() {
                                         </div>
                                         <div className="px-5 pb-5">
                                             <div className="-mt-7 mb-3 flex items-end justify-between">
-                                                <div className="h-14 w-14 rounded-full flex items-center justify-center text-white font-black text-xl border-[3px] border-white shadow-md" style={{ background: grad }}>
-                                                    {(trader.displayName || 'T')[0].toUpperCase()}
+                                                {/* Clickable avatar / photo */}
+                                                <div className="relative group">
+                                                    {photoPreview ? (
+                                                        <img src={photoPreview} alt="preview"
+                                                            className="h-14 w-14 rounded-full object-cover border-[3px] border-white dark:border-gray-800 shadow-md" />
+                                                    ) : trader.profilePhoto ? (
+                                                        <img
+                                                            src={`${import.meta.env.VITE_BASE_URL}${trader.profilePhoto}`}
+                                                            alt={trader.displayName}
+                                                            className="h-14 w-14 rounded-full object-cover border-[3px] border-white dark:border-gray-800 shadow-md"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-14 w-14 rounded-full flex items-center justify-center text-white font-black text-xl border-[3px] border-white dark:border-gray-800 shadow-md" style={{ background: grad }}>
+                                                            {(trader.displayName || 'T')[0].toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    {/* Camera overlay */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                                        title="Change photo"
+                                                    >
+                                                        <Camera className="h-4 w-4 text-white" />
+                                                    </button>
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        className="hidden"
+                                                        onChange={handleFileSelect}
+                                                    />
                                                 </div>
                                             </div>
-                                            <p className="font-bold text-gray-900 text-base">{trader.displayName}</p>
+
+                                            {/* Photo action bar — shown only when a file is staged */}
+                                            {photoPreview && (
+                                                <div className="mb-3 flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2">
+                                                    <span className="flex-1 text-xs text-indigo-700 dark:text-indigo-300 font-medium truncate">
+                                                        {selectedFile?.name}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handlePhotoUpload}
+                                                        disabled={isUploading}
+                                                        className="shrink-0 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                                                    >
+                                                        {isUploading ? 'Uploading…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelPhotoPreview}
+                                                        disabled={isUploading}
+                                                        className="shrink-0 rounded-md border border-gray-200 dark:border-gray-600 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-60 transition-colors"
+                                                    >
+                                                        <X className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            <p className="font-bold text-gray-900 dark:text-white text-base">{trader.displayName}</p>
                                             <p className="text-xs text-gray-400 mb-4">MT5 Login: {trader.mt5Login}</p>
 
                                             <div className="grid grid-cols-3 gap-3 text-center">
@@ -414,9 +506,9 @@ export default function MyMasterTraderProfile() {
                                                     { icon: <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16, color: '#6366f1' }} />, value: `$${trader.minimumCopyBalance}`, label: 'Min Balance' },
                                                     { icon: <ShowChartIcon sx={{ fontSize: 16, color: '#6366f1' }} />, value: trader.maxCopiers, label: 'Max Copiers' },
                                                 ].map((s) => (
-                                                    <div key={s.label} className="rounded-xl bg-gray-50 p-2.5">
+                                                    <div key={s.label} className="rounded-xl bg-gray-50 dark:bg-gray-800/50 p-2.5">
                                                         <div className="flex justify-center mb-1">{s.icon}</div>
-                                                        <p className="text-sm font-bold text-gray-800">{s.value}</p>
+                                                        <p className="text-sm font-bold text-gray-800 dark:text-white">{s.value}</p>
                                                         <p className="text-[10px] text-gray-400">{s.label}</p>
                                                     </div>
                                                 ))}
@@ -425,7 +517,7 @@ export default function MyMasterTraderProfile() {
                                     </div>
 
                                     {/* Info card */}
-                                    <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-5 text-white space-y-4 shadow-lg shadow-indigo-200">
+                                    <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-2xl p-5 text-white space-y-4 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30">
                                         <div className="flex items-start gap-3">
                                             <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                                                 <TrendingUpIcon sx={{ fontSize: 22, color: 'white' }} />
@@ -454,12 +546,12 @@ export default function MyMasterTraderProfile() {
 
                             {/* ── Separator + actions ── */}
                             <div className="mt-8">
-                                <Separator className="bg-gray-200 mb-6" />
+                                <Separator className="bg-gray-200 dark:bg-gray-700 mb-6" />
                                 <div className="flex items-center justify-end gap-3">
                                     <button
                                         type="button"
                                         onClick={() => reset()}
-                                        className="px-5 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                        className="px-5 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-[#2a2a2a] text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#333] transition-colors"
                                     >
                                         Reset
                                     </button>

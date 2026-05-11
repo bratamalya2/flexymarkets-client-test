@@ -76,7 +76,7 @@ export function GlassTraderCard({ trader, onView, className }) {
             onHoverStart={() => setHovered(true)}
             onHoverEnd={() => setHovered(false)}
         >
-            <Card className="group relative h-full overflow-hidden rounded-2xl border-white/[0.12] bg-white/[0.06] backdrop-blur-md transition-all duration-300 hover:border-white/25 hover:shadow-2xl hover:shadow-black/40 flex flex-col">
+            <Card className="group relative h-full overflow-hidden rounded-2xl border-gray-200 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] dark:backdrop-blur-md transition-all duration-300 hover:border-gray-300 dark:hover:border-white/25 hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/40 flex flex-col">
 
                 {/* ── Image section ── */}
                 <div className="relative aspect-[16/9] overflow-hidden flex-shrink-0">
@@ -87,6 +87,16 @@ export function GlassTraderCard({ trader, onView, className }) {
                         animate={{ scale: hovered ? 1.07 : 1 }}
                         transition={{ duration: 0.5, ease: "easeInOut" }}
                     />
+                    {/* Profile photo overlay (bottom-left) */}
+                    {trader.profilePhoto && (
+                        <div className="absolute bottom-12 left-3">
+                            <img
+                                src={`${import.meta.env.VITE_BASE_URL}${trader.profilePhoto}`}
+                                alt={trader.displayName}
+                                className="h-10 w-10 rounded-full object-cover border-2 border-white/80 shadow-md"
+                            />
+                        </div>
+                    )}
 
                     {/* Bottom-up dark gradient */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
@@ -152,52 +162,52 @@ export function GlassTraderCard({ trader, onView, className }) {
                             {(trader.displayName || "T")[0].toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-white leading-tight">{trader.displayName}</p>
-                            <p className="truncate text-xs text-white/50">{trader.user?.name || trader.user?.userName || ""}</p>
+                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white leading-tight">{trader.displayName}</p>
+                            <p className="truncate text-xs text-gray-500 dark:text-white/50">{trader.user?.name || trader.user?.userName || ""}</p>
                         </div>
                     </div>
 
                     {/* ROI — the headline metric */}
                     <div className="text-center py-1">
-                        <p className={cn("text-2xl font-black tracking-tight leading-none", roi !== null ? (roi >= 0 ? "text-emerald-400" : "text-red-400") : "text-white/40")}>
+                        <p className={cn("text-2xl font-black tracking-tight leading-none", roi !== null ? (roi >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400") : "text-gray-300 dark:text-white/40")}>
                             {roi !== null ? `${roi >= 0 ? "+" : ""}${parseFloat(roi).toFixed(2)}%` : "—"}
                         </p>
-                        <p className="text-[11px] text-white/40 mt-0.5">Total ROI</p>
+                        <p className="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">Total ROI</p>
                     </div>
 
                     {/* Stats row */}
-                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-white/[0.05] p-2.5">
+                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-gray-50 dark:bg-white/[0.05] p-2.5">
                         <div className="text-center">
-                            <p className="text-xs font-semibold text-white/90">
+                            <p className="text-xs font-semibold text-gray-800 dark:text-white/90">
                                 {winRate !== null ? `${parseFloat(winRate).toFixed(1)}%` : "—"}
                             </p>
-                            <p className="text-[10px] text-white/40">Win Rate</p>
+                            <p className="text-[10px] text-gray-400 dark:text-white/40">Win Rate</p>
                         </div>
-                        <div className="text-center border-x border-white/10">
-                            <p className="text-xs font-semibold text-red-400/90">
+                        <div className="text-center border-x border-gray-200 dark:border-white/10">
+                            <p className="text-xs font-semibold text-red-500 dark:text-red-400/90">
                                 {drawdown !== null ? `${parseFloat(drawdown).toFixed(1)}%` : "—"}
                             </p>
-                            <p className="text-[10px] text-white/40">Max DD</p>
+                            <p className="text-[10px] text-gray-400 dark:text-white/40">Max DD</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-xs font-semibold text-white/90">{copiers}</p>
-                            <p className="text-[10px] text-white/40">Copiers</p>
+                            <p className="text-xs font-semibold text-gray-800 dark:text-white/90">{copiers}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-white/40">Copiers</p>
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between border-t border-white/[0.08] pt-3 mt-auto">
-                        <div className="flex items-center gap-1 text-white/40">
+                    <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/[0.08] pt-3 mt-auto">
+                        <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
                             <Users className="h-3 w-3" />
                             <span className="text-[11px]">{copiers} copying</span>
                         </div>
                         {trader.reviewsCount > 0 && (
-                            <div className="flex items-center gap-1 text-white/40">
+                            <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
                                 <Star className="h-3 w-3" />
                                 <span className="text-[11px]">{parseFloat(trader.reviewsRating).toFixed(1)}</span>
                             </div>
                         )}
-                        <div className="flex items-center gap-1 text-white/40">
+                        <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
                             <TrendingUp className="h-3 w-3" />
                             <span className="text-[11px]">Min ${trader.minimumCopyBalance}</span>
                         </div>

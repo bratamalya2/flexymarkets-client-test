@@ -33,7 +33,7 @@ import {
     useSubmitReviewMutation,
 } from '../../../globalState/socialTradingState/socialTradingApis';
 import { useMt5AccountListQuery } from '../../../globalState/mt5State/mt5StateApis';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setNotification } from '../../../globalState/notificationState/notificationStateSlice';
 
 const AVATAR_GRADIENTS = [
@@ -64,7 +64,7 @@ function WinRateCircle({ winRate }) {
     return (
         <div className="relative mx-auto flex size-32 items-center justify-center">
             <svg className="absolute inset-0 size-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                <circle cx="50" cy="50" r="40" fill="none" className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="8" />
                 <circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
                     style={{ strokeDasharray: `${filled} ${circumference}`, transition: 'stroke-dasharray 0.6s ease' }} />
             </svg>
@@ -79,7 +79,7 @@ function LargeSparkline({ data }) {
     if (!data || data.length < 2) {
         /* Decorative static chart when no data */
         return (
-            <svg className="w-full text-gray-100" viewBox="0 0 386 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-full text-gray-100 dark:text-gray-800" viewBox="0 0 386 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path fillRule="evenodd" clipRule="evenodd"
                     d="M3 80C3 80 14 58 35 54C56 50 66 49 66 49C66 49 80 49 92 49C103 49 100 38 109 38C117 38 117 56 125 56C133 56 142 48 154 49C165 51 186 56 193 56C200 56 205 38 213 38C221 38 238 57 244 56C250 55 258 36 266 36C272 36 284 53 287 54C295 54 300 44 305 44C312 44 322 40 334 38C346 37 347 50 363 49C379 48 383 65 383 65V80H3Z"
                     fill="currentColor" />
@@ -112,6 +112,8 @@ function LargeSparkline({ data }) {
 }
 
 function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, trader }) {
+    const { selectedTheme } = useSelector((state) => state.themeMode);
+    const isDark = selectedTheme === 'dark';
     const roi          = stats?.totalPnLPercentage  ?? null;
     const winRate      = stats?.winRate             ?? null;
     const drawdown     = stats?.maxDrawdownPercent  ?? null;
@@ -181,7 +183,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                 <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
                     <BCardContent className="grid pt-6 sm:grid-cols-[190px_1fr]">
                         <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
-                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 items-center justify-center">
+                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 dark:border-gray-700 items-center justify-center">
                                 <TrendingUp className="size-5" strokeWidth={1} />
                             </div>
                             <div className="space-y-3">
@@ -201,7 +203,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                                 "px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors",
                                                 chartTimeframe === tf
                                                     ? "bg-indigo-600 text-white border-indigo-600"
-                                                    : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400"
+                                                    : "bg-transparent text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400"
                                             )}
                                         >
                                             {tf}
@@ -221,7 +223,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                                 <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#f0f0f0"} />
                                         <XAxis dataKey="date" tick={{ fontSize: 9 }}
                                             tickFormatter={(d) => d ? new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''} />
                                         <YAxis tick={{ fontSize: 9 }} />
@@ -245,7 +247,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                 <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
                     <BCardContent className="grid h-full pt-6 sm:grid-cols-2">
                         <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
-                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 items-center justify-center">
+                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 dark:border-gray-700 items-center justify-center">
                                 <Users className="size-5" strokeWidth={1} />
                             </div>
                             <div className="space-y-2">
@@ -256,34 +258,34 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                             </div>
                         </div>
 
-                        <div className="relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-gray-100 sm:-my-6 sm:-mr-6">
+                        <div className="relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-gray-100 dark:before:bg-gray-700 sm:-my-6 sm:-mr-6">
                             <div className="relative flex h-full flex-col justify-center space-y-6 py-6">
                                 <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
-                                    <span className="block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm">
+                                    <span className="block h-fit rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-2 py-1 text-xs shadow-sm">
                                         {copiers} copying
                                     </span>
-                                    <div className="ring-4 ring-white size-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                                         <PeopleOutlineIcon sx={{ fontSize: 14, color: '#6366f1' }} />
                                     </div>
                                 </div>
                                 <div className="relative ml-[calc(50%-1rem)] flex items-center gap-2">
-                                    <div className="ring-4 ring-white size-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                    <div className="ring-4 ring-white dark:ring-gray-900 size-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
                                         <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 14, color: '#10b981' }} />
                                     </div>
-                                    <span className="block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm">
+                                    <span className="block h-fit rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-2 py-1 text-xs shadow-sm">
                                         Min ${trader.minimumCopyBalance}
                                     </span>
                                 </div>
                                 <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
                                     <span className={cn(
-                                        "block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm font-semibold",
+                                        "block h-fit rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs shadow-sm font-semibold",
                                         monthlyPnL !== null && parseFloat(monthlyPnL) >= 0 ? "text-emerald-600" : "text-red-500"
                                     )}>
                                         {monthlyPnL !== null
                                             ? `${parseFloat(monthlyPnL) >= 0 ? '+' : ''}$${parseFloat(monthlyPnL).toFixed(2)}/mo`
                                             : '— /mo'}
                                     </span>
-                                    <div className="ring-4 ring-white size-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                                    <div className="ring-4 ring-white dark:ring-gray-900 size-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
                                         <Activity className="size-3 text-violet-500" />
                                     </div>
                                 </div>
@@ -362,6 +364,8 @@ function ReviewDialog({ open, onClose, onSubmit, loading }) {
 /* ─── Tabs ─── */
 
 function TradesTab({ masterTraderId }) {
+    const { selectedTheme } = useSelector((state) => state.themeMode);
+    const isDark = selectedTheme === 'dark';
     const [page] = useState(1);
     const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({ masterTraderId, page, sizePerPage: 20 });
     const trades = data?.data?.trades || [];
@@ -379,15 +383,15 @@ function TradesTab({ masterTraderId }) {
         <Box sx={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                    <tr style={{ background: '#f8f9fa' }}>
+                    <tr style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
                         {['Ticket', 'Symbol', 'Type', 'Volume', 'Price', 'Profit', 'Time'].map((h) => (
-                            <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: '#666', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                            <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: isDark ? '#9ca3af' : '#666', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                     {trades.map((t, i) => (
-                        <tr key={t.ticket || i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <tr key={t.ticket || i} style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #f0f0f0' }}>
                             <td style={{ padding: '9px 14px', color: '#888' }}>{t.ticket}</td>
                             <td style={{ padding: '9px 14px', fontWeight: 600 }}>{t.symbol}</td>
                             <td style={{ padding: '9px 14px' }}>
@@ -546,9 +550,17 @@ export default function MasterTraderDetail() {
                 <Card variant="outlined" sx={{ borderRadius: 3, mb: 3, mt: '-1px', overflow: 'visible' }}>
                     <CardContent sx={{ pt: 0 }}>
                         <Box sx={{ mt: -5, mb: 1.5, display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-                            <Avatar sx={{ width: 80, height: 80, fontSize: 30, fontWeight: 800, background: grad, border: '3px solid white', boxShadow: 3 }}>
-                                {(trader.displayName || 'T')[0].toUpperCase()}
-                            </Avatar>
+                            {trader.profilePhoto ? (
+                                <Box component="img"
+                                    src={`${import.meta.env.VITE_BASE_URL}${trader.profilePhoto}`}
+                                    alt={trader.displayName}
+                                    sx={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid white', boxShadow: 3 }}
+                                />
+                            ) : (
+                                <Avatar sx={{ width: 80, height: 80, fontSize: 30, fontWeight: 800, background: grad, border: '3px solid white', boxShadow: 3 }}>
+                                    {(trader.displayName || 'T')[0].toUpperCase()}
+                                </Avatar>
+                            )}
                         </Box>
 
                         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'flex-start' }} justifyContent="space-between" spacing={2}>

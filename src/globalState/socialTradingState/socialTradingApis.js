@@ -175,6 +175,15 @@ export const socialTradingApis = createApi({
             invalidatesTags: ["MyMasterTraderProfile"],
         }),
 
+        uploadMasterTraderPhoto: builder.mutation({
+            query: (formData) => ({
+                url: "/my-profile/photo",
+                method: "PUT",
+                body: formData,
+            }),
+            invalidatesTags: ["MyMasterTraderProfile"],
+        }),
+
         // Toggle watchlist notifications for a master trader
         toggleWatchlistNotifications: builder.mutation({
             query: ({ masterTraderId, notificationsEnabled }) => ({
@@ -205,4 +214,5 @@ export const {
     useToggleWatchlistNotificationsMutation,
     useGetMyMasterTraderProfileQuery,
     useUpdateMyMasterTraderProfileMutation,
+    useUploadMasterTraderPhotoMutation,
 } = socialTradingApis;

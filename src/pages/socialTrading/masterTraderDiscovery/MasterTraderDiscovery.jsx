@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
     Box, Container, Typography, TextField, InputAdornment, Button,
     CircularProgress, Alert, Pagination, Stack
@@ -24,6 +25,8 @@ const SORT_OPTIONS = [
 
 export default function MasterTraderDiscovery() {
     const navigate  = useNavigate();
+    const { selectedTheme } = useSelector((state) => state.themeMode);
+    const isDark = selectedTheme === 'dark';
     const [page, setPage]               = useState(1);
     const [sortBy, setSortBy]           = useState('copiers');
     const [search, setSearch]           = useState('');
@@ -41,7 +44,7 @@ export default function MasterTraderDiscovery() {
     const handleSortChange = (val) => { setSortBy(val); setPage(1); };
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#080d1f' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: isDark ? '#080d1f' : 'background.default' }}>
 
             {/* ── Hero ── */}
             <Box sx={{
@@ -121,8 +124,8 @@ export default function MasterTraderDiscovery() {
                 </Stack>
             </Box>
 
-            {/* ── Dark content area ── */}
-            <Box sx={{ bgcolor: '#080d1f', pt: 4, pb: 8 }}>
+            {/* ── Content area ── */}
+            <Box sx={{ bgcolor: isDark ? '#080d1f' : 'background.default', pt: 4, pb: 8 }}>
                 <Container maxWidth="xl">
 
                     {/* Sort pills */}
@@ -135,7 +138,9 @@ export default function MasterTraderDiscovery() {
                                     "whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 border",
                                     sortBy === opt.value
                                         ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-500/30"
-                                        : "bg-white/[0.05] text-white/60 border-white/10 hover:bg-white/[0.09] hover:text-white/90"
+                                        : isDark
+                                            ? "bg-white/[0.05] text-white/60 border-white/10 hover:bg-white/[0.09] hover:text-white/90"
+                                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900"
                                 )}
                             >
                                 {opt.label}
@@ -157,15 +162,15 @@ export default function MasterTraderDiscovery() {
 
                     {!isLoading && !isError && traders.length === 0 && (
                         <Box textAlign="center" py={10}>
-                            <ShowChartIcon sx={{ fontSize: 56, color: 'rgba(255,255,255,0.15)', mb: 2 }} />
-                            <Typography color="rgba(255,255,255,0.4)" variant="h6">No traders found</Typography>
-                            <Typography color="rgba(255,255,255,0.25)" variant="body2">Try adjusting your search or filters</Typography>
+                            <ShowChartIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+                            <Typography color="text.secondary" variant="h6">No traders found</Typography>
+                            <Typography color="text.disabled" variant="body2">Try adjusting your search or filters</Typography>
                         </Box>
                     )}
 
                     {!isLoading && traders.length > 0 && (
                         <>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', mb: 3 }}>
+                            <Typography sx={{ color: 'text.disabled', fontSize: '0.8rem', mb: 3 }}>
                                 {totalRecords} trader{totalRecords !== 1 ? 's' : ''} found
                             </Typography>
 
