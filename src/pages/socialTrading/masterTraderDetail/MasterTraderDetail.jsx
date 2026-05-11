@@ -1,24 +1,24 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Container, Typography, Box, Grid, Card, CardContent, Button, Stack,
-    Chip, CircularProgress, Alert, Avatar, Divider, Tab, Tabs,
+    Container, Typography, Box, Card, CardContent, Button, Stack,
+    Chip, CircularProgress, Alert, Avatar, Tab, Tabs,
     Dialog, DialogTitle, DialogContent, DialogActions, FormControl,
     InputLabel, Select, MenuItem, Rating, TextField, IconButton, Tooltip, Paper
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
-import BarChartIcon from '@mui/icons-material/BarChart';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
-    ResponsiveContainer, Legend, Area, AreaChart
+    AreaChart, Area, XAxis, YAxis, CartesianGrid,
+    Tooltip as RechartTooltip, ResponsiveContainer
 } from 'recharts';
+import { TrendingUp, Users, Shield, Activity } from 'lucide-react';
+import { Card as BCard, CardContent as BCardContent } from '../../../components/ui/card';
+import { cn } from '../../../lib/utils';
 import {
     useGetMasterTraderDetailQuery,
     useGetMasterTraderTradeListQuery,
@@ -54,16 +54,249 @@ const riskColor = (level) => {
     return 'warning';
 };
 
-function StatCard({ icon, label, value, color, subtext }) {
+/* ─── Bento sub-components ─── */
+
+function WinRateCircle({ winRate }) {
+    const wr = winRate ? Math.min(100, Math.max(0, parseFloat(winRate))) : 0;
+    const circumference = 2 * Math.PI * 40;
+    const filled = (wr / 100) * circumference;
+    const color = wr >= 60 ? '#10b981' : wr >= 40 ? '#f59e0b' : '#ef4444';
     return (
-        <Card variant="outlined" sx={{ borderRadius: 3, textAlign: 'center', py: 2, px: 1.5, height: '100%' }}>
-            <Box sx={{ color: color || 'primary.main', mb: 0.5 }}>{icon}</Box>
-            <Typography variant="h6" fontWeight={800} color={color || 'text.primary'} lineHeight={1.1}>{value ?? '—'}</Typography>
-            <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>{label}</Typography>
-            {subtext && <Typography variant="caption" color={color || 'text.secondary'} display="block">{subtext}</Typography>}
-        </Card>
+        <div className="relative mx-auto flex size-32 items-center justify-center">
+            <svg className="absolute inset-0 size-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
+                    style={{ strokeDasharray: `${filled} ${circumference}`, transition: 'stroke-dasharray 0.6s ease' }} />
+            </svg>
+            <span className="relative z-10 text-2xl font-black">
+                {winRate !== null ? `${parseFloat(winRate).toFixed(0)}%` : '—'}
+            </span>
+        </div>
     );
 }
+
+function LargeSparkline({ data }) {
+    if (!data || data.length < 2) {
+        /* Decorative static chart when no data */
+        return (
+            <svg className="w-full text-gray-100" viewBox="0 0 386 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" clipRule="evenodd"
+                    d="M3 80C3 80 14 58 35 54C56 50 66 49 66 49C66 49 80 49 92 49C103 49 100 38 109 38C117 38 117 56 125 56C133 56 142 48 154 49C165 51 186 56 193 56C200 56 205 38 213 38C221 38 238 57 244 56C250 55 258 36 266 36C272 36 284 53 287 54C295 54 300 44 305 44C312 44 322 40 334 38C346 37 347 50 363 49C379 48 383 65 383 65V80H3Z"
+                    fill="currentColor" />
+                <path className="text-indigo-500"
+                    d="M3 74C15 68 36 53 66 49C92 49 100 38 109 38C117 38 117 56 125 56C133 56 142 48 154 49C165 51 186 56 193 56C200 56 205 38 213 38C221 38 238 57 244 56C250 55 258 36 266 36C272 36 284 53 287 54C295 54 300 44 305 44C312 44 322 40 334 38C346 37 347 50 363 49C376 48 383 63 383 63"
+                    stroke="currentColor" strokeWidth="2" />
+            </svg>
+        );
+    }
+    const values = data.map((d) => parseFloat(d.totalPnL || 0));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const w = 386;
+    const h = 80;
+    const slice = values.slice(-24);
+    const pts = slice.map((v, i) =>
+        `${(i / (slice.length - 1)) * w},${h - ((v - min) / range) * (h - 6)}`
+    );
+    const linePath = `M ${pts.join(' L ')}`;
+    const areaPath = `M 0,${h} L ${pts.join(' L ')} L ${w},${h} Z`;
+    const positive = values[values.length - 1] >= values[0];
+    const color = positive ? '#10b981' : '#ef4444';
+    return (
+        <svg viewBox={`0 0 ${w} ${h}`} className="w-full" fill="none">
+            <path d={areaPath} fill={color} fillOpacity="0.12" />
+            <path d={linePath} stroke={color} strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+    );
+}
+
+function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, trader }) {
+    const roi          = stats?.totalPnLPercentage  ?? null;
+    const winRate      = stats?.winRate             ?? null;
+    const drawdown     = stats?.maxDrawdownPercent  ?? null;
+    const copiers      = stats?.activeCopiers       ?? 0;
+    const totalTrades  = stats?.totalTrades         ?? 0;
+    const monthlyPnL   = stats?.monthlyPnL          ?? null;
+
+    return (
+        <div className="relative mb-4">
+            <div className="relative z-10 grid grid-cols-6 gap-3">
+
+                {/* ── Card 1: Total ROI ── */}
+                <BCard className="relative col-span-full flex overflow-hidden lg:col-span-2">
+                    <BCardContent className="relative m-auto size-fit pt-6 text-center w-full px-4">
+                        <div className="relative flex h-24 items-center justify-center">
+                            {/* Decorative oval wave */}
+                            <svg className="text-gray-100 absolute inset-0 size-full" viewBox="0 0 254 104" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M112.891 97.7022C140.366 97.0802 171.004 94.6715 201.087 87.5116C210.43 85.2881 219.615 82.6412 228.284 78.2473C232.198 76.3179 235.905 73.9942 239.348 71.3124C241.85 69.2557 243.954 66.7571 245.555 63.9408C249.34 57.3235 248.281 50.5341 242.498 45.6109C239.033 42.7237 235.228 40.2703 231.169 38.3054C219.443 32.7209 207.141 28.4382 194.482 25.534C184.013 23.1927 173.358 21.7755 162.64 21.2989C161.376 21.3512 160.113 21.181 158.908 20.796C158.034 20.399 156.857 19.1682 156.962 18.4535C157.115 17.8927 157.381 17.3689 157.743 16.9139C158.104 16.4588 158.555 16.0821 159.067 15.8066C160.14 15.4683 161.274 15.3733 162.389 15.5286C179.805 15.3566 196.626 18.8373 212.998 24.462C220.978 27.2494 228.798 30.4747 236.423 34.1232C240.476 36.1159 244.202 38.7131 247.474 41.8258C254.342 48.2578 255.745 56.9397 251.841 65.4892C249.793 69.8582 246.736 73.6777 242.921 76.6327C236.224 82.0192 228.522 85.4602 220.502 88.2924C205.017 93.7847 188.964 96.9081 172.738 99.2109C153.442 101.949 133.993 103.478 114.506 103.79C91.1468 104.161 67.9334 102.97 45.1169 97.5831C36.0094 95.5616 27.2626 92.1655 19.1771 87.5116C13.839 84.5746 9.1557 80.5802 5.41318 75.7725C-0.54238 67.7259 -1.13794 59.1763 3.25594 50.2827C5.82447 45.3918 9.29572 41.0315 13.4863 37.4319C24.2989 27.5721 37.0438 20.9681 50.5431 15.7272C68.1451 8.8849 86.4883 5.1395 105.175 2.83669C129.045 0.0992292 153.151 0.134761 177.013 2.94256C197.672 5.23215 218.04 9.01724 237.588 16.3889C240.089 17.3418 242.498 18.5197 244.933 19.6446C246.627 20.4387 247.725 21.6695 246.997 23.615C246.455 25.1105 244.814 25.5605 242.63 24.5811C230.322 18.9961 217.233 16.1904 204.117 13.4376C188.761 10.3438 173.2 8.36665 157.558 7.52174C129.914 5.70776 102.154 8.06792 75.2124 14.5228C60.6177 17.8788 46.5758 23.2977 33.5102 30.6161C26.6595 34.3329 20.4123 39.0673 14.9818 44.658C12.9433 46.8071 11.1336 49.1622 9.58207 51.6855C4.87056 59.5336 5.61172 67.2494 11.9246 73.7608C15.2064 77.0494 18.8775 79.925 22.8564 82.3236C31.6176 87.7101 41.3848 90.5291 51.3902 92.5804C70.6068 96.5773 90.0219 97.7419 112.891 97.7022Z"
+                                    fill="currentColor" />
+                            </svg>
+                            <span className={cn("relative z-10 block w-fit text-5xl font-black",
+                                roi === null ? "text-gray-400" : roi >= 0 ? "text-emerald-500" : "text-red-500")}>
+                                {roi !== null ? `${roi >= 0 ? '+' : ''}${parseFloat(roi).toFixed(1)}%` : '—'}
+                            </span>
+                        </div>
+                        <h2 className="mt-6 text-center text-2xl font-semibold">Total ROI</h2>
+                        {monthlyPnL !== null && (
+                            <p className={cn("text-sm mt-1 font-medium", parseFloat(monthlyPnL) >= 0 ? "text-emerald-500" : "text-red-500")}>
+                                {parseFloat(monthlyPnL) >= 0 ? '+' : ''}${parseFloat(monthlyPnL).toFixed(2)} this month
+                            </p>
+                        )}
+                    </BCardContent>
+                </BCard>
+
+                {/* ── Card 2: Win Rate ── */}
+                <BCard className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+                    <BCardContent className="pt-6">
+                        <WinRateCircle winRate={winRate} />
+                        <div className="relative z-10 mt-6 space-y-2 text-center">
+                            <h2 className="text-lg font-medium">Win Rate</h2>
+                            <p className="text-sm text-muted-foreground">
+                                {totalTrades > 0 ? `${totalTrades} trades completed` : 'Success ratio across trades'}
+                            </p>
+                        </div>
+                    </BCardContent>
+                </BCard>
+
+                {/* ── Card 3: Drawdown / Sparkline ── */}
+                <BCard className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+                    <BCardContent className="pt-6">
+                        <div className="px-2">
+                            <LargeSparkline data={pnlChart} />
+                        </div>
+                        <div className="relative z-10 mt-8 space-y-1 text-center">
+                            <h2 className="text-lg font-medium transition">
+                                <span className="text-red-500 font-black">
+                                    {drawdown !== null ? `${parseFloat(drawdown).toFixed(1)}%` : '—'}
+                                </span>
+                                {' '}Max Drawdown
+                            </h2>
+                            <p className="text-sm text-muted-foreground">Worst peak-to-trough decline</p>
+                        </div>
+                    </BCardContent>
+                </BCard>
+
+                {/* ── Card 4: PnL Chart ── */}
+                <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
+                    <BCardContent className="grid pt-6 sm:grid-cols-[190px_1fr]">
+                        <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
+                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 items-center justify-center">
+                                <TrendingUp className="size-5" strokeWidth={1} />
+                            </div>
+                            <div className="space-y-3">
+                                <h2 className="text-lg font-medium">PnL Performance</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Monthly:{' '}
+                                    <span className={cn("font-bold", monthlyPnL !== null && parseFloat(monthlyPnL) >= 0 ? "text-emerald-600" : "text-red-500")}>
+                                        {monthlyPnL !== null ? `$${parseFloat(monthlyPnL).toFixed(2)}` : '—'}
+                                    </span>
+                                </p>
+                                <div className="flex gap-1.5">
+                                    {['7D', '30D', '90D'].map((tf) => (
+                                        <button
+                                            key={tf}
+                                            onClick={() => setChartTimeframe(tf)}
+                                            className={cn(
+                                                "px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors",
+                                                chartTimeframe === tf
+                                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                                    : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-400"
+                                            )}
+                                        >
+                                            {tf}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative -mb-6 -mr-6 mt-6 h-[200px] overflow-hidden border-l border-t p-3 sm:ml-6" style={{ borderRadius: '8px 0 0 0' }}>
+                            {pnlChart.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={pnlChart} margin={{ top: 4, right: 2, bottom: 0, left: -22 }}>
+                                        <defs>
+                                            <linearGradient id="bentoAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="date" tick={{ fontSize: 9 }}
+                                            tickFormatter={(d) => d ? new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''} />
+                                        <YAxis tick={{ fontSize: 9 }} />
+                                        <RechartTooltip
+                                            formatter={(v) => [`$${parseFloat(v).toFixed(2)}`]}
+                                            contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                                        <Area type="monotone" dataKey="totalPnL" stroke="#6366f1" fill="url(#bentoAreaGrad)"
+                                            strokeWidth={2} dot={false} name="PnL" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                                    No performance data yet
+                                </div>
+                            )}
+                        </div>
+                    </BCardContent>
+                </BCard>
+
+                {/* ── Card 5: Copy Trading Snapshot ── */}
+                <BCard className="relative col-span-full overflow-hidden lg:col-span-3">
+                    <BCardContent className="grid h-full pt-6 sm:grid-cols-2">
+                        <div className="relative z-10 flex flex-col justify-between space-y-10 lg:space-y-6">
+                            <div className="relative flex aspect-square size-12 rounded-full border border-gray-200 items-center justify-center">
+                                <Users className="size-5" strokeWidth={1} />
+                            </div>
+                            <div className="space-y-2">
+                                <h2 className="text-lg font-medium">Copy Trading</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    {copiers} active {copiers === 1 ? 'copier' : 'copiers'} following this strategy
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-gray-100 sm:-my-6 sm:-mr-6">
+                            <div className="relative flex h-full flex-col justify-center space-y-6 py-6">
+                                <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+                                    <span className="block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm">
+                                        {copiers} copying
+                                    </span>
+                                    <div className="ring-4 ring-white size-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                        <PeopleOutlineIcon sx={{ fontSize: 14, color: '#6366f1' }} />
+                                    </div>
+                                </div>
+                                <div className="relative ml-[calc(50%-1rem)] flex items-center gap-2">
+                                    <div className="ring-4 ring-white size-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                        <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 14, color: '#10b981' }} />
+                                    </div>
+                                    <span className="block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm">
+                                        Min ${trader.minimumCopyBalance}
+                                    </span>
+                                </div>
+                                <div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+                                    <span className={cn(
+                                        "block h-fit rounded border bg-white px-2 py-1 text-xs shadow-sm font-semibold",
+                                        monthlyPnL !== null && parseFloat(monthlyPnL) >= 0 ? "text-emerald-600" : "text-red-500"
+                                    )}>
+                                        {monthlyPnL !== null
+                                            ? `${parseFloat(monthlyPnL) >= 0 ? '+' : ''}$${parseFloat(monthlyPnL).toFixed(2)}/mo`
+                                            : '— /mo'}
+                                    </span>
+                                    <div className="ring-4 ring-white size-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                                        <Activity className="size-3 text-violet-500" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </BCardContent>
+                </BCard>
+            </div>
+        </div>
+    );
+}
+
+/* ─── Dialogs ─── */
 
 function SubscribeDialog({ open, onClose, onConfirm, mt5Accounts, loading }) {
     const [selectedMt5, setSelectedMt5] = useState('');
@@ -111,7 +344,8 @@ function ReviewDialog({ open, onClose, onSubmit, loading }) {
                         <Typography variant="body2" mb={0.5}>Your Rating</Typography>
                         <Rating value={rating} onChange={(_, v) => setRating(v)} precision={1} size="large" />
                     </Box>
-                    <TextField label="Comment (optional)" multiline rows={3} value={comment} onChange={(e) => setComment(e.target.value)} size="small" fullWidth />
+                    <TextField label="Comment (optional)" multiline rows={3} value={comment}
+                        onChange={(e) => setComment(e.target.value)} size="small" fullWidth />
                 </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5 }}>
@@ -124,6 +358,8 @@ function ReviewDialog({ open, onClose, onSubmit, loading }) {
         </Dialog>
     );
 }
+
+/* ─── Tabs ─── */
 
 function TradesTab({ masterTraderId }) {
     const [page] = useState(1);
@@ -209,6 +445,8 @@ function ReviewsTab({ masterTraderId }) {
     );
 }
 
+/* ─── Main page ─── */
+
 export default function MasterTraderDetail() {
     const { masterTraderId } = useParams();
     const navigate = useNavigate();
@@ -232,14 +470,15 @@ export default function MasterTraderDetail() {
     const [unwatch, { isLoading: unwatching }] = useUnwatchMasterTraderMutation();
     const [submitReview, { isLoading: reviewLoading }] = useSubmitReviewMutation();
 
-    const detail = data?.data;
-    const trader = detail?.masterTrader;
-    const stats = detail?.latestStats;
+    const detail  = data?.data;
+    const trader  = detail?.masterTrader;
+    const stats   = detail?.latestStats;
     const pnlChart = detail?.pnlPerformanceChart || [];
     const isWatching = detail?.isWatching;
-    const userSub = detail?.userSubscription;
+    const userSub    = detail?.userSubscription;
 
-    const notify = (message, severity = 'success') => dispatch(setNotification({ open: true, message, severity }));
+    const notify = (message, severity = 'success') =>
+        dispatch(setNotification({ open: true, message, severity }));
 
     const handleSubscribe = async (mt5Login) => {
         try { await subscribe({ masterTraderId, mt5Login }).unwrap(); notify('Successfully subscribed! Copy trading is now active.'); setSubscribeOpen(false); refetch(); }
@@ -285,12 +524,6 @@ export default function MasterTraderDetail() {
         </Container>
     );
 
-    const roi = stats?.totalPnLPercentage;
-    const winRate = stats?.winRate;
-    const drawdown = stats?.maxDrawdownPercent;
-    const copiers = stats?.activeCopiers;
-    const totalTrades = stats?.totalTrades;
-    const monthlyPnL = stats?.monthlyPnL;
     const grad = traderGradient(trader.id);
 
     return (
@@ -308,10 +541,10 @@ export default function MasterTraderDetail() {
             </Box>
 
             <Container maxWidth="lg">
+
                 {/* ── Profile card ── */}
                 <Card variant="outlined" sx={{ borderRadius: 3, mb: 3, mt: '-1px', overflow: 'visible' }}>
                     <CardContent sx={{ pt: 0 }}>
-                        {/* Avatar overlapping cover */}
                         <Box sx={{ mt: -5, mb: 1.5, display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                             <Avatar sx={{ width: 80, height: 80, fontSize: 30, fontWeight: 800, background: grad, border: '3px solid white', boxShadow: 3 }}>
                                 {(trader.displayName || 'T')[0].toUpperCase()}
@@ -345,7 +578,6 @@ export default function MasterTraderDetail() {
                                 )}
                             </Box>
 
-                            {/* Action buttons */}
                             <Stack direction="row" spacing={1} flexShrink={0} flexWrap="wrap" alignItems="center">
                                 <Tooltip title={isWatching ? 'Remove from watchlist' : 'Add to watchlist'}>
                                     <IconButton onClick={isWatching ? handleUnwatch : handleWatch} disabled={watching || unwatching}
@@ -392,58 +624,14 @@ export default function MasterTraderDetail() {
                     </CardContent>
                 </Card>
 
-                {/* ── Stats ── */}
-                <Grid container spacing={2} mb={3}>
-                    {[
-                        { icon: <TrendingUpIcon />, label: 'Total ROI', value: roi !== null && roi !== undefined ? `${roi >= 0 ? '+' : ''}${parseFloat(roi).toFixed(2)}%` : '—', color: roi !== undefined && roi !== null ? (roi >= 0 ? 'success.main' : 'error.main') : undefined },
-                        { icon: <ShowChartIcon />, label: 'Win Rate', value: winRate !== null && winRate !== undefined ? `${parseFloat(winRate).toFixed(1)}%` : '—' },
-                        { icon: <BarChartIcon />, label: 'Max Drawdown', value: drawdown !== null && drawdown !== undefined ? `${parseFloat(drawdown).toFixed(1)}%` : '—', color: 'error.main' },
-                        { icon: <PeopleOutlineIcon />, label: 'Copiers', value: copiers ?? '—' },
-                        { icon: <SwapVertIcon />, label: 'Total Trades', value: totalTrades ?? '—' },
-                        { icon: <AccountBalanceWalletOutlinedIcon />, label: 'Monthly PnL', value: monthlyPnL !== null && monthlyPnL !== undefined ? `$${parseFloat(monthlyPnL).toFixed(2)}` : '—', color: monthlyPnL >= 0 ? 'success.main' : 'error.main' },
-                    ].map((s) => (
-                        <Grid item xs={6} sm={4} md={2} key={s.label}>
-                            <StatCard {...s} />
-                        </Grid>
-                    ))}
-                </Grid>
-
-                {/* ── PnL Chart ── */}
-                {pnlChart.length > 0 && (
-                    <Card variant="outlined" sx={{ borderRadius: 3, mb: 3 }}>
-                        <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-                                <Typography variant="subtitle1" fontWeight={700}>PnL Performance</Typography>
-                                <Stack direction="row" spacing={0.5}>
-                                    {['7D', '30D', '90D'].map((tf) => (
-                                        <Button key={tf} size="small" variant={chartTimeframe === tf ? 'contained' : 'outlined'}
-                                            onClick={() => setChartTimeframe(tf)}
-                                            sx={{ textTransform: 'none', boxShadow: 'none', minWidth: 46, px: 1, borderRadius: 2, ...(chartTimeframe === tf ? { background: grad } : {}) }}>
-                                            {tf}
-                                        </Button>
-                                    ))}
-                                </Stack>
-                            </Stack>
-                            <ResponsiveContainer width="100%" height={220}>
-                                <AreaChart data={pnlChart}>
-                                    <defs>
-                                        <linearGradient id="pnlGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#1976d2" stopOpacity={0.18} />
-                                            <stop offset="95%" stopColor="#1976d2" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d ? new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''} tick={{ fontSize: 11 }} />
-                                    <YAxis tick={{ fontSize: 11 }} />
-                                    <RechartTooltip formatter={(v) => [`$${parseFloat(v).toFixed(2)}`]} contentStyle={{ borderRadius: 8 }} />
-                                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                                    <Area type="monotone" dataKey="totalPnL" stroke="#1976d2" fill="url(#pnlGrad)" strokeWidth={2} dot={false} name="Total PnL" />
-                                    <Line type="monotone" dataKey="weeklyPnL" stroke="#4caf50" strokeWidth={1.5} dot={false} name="Weekly PnL" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                )}
+                {/* ── Bento Detail Section ── */}
+                <TraderBentoStats
+                    stats={stats}
+                    pnlChart={pnlChart}
+                    chartTimeframe={chartTimeframe}
+                    setChartTimeframe={setChartTimeframe}
+                    trader={trader}
+                />
 
                 {/* ── Tabs ── */}
                 <Card variant="outlined" sx={{ borderRadius: 3, mb: 4 }}>
@@ -458,7 +646,8 @@ export default function MasterTraderDetail() {
                         {tab === 1 && (
                             <>
                                 <Box mb={2} display="flex" justifyContent="flex-end">
-                                    <Button variant="outlined" size="small" onClick={() => setReviewOpen(true)} sx={{ textTransform: 'none', borderRadius: 2 }}>
+                                    <Button variant="outlined" size="small" onClick={() => setReviewOpen(true)}
+                                        sx={{ textTransform: 'none', borderRadius: 2 }}>
                                         Write a Review
                                     </Button>
                                 </Box>
