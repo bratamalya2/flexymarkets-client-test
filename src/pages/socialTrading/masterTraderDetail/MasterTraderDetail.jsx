@@ -447,31 +447,47 @@ function TradesTab({ masterTraderId }) {
     const formatVolume = (vol) => `${Number(vol).toFixed(2)}`;
     const formatPrice = (p) => Number(p) > 99 ? Number(p).toFixed(2) : Number(p).toFixed(5);
 
-    if (isLoading) return <Box py={4} textAlign="center"><CircularProgress /></Box>;
     if (isError) return <Alert severity="error">Failed to load trades.</Alert>;
+
+    const dateFilter = (
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
+            <TextField type="date" label="From Date" size="small" value={fromDate}
+                onChange={(e) => handleFromDate(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+            <TextField type="date" label="To Date" size="small" value={toDate}
+                onChange={(e) => handleToDate(e.target.value)}
+                InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+            {(fromDate || toDate) && (
+                <Button size="small" onClick={() => { setFromDate(''); setToDate(''); setPage(1); }}
+                    sx={{ textTransform: 'none' }}>
+                    Clear
+                </Button>
+            )}
+        </Stack>
+    );
+
+    if (isLoading) return (
+        <Box>
+            {dateFilter}
+            <Box py={4} textAlign="center"><CircularProgress /></Box>
+        </Box>
+    );
+
     if (trades.length === 0) return (
-        <Box textAlign="center" py={5}>
-            <SwapVertIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-            <Typography color="text.secondary">No recent trades.</Typography>
+        <Box>
+            {dateFilter}
+            <Box textAlign="center" py={5}>
+                <SwapVertIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <Typography color="text.secondary">
+                    {(fromDate || toDate) ? 'No trades found for the selected date range.' : 'No recent trades.'}
+                </Typography>
+            </Box>
         </Box>
     );
 
     return (
         <Box>
-            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
-                <TextField type="date" label="From Date" size="small" value={fromDate}
-                    onChange={(e) => handleFromDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-                <TextField type="date" label="To Date" size="small" value={toDate}
-                    onChange={(e) => handleToDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
-                {(fromDate || toDate) && (
-                    <Button size="small" onClick={() => { setFromDate(''); setToDate(''); setPage(1); }}
-                        sx={{ textTransform: 'none' }}>
-                        Clear
-                    </Button>
-                )}
-            </Stack>
+            {dateFilter}
             <Box sx={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
