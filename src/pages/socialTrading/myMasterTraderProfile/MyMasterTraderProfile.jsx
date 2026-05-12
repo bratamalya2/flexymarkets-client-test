@@ -17,6 +17,7 @@ import {
     useGetMyMasterTraderProfileQuery,
     useUpdateMyMasterTraderProfileMutation,
     useUploadMasterTraderPhotoMutation,
+    useUploadMasterTraderCoverPhotoMutation,
 } from '../../../globalState/socialTradingState/socialTradingApis';
 import { Camera, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
@@ -115,10 +116,14 @@ export default function MyMasterTraderProfile() {
     const { data, isLoading, isError } = useGetMyMasterTraderProfileQuery();
     const [updateProfile, { isLoading: isSaving }] = useUpdateMyMasterTraderProfileMutation();
     const [uploadPhoto, { isLoading: isUploading }] = useUploadMasterTraderPhotoMutation();
+    const [uploadCoverPhoto, { isLoading: isUploadingCover }] = useUploadMasterTraderCoverPhotoMutation();
 
     const fileInputRef = useRef(null);
+    const coverInputRef = useRef(null);
     const [photoPreview, setPhotoPreview] = useLocalState(null);
     const [selectedFile, setSelectedFile] = useLocalState(null);
+    const [coverPreview, setCoverPreview] = useLocalState(null);
+    const [selectedCoverFile, setSelectedCoverFile] = useLocalState(null);
 
     const trader = data?.data;
     const grad = traderGradient(trader?.id);
@@ -191,6 +196,33 @@ export default function MyMasterTraderProfile() {
     const cancelPhotoPreview = () => {
         setPhotoPreview(null);
         setSelectedFile(null);
+    };
+
+    const handleCoverSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedCoverFile(file);
+        setCoverPreview(URL.createObjectURL(file));
+        e.target.value = '';
+    };
+
+    const handleCoverUpload = async () => {
+        if (!selectedCoverFile) return;
+        const fd = new FormData();
+        fd.append('coverPhoto', selectedCoverFile);
+        try {
+            const res = await uploadCoverPhoto(fd).unwrap();
+            dispatch(setNotification({ open: true, message: res?.message || 'Cover photo updated!', severity: 'success' }));
+            setCoverPreview(null);
+            setSelectedCoverFile(null);
+        } catch (err) {
+            dispatch(setNotification({ open: true, message: err?.data?.message || 'Cover upload failed.', severity: 'error' }));
+        }
+    };
+
+    const cancelCoverPreview = () => {
+        setCoverPreview(null);
+        setSelectedCoverFile(null);
     };
 
     const instruments = watch('instruments') || [];
@@ -424,17 +456,71 @@ export default function MyMasterTraderProfile() {
 
                                     {/* Profile preview card */}
                                     <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden sm:sticky top-4">
-                                        {/* Gradient cover */}
-                                        <div className="h-24 relative overflow-hidden" style={{ background: grad }}>
-                                            <div className="absolute top-[-20px] right-[-20px] w-28 h-28 rounded-full bg-white/10" />
-                                            <div className="absolute bottom-[-30px] left-[-10px] w-20 h-20 rounded-full bg-white/[0.07]" />
+                                        {/* Cover photo — clickable to change */}
+                                        <div className="h-24 relative overflow-hidden group/cover" style={{ background: grad }}>
+                                            {(coverPreview || trader.coverPhoto) && (
+                                                <img
+                                                    src={coverPreview || `${import.meta.env.VITE_BASE_URL}${trader.coverPhoto}`}
+                                                    alt="cover"
+                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                />
+                                            )}
+                                            {!coverPreview && !trader.coverPhoto && (
+                                                <>
+                                                    <div className="absolute top-[-20px] right-[-20px] w-28 h-28 rounded-full bg-white/10" />
+                                                    <div className="absolute bottom-[-30px] left-[-10px] w-20 h-20 rounded-full bg-white/[0.07]" />
+                                                </>
+                                            )}
                                             {trader.status === 'ACTIVE' && (
-                                                <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                                                <span className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-semibold text-white z-10">
                                                     <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                                                     Active
                                                 </span>
                                             )}
+                                            {/* Cover change overlay */}
+                                            <button
+                                                type="button"
+                                                onClick={() => coverInputRef.current?.click()}
+                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 z-10"
+                                                title="Change cover photo"
+                                            >
+                                                <Camera className="h-4 w-4 text-white" />
+                                                <span className="text-[11px] font-semibold text-white">Change Cover</span>
+                                            </button>
+                                            <input
+                                                ref={coverInputRef}
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                className="hidden"
+                                                onChange={handleCoverSelect}
+                                            />
                                         </div>
+
+                                        {/* Cover photo action bar */}
+                                        {coverPreview && (
+                                            <div className="flex items-center gap-2 border-b border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2">
+                                                <span className="flex-1 text-xs text-indigo-700 dark:text-indigo-300 font-medium truncate">
+                                                    {selectedCoverFile?.name}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCoverUpload}
+                                                    disabled={isUploadingCover}
+                                                    className="shrink-0 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                                                >
+                                                    {isUploadingCover ? 'Uploading…' : 'Save'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={cancelCoverPreview}
+                                                    disabled={isUploadingCover}
+                                                    className="shrink-0 rounded-md border border-gray-200 dark:border-gray-600 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-60 transition-colors"
+                                                >
+                                                    <X className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+                                                </button>
+                                            </div>
+                                        )}
+
                                         <div className="px-5 pb-5">
                                             <div className="-mt-7 mb-3 flex items-end justify-between">
                                                 {/* Clickable avatar / photo */}
@@ -472,7 +558,7 @@ export default function MyMasterTraderProfile() {
                                                 </div>
                                             </div>
 
-                                            {/* Photo action bar — shown only when a file is staged */}
+                                            {/* Profile photo action bar — shown only when a file is staged */}
                                             {photoPreview && (
                                                 <div className="mb-3 flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2">
                                                     <span className="flex-1 text-xs text-indigo-700 dark:text-indigo-300 font-medium truncate">
