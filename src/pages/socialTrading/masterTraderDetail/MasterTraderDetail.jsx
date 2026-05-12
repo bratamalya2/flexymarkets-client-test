@@ -561,7 +561,7 @@ export default function MasterTraderDetail() {
                 </Box>
             </Box>
 
-            <Container maxWidth="lg">
+            <Container maxWidth="lg" sx={{ mt: '50px' }}>
 
                 {/* ── Profile card ── */}
                 <Card variant="outlined" sx={{ borderRadius: 3, mb: 3, mt: '-1px', overflow: 'visible' }}>
