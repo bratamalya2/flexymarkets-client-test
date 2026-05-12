@@ -45,8 +45,8 @@ export const socialTradingApis = createApi({
 
         // Trade history for a master trader
         getMasterTraderTradeList: builder.query({
-            query: ({ masterTraderId, page = 1, sizePerPage = 20, fromDate, toDate }) => {
-                const params = { page, sizePerPage };
+            query: ({ masterTraderId, page = 1, sizePerPage = 20, fromDate, toDate, sortOrder = 'desc' }) => {
+                const params = { page, sizePerPage, sortOrder };
                 if (fromDate) params.fromDate = fromDate;
                 if (toDate) params.toDate = toDate;
                 return { url: `/trade-list/${masterTraderId}`, params };

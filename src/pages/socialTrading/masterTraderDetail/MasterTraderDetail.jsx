@@ -432,12 +432,14 @@ function TradesTab({ masterTraderId }) {
     const [page, setPage] = useState(1);
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+    const [sortOrder, setSortOrder] = useState('desc');
 
-    const handleFromDate = (v) => { setFromDate(v); setPage(1); };
-    const handleToDate   = (v) => { setToDate(v);   setPage(1); };
+    const handleFromDate  = (v) => { setFromDate(v); setPage(1); };
+    const handleToDate    = (v) => { setToDate(v);   setPage(1); };
+    const handleSortOrder = (v) => { setSortOrder(v); setPage(1); };
 
     const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({
-        masterTraderId, page, sizePerPage: 20,
+        masterTraderId, page, sizePerPage: 20, sortOrder,
         ...(fromDate && { fromDate }),
         ...(toDate   && { toDate }),
     });
@@ -463,6 +465,13 @@ function TradesTab({ masterTraderId }) {
                     Clear
                 </Button>
             )}
+            <FormControl size="small" sx={{ minWidth: 150, ml: 'auto' }}>
+                <InputLabel>Sort</InputLabel>
+                <Select value={sortOrder} label="Sort" onChange={(e) => handleSortOrder(e.target.value)}>
+                    <MenuItem value="desc">Latest First</MenuItem>
+                    <MenuItem value="asc">Oldest First</MenuItem>
+                </Select>
+            </FormControl>
         </Stack>
     );
 
