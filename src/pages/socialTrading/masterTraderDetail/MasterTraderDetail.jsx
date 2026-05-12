@@ -4,7 +4,8 @@ import {
     Container, Typography, Box, Card, CardContent, Button, Stack,
     Chip, CircularProgress, Alert, Avatar, Tab, Tabs, Pagination,
     Dialog, DialogTitle, DialogContent, DialogActions, FormControl,
-    InputLabel, Select, MenuItem, Rating, TextField, IconButton, Tooltip, Paper
+    InputLabel, Select, MenuItem, Rating, TextField, IconButton, Tooltip, Paper,
+    Checkbox, FormControlLabel
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
@@ -111,7 +112,7 @@ function LargeSparkline({ data }) {
     );
 }
 
-function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, trader }) {
+function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, trader, isFetching }) {
     const { selectedTheme } = useSelector((state) => state.themeMode);
     const isDark = selectedTheme === 'dark';
     const roi          = stats?.totalPnLPercentage  ?? null;
@@ -225,6 +226,11 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                         </div>
 
                         <div className="relative sm:-mb-6 sm:-mr-6 mt-6 h-[200px] overflow-hidden sm:border-l sm:border-t p-3 sm:ml-6 rounded-xl sm:rounded-tl-lg sm:rounded-none">
+                            {isFetching && (
+                                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isDark ? 'rgba(17,24,39,0.65)' : 'rgba(255,255,255,0.65)', zIndex: 10, borderRadius: 'inherit' }}>
+                                    <CircularProgress size={28} />
+                                </Box>
+                            )}
                             {pnlChart.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={pnlChart} margin={{ top: 4, right: 2, bottom: 0, left: -22 }}>
@@ -375,13 +381,66 @@ function ReviewDialog({ open, onClose, onSubmit, loading }) {
     );
 }
 
+function CopyTradeTermsDialog({ open, onClose, onAccept }) {
+    const [agreed, setAgreed] = useState(false);
+
+    const handleClose = () => { setAgreed(false); onClose(); };
+    const handleAccept = () => { setAgreed(false); onAccept(); };
+
+    return (
+        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+            <DialogTitle sx={{ fontWeight: 700 }}>Copy Trading — Terms & Conditions</DialogTitle>
+            <DialogContent dividers sx={{ maxHeight: 340, overflowY: 'auto' }}>
+                <Typography variant="body2" color="text.secondary" mb={1.5}>
+                    Please read the following terms carefully before starting copy trading.
+                </Typography>
+                {[
+                    ['1. Risk Disclosure', 'Copy trading involves significant risk of loss. Past performance of a Master Trader is not indicative of future results. You may lose some or all of your invested capital.'],
+                    ['2. No Guaranteed Returns', 'No representation is made that any account will achieve profits similar to those shown. All trading involves risk and results can vary significantly.'],
+                    ['3. Your Responsibility', 'You remain solely responsible for your account. By subscribing you authorise trades to be replicated on your selected MT5 account. You may stop copying at any time.'],
+                    ['4. Minimum Balance Requirement', 'Ensure your MT5 account meets the minimum balance set by the Master Trader. Insufficient balance may prevent trades from being executed in proportion.'],
+                    ['5. Amendments', 'These terms may be updated periodically. Continued use of the copy trading feature constitutes acceptance of any changes.'],
+                ].map(([title, body]) => (
+                    <Box key={title} mb={1.5}>
+                        <Typography variant="subtitle2" fontWeight={700} gutterBottom>{title}</Typography>
+                        <Typography variant="body2" color="text.secondary">{body}</Typography>
+                    </Box>
+                ))}
+            </DialogContent>
+            <DialogContent sx={{ pt: 1.5, pb: 0.5 }}>
+                <FormControlLabel
+                    control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} color="primary" size="small" />}
+                    label={<Typography variant="body2">I have read and agree to the Terms & Conditions above</Typography>}
+                />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                <Button onClick={handleClose} sx={{ textTransform: 'none' }}>Cancel</Button>
+                <Button variant="contained" onClick={handleAccept} disabled={!agreed}
+                    sx={{ textTransform: 'none', boxShadow: 'none', borderRadius: 2 }}>
+                    Accept &amp; Continue
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
 /* ─── Tabs ─── */
 
 function TradesTab({ masterTraderId }) {
     const { selectedTheme } = useSelector((state) => state.themeMode);
     const isDark = selectedTheme === 'dark';
     const [page, setPage] = useState(1);
-    const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({ masterTraderId, page, sizePerPage: 20 });
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+
+    const handleFromDate = (v) => { setFromDate(v); setPage(1); };
+    const handleToDate   = (v) => { setToDate(v);   setPage(1); };
+
+    const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({
+        masterTraderId, page, sizePerPage: 20,
+        ...(fromDate && { fromDate }),
+        ...(toDate   && { toDate }),
+    });
     const trades = data?.data?.trades || [];
     const totalPages = data?.data?.totalPages || 1;
 
@@ -399,6 +458,20 @@ function TradesTab({ masterTraderId }) {
 
     return (
         <Box>
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
+                <TextField type="date" label="From Date" size="small" value={fromDate}
+                    onChange={(e) => handleFromDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+                <TextField type="date" label="To Date" size="small" value={toDate}
+                    onChange={(e) => handleToDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }} sx={{ minWidth: 160 }} />
+                {(fromDate || toDate) && (
+                    <Button size="small" onClick={() => { setFromDate(''); setToDate(''); setPage(1); }}
+                        sx={{ textTransform: 'none' }}>
+                        Clear
+                    </Button>
+                )}
+            </Stack>
             <Box sx={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
@@ -490,8 +563,9 @@ export default function MasterTraderDetail() {
     const [chartTimeframe, setChartTimeframe] = useState('30D');
     const [subscribeOpen, setSubscribeOpen] = useState(false);
     const [reviewOpen, setReviewOpen] = useState(false);
+    const [termsOpen, setTermsOpen] = useState(false);
 
-    const { data, isLoading, isError, error, refetch } = useGetMasterTraderDetailQuery(
+    const { data, isLoading, isFetching, isError, error, refetch } = useGetMasterTraderDetailQuery(
         { masterTraderId, chartTimeframe }, { skip: !masterTraderId }
     );
     const { data: mt5Data } = useMt5AccountListQuery({ page: 1, sizePerPage: 50 });
@@ -630,7 +704,7 @@ export default function MasterTraderDetail() {
                                 </Tooltip>
 
                                 {!userSub && (
-                                    <Button variant="contained" onClick={() => setSubscribeOpen(true)}
+                                    <Button variant="contained" onClick={() => setTermsOpen(true)}
                                         sx={{ textTransform: 'none', boxShadow: 'none', borderRadius: 2, background: grad, '&:hover': { boxShadow: 'none', opacity: 0.9 } }}>
                                         Copy Trade
                                     </Button>
@@ -674,6 +748,7 @@ export default function MasterTraderDetail() {
                     chartTimeframe={chartTimeframe}
                     setChartTimeframe={setChartTimeframe}
                     trader={trader}
+                    isFetching={isFetching}
                 />
 
                 {/* ── Tabs ── */}
@@ -701,6 +776,7 @@ export default function MasterTraderDetail() {
                 </Card>
             </Container>
 
+            <CopyTradeTermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} onAccept={() => { setTermsOpen(false); setSubscribeOpen(true); }} />
             <SubscribeDialog open={subscribeOpen} onClose={() => setSubscribeOpen(false)} onConfirm={handleSubscribe} mt5Accounts={mt5Accounts} loading={subscribing} />
             <ReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} onSubmit={handleReviewSubmit} loading={reviewLoading} />
         </Box>
