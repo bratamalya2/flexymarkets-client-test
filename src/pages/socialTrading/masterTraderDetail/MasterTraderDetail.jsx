@@ -550,7 +550,7 @@ export default function MasterTraderDetail() {
     return (
         <Box>
             {/* ── Cover Hero ── */}
-            <Box sx={{ background: grad, height: { xs: 130, sm: 170 }, position: 'relative', overflow: 'hidden' }}>
+            <Box sx={{ background: grad, height: { xs: 60, sm: 72 }, position: 'relative', overflow: 'hidden' }}>
                 <Box sx={{ position: 'absolute', top: -30, right: -30, width: 220, height: 220, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
                 <Box sx={{ position: 'absolute', bottom: -50, left: -20, width: 180, height: 180, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.07)' }} />
                 <Box sx={{ position: 'absolute', top: 12, left: 16 }}>
