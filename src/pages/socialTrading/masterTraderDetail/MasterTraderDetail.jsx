@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container, Typography, Box, Card, CardContent, Button, Stack,
-    Chip, CircularProgress, Alert, Avatar, Tab, Tabs,
+    Chip, CircularProgress, Alert, Avatar, Tab, Tabs, Pagination,
     Dialog, DialogTitle, DialogContent, DialogActions, FormControl,
     InputLabel, Select, MenuItem, Rating, TextField, IconButton, Tooltip, Paper
 } from '@mui/material';
@@ -366,9 +366,13 @@ function ReviewDialog({ open, onClose, onSubmit, loading }) {
 function TradesTab({ masterTraderId }) {
     const { selectedTheme } = useSelector((state) => state.themeMode);
     const isDark = selectedTheme === 'dark';
-    const [page] = useState(1);
+    const [page, setPage] = useState(1);
     const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({ masterTraderId, page, sizePerPage: 20 });
     const trades = data?.data?.trades || [];
+    const totalPages = data?.data?.totalPages || 1;
+
+    const formatVolume = (vol) => `${Number(vol).toFixed(2)}`;
+    const formatPrice = (p) => Number(p) > 99 ? Number(p).toFixed(2) : Number(p).toFixed(5);
 
     if (isLoading) return <Box py={4} textAlign="center"><CircularProgress /></Box>;
     if (isError) return <Alert severity="error">Failed to load trades.</Alert>;
@@ -380,36 +384,49 @@ function TradesTab({ masterTraderId }) {
     );
 
     return (
-        <Box sx={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                    <tr style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
-                        {['Ticket', 'Symbol', 'Type', 'Volume', 'Price', 'Profit', 'Time'].map((h) => (
-                            <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: isDark ? '#9ca3af' : '#666', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {trades.map((t, i) => (
-                        <tr key={t.ticket || i} style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #f0f0f0' }}>
-                            <td style={{ padding: '9px 14px', color: '#888' }}>{t.ticket}</td>
-                            <td style={{ padding: '9px 14px', fontWeight: 600 }}>{t.symbol}</td>
-                            <td style={{ padding: '9px 14px' }}>
-                                <Chip label={t.type === 0 ? 'Buy' : 'Sell'} size="small"
-                                    sx={{ bgcolor: t.type === 0 ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)', color: t.type === 0 ? '#2e7d32' : '#c62828', fontWeight: 600, fontSize: '0.72rem' }} />
-                            </td>
-                            <td style={{ padding: '9px 14px' }}>{t.volume}</td>
-                            <td style={{ padding: '9px 14px' }}>{t.price}</td>
-                            <td style={{ padding: '9px 14px', color: parseFloat(t.profit) >= 0 ? '#4caf50' : '#f44336', fontWeight: 700 }}>
-                                {parseFloat(t.profit || 0) >= 0 ? '+' : ''}{parseFloat(t.profit || 0).toFixed(2)}
-                            </td>
-                            <td style={{ padding: '9px 14px', color: '#aaa', fontSize: 12 }}>
-                                {t.time ? new Date(t.time * 1000).toLocaleDateString() : '—'}
-                            </td>
+        <Box>
+            <Box sx={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                        <tr style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
+                            {['Ticket', 'Symbol', 'Type', 'Volume (lots)', 'Price', 'Profit', 'Time'].map((h) => (
+                                <th key={h} style={{ textAlign: 'left', padding: '10px 14px', color: isDark ? '#9ca3af' : '#666', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                            ))}
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {trades.map((t, i) => (
+                            <tr key={t.ticket || i} style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #f0f0f0' }}>
+                                <td style={{ padding: '9px 14px', color: '#888' }}>{t.ticket}</td>
+                                <td style={{ padding: '9px 14px', fontWeight: 600 }}>{t.symbol}</td>
+                                <td style={{ padding: '9px 14px' }}>
+                                    <Chip label={t.type === 0 ? 'Buy' : 'Sell'} size="small"
+                                        sx={{ bgcolor: t.type === 0 ? 'rgba(76,175,80,0.12)' : 'rgba(244,67,54,0.12)', color: t.type === 0 ? '#2e7d32' : '#c62828', fontWeight: 600, fontSize: '0.72rem' }} />
+                                </td>
+                                <td style={{ padding: '9px 14px' }}>{formatVolume(t.volume)}</td>
+                                <td style={{ padding: '9px 14px' }}>{formatPrice(t.price)}</td>
+                                <td style={{ padding: '9px 14px', color: parseFloat(t.profit) >= 0 ? '#4caf50' : '#f44336', fontWeight: 700 }}>
+                                    {parseFloat(t.profit || 0) >= 0 ? '+' : ''}{parseFloat(t.profit || 0).toFixed(2)}
+                                </td>
+                                <td style={{ padding: '9px 14px', color: '#aaa', fontSize: 12 }}>
+                                    {t.time ? new Date(t.time * 1000).toLocaleDateString() : '—'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </Box>
+            {totalPages > 1 && (
+                <Box display="flex" justifyContent="center" pt={2} pb={1}>
+                    <Pagination
+                        count={totalPages}
+                        page={page}
+                        onChange={(_, value) => setPage(value)}
+                        size="small"
+                        color="primary"
+                    />
+                </Box>
+            )}
         </Box>
     );
 }
