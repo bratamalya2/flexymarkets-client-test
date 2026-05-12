@@ -14,7 +14,7 @@ import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalance
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
-    Tooltip as RechartTooltip, ResponsiveContainer
+    Tooltip as RechartTooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { TrendingUp, Users, Shield, Activity } from 'lucide-react';
 import { Card as BCard, CardContent as BCardContent } from '../../../components/ui/card';
@@ -121,6 +121,17 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
     const totalTrades  = stats?.totalTrades         ?? 0;
     const monthlyPnL   = stats?.monthlyPnL          ?? null;
 
+    const pnlValues    = pnlChart.map(d => parseFloat(d.totalPnL || 0));
+    const maxPnL       = pnlValues.length > 0 ? Math.max(...pnlValues) : 1;
+    const minPnL       = pnlValues.length > 0 ? Math.min(...pnlValues) : 0;
+    const lastPnL      = pnlValues.length > 0 ? pnlValues[pnlValues.length - 1] : 0;
+    const pnlLineColor = lastPnL >= 0 ? '#10b981' : '#ef4444';
+    // % from top of chart where y=0 sits (top=maxPnL, bottom=minPnL)
+    const zeroPct = maxPnL !== minPnL
+        ? Math.min(100, Math.max(0, (maxPnL / (maxPnL - minPnL)) * 100))
+        : 50;
+    const zeroOffset = `${zeroPct.toFixed(1)}%`;
+
     return (
         <div className="relative mb-4">
             <div className="relative z-10 grid grid-cols-6 gap-3">
@@ -218,19 +229,22 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={pnlChart} margin={{ top: 4, right: 2, bottom: 0, left: -22 }}>
                                         <defs>
-                                            <linearGradient id="bentoAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                            <linearGradient id="pnlAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%"        stopColor="#10b981" stopOpacity={0.25} />
+                                                <stop offset={zeroOffset} stopColor="#10b981" stopOpacity={0.05} />
+                                                <stop offset={zeroOffset} stopColor="#ef4444" stopOpacity={0.05} />
+                                                <stop offset="100%"      stopColor="#ef4444" stopOpacity={0.25} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#f0f0f0"} />
                                         <XAxis dataKey="date" tick={{ fontSize: 9 }}
                                             tickFormatter={(d) => d ? new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''} />
                                         <YAxis tick={{ fontSize: 9 }} />
+                                        <ReferenceLine y={0} stroke={isDark ? "#6b7280" : "#d1d5db"} strokeDasharray="3 3" />
                                         <RechartTooltip
                                             formatter={(v) => [`$${parseFloat(v).toFixed(2)}`]}
                                             contentStyle={{ borderRadius: 8, fontSize: 11 }} />
-                                        <Area type="monotone" dataKey="totalPnL" stroke="#6366f1" fill="url(#bentoAreaGrad)"
+                                        <Area type="monotone" dataKey="totalPnL" stroke={pnlLineColor} fill="url(#pnlAreaGrad)"
                                             strokeWidth={2} dot={false} name="PnL" />
                                     </AreaChart>
                                 </ResponsiveContainer>
