@@ -439,11 +439,17 @@ function TradesTab({ masterTraderId }) {
     const handleSortOrder = (v) => { setSortOrder(v); setPage(1); };
 
     const { data, isLoading, isError } = useGetMasterTraderTradeListQuery({
-        masterTraderId, page, sizePerPage: 20, sortOrder,
+        masterTraderId, page, sizePerPage: 20,
         ...(fromDate && { fromDate }),
         ...(toDate   && { toDate }),
     });
-    const trades = data?.data?.trades || [];
+
+    const rawTrades = data?.data?.trades || [];
+    const trades = [...rawTrades].sort((a, b) =>
+        sortOrder === 'asc'
+            ? (parseInt(a.time ?? 0, 10) - parseInt(b.time ?? 0, 10))
+            : (parseInt(b.time ?? 0, 10) - parseInt(a.time ?? 0, 10))
+    );
     const totalPages = data?.data?.totalPages || 1;
 
     const formatVolume = (vol) => `${Number(vol).toFixed(2)}`;
