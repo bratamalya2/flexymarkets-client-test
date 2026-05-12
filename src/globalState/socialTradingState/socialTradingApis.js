@@ -181,7 +181,7 @@ export const socialTradingApis = createApi({
                 method: "PUT",
                 body: formData,
             }),
-            invalidatesTags: ["MyMasterTraderProfile"],
+            invalidatesTags: ["MyMasterTraderProfile", { type: "MasterTraderList", id: "PARTIAL-LIST" }],
         }),
 
         uploadMasterTraderCoverPhoto: builder.mutation({
@@ -190,7 +190,7 @@ export const socialTradingApis = createApi({
                 method: "PUT",
                 body: formData,
             }),
-            invalidatesTags: ["MyMasterTraderProfile"],
+            invalidatesTags: ["MyMasterTraderProfile", { type: "MasterTraderList", id: "PARTIAL-LIST" }],
         }),
 
         // Toggle watchlist notifications for a master trader
