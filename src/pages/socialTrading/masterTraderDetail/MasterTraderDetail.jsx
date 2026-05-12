@@ -206,7 +206,7 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
                                     </span>
                                 </p>
                                 <div className="flex gap-1.5">
-                                    {['7D', '30D', '90D'].map((tf) => (
+                                    {['30D', '90D', '365D'].map((tf) => (
                                         <button
                                             key={tf}
                                             onClick={() => setChartTimeframe(tf)}
