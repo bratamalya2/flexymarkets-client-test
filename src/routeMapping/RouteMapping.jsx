@@ -268,6 +268,7 @@ const Promotions = lazy(() => import('../pages/promotions/Promotions.jsx'));
 const MT5Requestlist = lazy(() => import('../pages/MT5Account/MT5Requestlist/MT5Requestlist.jsx'));
 
 // Social Trading
+const SOCIAL_TRADING_ENABLED = import.meta.env.VITE_ENABLE_SOCIAL_TRADING !== 'false';
 const MasterTraderDiscovery = lazy(() => import('../pages/socialTrading/masterTraderDiscovery/MasterTraderDiscovery.jsx'));
 const MasterTraderDetail = lazy(() => import('../pages/socialTrading/masterTraderDetail/MasterTraderDetail.jsx'));
 const MySubscriptions = lazy(() => import('../pages/socialTrading/mySubscriptions/MySubscriptions.jsx'));
@@ -348,9 +349,11 @@ export const routing = [
     { path: "/terminal", element: <TradingTerminal /> },
 
     // Social Trading
-    { path: "/client/socialTrading/discover", element: <MasterTraderDiscovery /> },
-    { path: "/client/socialTrading/masterTrader/:masterTraderId", element: <MasterTraderDetail /> },
-    { path: "/client/socialTrading/mySubscriptions", element: <MySubscriptions /> },
-    { path: "/client/socialTrading/myWatchlist", element: <MyWatchlist /> },
-    { path: "/client/socialTrading/myProfile", element: <MyMasterTraderProfile /> },
+    ...(SOCIAL_TRADING_ENABLED ? [
+        { path: "/client/socialTrading/discover", element: <MasterTraderDiscovery /> },
+        { path: "/client/socialTrading/masterTrader/:masterTraderId", element: <MasterTraderDetail /> },
+        { path: "/client/socialTrading/mySubscriptions", element: <MySubscriptions /> },
+        { path: "/client/socialTrading/myWatchlist", element: <MyWatchlist /> },
+        { path: "/client/socialTrading/myProfile", element: <MyMasterTraderProfile /> },
+    ] : []),
 ];

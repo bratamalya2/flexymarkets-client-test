@@ -18,6 +18,8 @@ import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 
 
+const SOCIAL_TRADING_ENABLED = import.meta.env.VITE_ENABLE_SOCIAL_TRADING !== 'false';
+
 // export const NAVIGATION = [
 export const getNavigationConfig = (isIbOrSubIb = false) => [
     // {
@@ -361,7 +363,7 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
     //     title: 'News',
     //     icon: ArticleOutlinedIcon,
     // },
-    {
+    ...(SOCIAL_TRADING_ENABLED ? [{
         title: 'Social Trading',
         icon: PeopleAltOutlinedIcon,
         children: [
@@ -386,7 +388,7 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
                 icon: CircleOutlinedIcon,
             },
         ],
-    },
+    }] : []),
     {
         title: 'Help Desk',
         icon: HelpCenterOutlinedIcon,
