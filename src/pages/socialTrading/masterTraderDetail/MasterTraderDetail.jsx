@@ -320,31 +320,57 @@ function TraderBentoStats({ stats, pnlChart, chartTimeframe, setChartTimeframe, 
 
 /* ─── Dialogs ─── */
 
-function SubscribeDialog({ open, onClose, onConfirm, mt5Accounts, loading }) {
+function SubscribeDialog({ open, onClose, onConfirm, mt5Accounts, loading, minimumCopyBalance }) {
     const [selectedMt5, setSelectedMt5] = useState('');
+
+    const selectedAccount = mt5Accounts.find((a) => a.Login === selectedMt5);
+    const accountBalance  = selectedAccount ? parseFloat(selectedAccount.Balance ?? 0) : null;
+    const minBalance      = parseFloat(minimumCopyBalance ?? 0);
+    const belowMinimum    = minBalance > 0 && accountBalance !== null && accountBalance < minBalance;
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
             <DialogTitle sx={{ fontWeight: 700 }}>Start Copy Trading</DialogTitle>
             <DialogContent>
                 <Typography variant="body2" color="text.secondary" mb={2}>
                     Select the MT5 account you want to use for copy trading.
+                    {minBalance > 0 && (
+                        <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                            Minimum required balance: <strong>${minBalance.toFixed(2)}</strong>
+                        </Box>
+                    )}
                 </Typography>
                 <FormControl fullWidth size="small">
                     <InputLabel>MT5 Account</InputLabel>
                     <Select value={selectedMt5} label="MT5 Account" onChange={(e) => setSelectedMt5(e.target.value)}>
-                        {mt5Accounts.map((acc) => (
-                            <MenuItem key={acc.Login} value={acc.Login}>
-                                {acc.Login} — Balance: {acc.Balance ?? 'N/A'}
-                            </MenuItem>
-                        ))}
+                        {mt5Accounts.map((acc) => {
+                            const bal = parseFloat(acc.Balance ?? 0);
+                            const insufficient = minBalance > 0 && bal < minBalance;
+                            return (
+                                <MenuItem key={acc.Login} value={acc.Login}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+                                        <span>{acc.Login}</span>
+                                        <Box component="span" sx={{ color: insufficient ? 'error.main' : 'text.secondary', fontSize: 12 }}>
+                                            ${bal.toFixed(2)}
+                                            {insufficient && ' — insufficient'}
+                                        </Box>
+                                    </Box>
+                                </MenuItem>
+                            );
+                        })}
                     </Select>
                 </FormControl>
+                {belowMinimum && (
+                    <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2, py: 0.5 }}>
+                        This account has ${accountBalance.toFixed(2)} — at least ${minBalance.toFixed(2)} is required.
+                    </Alert>
+                )}
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2.5 }}>
                 <Button onClick={onClose} disabled={loading} sx={{ textTransform: 'none' }}>Cancel</Button>
                 <Button
                     variant="contained" onClick={() => selectedMt5 && onConfirm(selectedMt5)}
-                    disabled={!selectedMt5 || loading}
+                    disabled={!selectedMt5 || loading || belowMinimum}
                     sx={{ textTransform: 'none', boxShadow: 'none', borderRadius: 2 }}
                 >
                     {loading ? <CircularProgress size={18} /> : 'Subscribe'}
@@ -808,7 +834,7 @@ export default function MasterTraderDetail() {
             </Container>
 
             <CopyTradeTermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} onAccept={() => { setTermsOpen(false); setSubscribeOpen(true); }} />
-            <SubscribeDialog open={subscribeOpen} onClose={() => setSubscribeOpen(false)} onConfirm={handleSubscribe} mt5Accounts={mt5Accounts} loading={subscribing} />
+            <SubscribeDialog open={subscribeOpen} onClose={() => setSubscribeOpen(false)} onConfirm={handleSubscribe} mt5Accounts={mt5Accounts} loading={subscribing} minimumCopyBalance={trader?.minimumCopyBalance} />
             <ReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} onSubmit={handleReviewSubmit} loading={reviewLoading} />
         </Box>
     );
