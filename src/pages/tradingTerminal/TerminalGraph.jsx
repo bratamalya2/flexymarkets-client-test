@@ -54,6 +54,7 @@ function TerminalGraph() {
         if (!containerRef.current) return;
 
         const chart = createChart(containerRef.current, {
+            autoSize: true,
             layout: {
                 background: { color: '#0F0F0F' },
                 textColor: '#9ca3af',
@@ -69,8 +70,6 @@ function TerminalGraph() {
                 timeVisible: true,
                 secondsVisible: false,
             },
-            width: containerRef.current.clientWidth,
-            height: containerRef.current.clientHeight,
         });
 
         const series = chart.addSeries(CandlestickSeries, {
@@ -85,18 +84,7 @@ function TerminalGraph() {
         chartRef.current = chart;
         seriesRef.current = series;
 
-        const observer = new ResizeObserver(() => {
-            if (containerRef.current && chartRef.current) {
-                chartRef.current.applyOptions({
-                    width: containerRef.current.clientWidth,
-                    height: containerRef.current.clientHeight,
-                });
-            }
-        });
-        observer.observe(containerRef.current);
-
         return () => {
-            observer.disconnect();
             chart.remove();
             chartRef.current = null;
             seriesRef.current = null;
@@ -127,7 +115,9 @@ function TerminalGraph() {
         })
             .then(r => r.json())
             .then(res => {
+                console.log('[Chart] raw response sample:', Array.isArray(res.data) ? res.data.slice(0, 2) : res.data);
                 const candles = normalizeCandles(res.data);
+                console.log('[Chart] normalized candles count:', candles.length, candles[0]);
                 if (seriesRef.current) {
                     seriesRef.current.setData(candles);
                     chartRef.current?.timeScale().fitContent();
@@ -218,7 +208,7 @@ function TerminalGraph() {
 
             {/* Chart area */}
             <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+                <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
                 {loading && (
                     <Box sx={{
