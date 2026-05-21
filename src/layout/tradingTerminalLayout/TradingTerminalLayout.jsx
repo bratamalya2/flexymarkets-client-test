@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { Outlet } from "react-router-dom";
@@ -11,7 +11,6 @@ import { setActiveMT5AccountLogin } from "../../globalState/mt5State/mt5StateSli
 import { useBroadcast } from "../../hooks/useBroadcast";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useGetUserDataQuery } from "../../globalState/userState/userStateApis";
-import { useMappedSymbols } from "../../hooks/useMappedSymbols";
 
 function TradingTerminalLayout() {
     const dispatch = useDispatch();
@@ -69,17 +68,14 @@ function TradingTerminalLayout() {
     // Set default symbol when account loads for the first time
     const { data: userData } = useGetUserDataQuery();
     const mt5AccountList = userData?.data?.mt5AccountList;
-    const { mappedSymbols } = useMappedSymbols();
 
     useEffect(() => {
-        if (!activeMT5AccountLogin || !mt5AccountList || selectedSymbol || mappedSymbols.length === 0) return;
+        if (!activeMT5AccountLogin || !mt5AccountList || selectedSymbol) return;
         const currentAccount = mt5AccountList.find(acc => acc.Login == activeMT5AccountLogin);
         if (!currentAccount) return;
-        const sym = currentAccount.accountType === "DEMO"
-            ? mappedSymbols.find(s => s.name === "BTCUSD")
-            : mappedSymbols.find(s => s.name === "XAUUSD");
-        if (sym) dispatch(setSelectedSymbol(sym.name));
-    }, [activeMT5AccountLogin, mt5AccountList, mappedSymbols, selectedSymbol, dispatch]);
+        const sym = currentAccount.accountType === "DEMO" ? "BTCUSD" : "XAUUSD";
+        dispatch(setSelectedSymbol(sym));
+    }, [activeMT5AccountLogin, mt5AccountList, selectedSymbol, dispatch]);
 
     // Account details socket — keeps Balance/Equity/Margin in Redux via MT5AccountDetailsSocketENV
     useEffect(() => {
