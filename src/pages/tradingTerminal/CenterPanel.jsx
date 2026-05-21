@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, IconButton, Tooltip, Chip } from "@mui/material";
+import { Box, Typography, IconButton, Tooltip, Chip } from "@mui/material";
 import { useSelector } from "react-redux";
 import TradingViewWidget from "./TerminalGraph";
 import OrdersTable from "./OrdersTable";
-import ChartOverlayLines from "./ChartOverlayLines";
 // import { useQuotesSocket } from "../../socketENV/quotesSocketENV";
 import { useQuotes } from "../../context/QuotesContext";
 import { formatPrice, formatPercentage } from "./formatters";
@@ -18,22 +17,10 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 function CenterPanel() {
-  const [activeTimeframe, setActiveTimeframe] = useState("5");
   const [chartData, setChartData] = useState({ price: 0, changePercent: 0 });
   const [priceAnimation, setPriceAnimation] = useState("none");
-  const [timeframeAnimations, setTimeframeAnimations] = useState({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { selectedSymbol } = useSelector(state => state.terminal);
-
-  const timeframes = [
-    { value: "1", label: "M1", description: "1 Minute" },
-    { value: "5", label: "M5", description: "5 Minutes" },
-    { value: "15", label: "M15", description: "15 Minutes" },
-    { value: "60", label: "H1", description: "1 Hour" },
-    { value: "240", label: "H4", description: "4 Hours" },
-    { value: "1D", label: "D1", description: "1 Day" },
-    { value: "1W", label: "W1", description: "1 Week" }
-  ];
 
   const handleQuoteData = (data) => {
     if (!data || !Array.isArray(data) || !selectedSymbol) return;
@@ -98,24 +85,6 @@ function CenterPanel() {
       window.dispatchEvent(event);
     }
   }, [selectedSymbol, chartData.price]);
-
-  // Handle timeframe change with animation
-  const handleTimeframeChange = (value) => {
-    setActiveTimeframe(value);
-
-    // Trigger timeframe animation
-    setTimeframeAnimations(prev => ({
-      ...prev,
-      [value]: "timeframeSelect 0.3s ease"
-    }));
-
-    setTimeout(() => {
-      setTimeframeAnimations(prev => ({
-        ...prev,
-        [value]: undefined
-      }));
-    }, 300);
-  };
 
   // Toggle fullscreen
   const toggleFullscreen = () => {
@@ -380,81 +349,6 @@ function CenterPanel() {
             </Box>
           </Box>
 
-          {/* Right side: Timeframes and controls */}
-          <Box sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            animation: "fadeInRight 0.5s ease"
-          }}>
-            {/* Chart controls */}
-
-            {/* Timeframe buttons */}
-            <Box sx={{
-              display: "flex",
-              gap: "6px",
-              padding: "6px",
-              background: "rgba(14, 18, 28, 0.7)",
-              borderRadius: "8px",
-              border: "1px solid rgba(76, 175, 80, 0.1)"
-            }}>
-              {timeframes.map(timeframe => {
-                const isActive = activeTimeframe === timeframe.value;
-                const animation = timeframeAnimations[timeframe.value];
-
-                return (
-                  <Tooltip key={timeframe.value} title={timeframe.description}>
-                    <Button
-                      onClick={() => handleTimeframeChange(timeframe.value)}
-                      sx={{
-                        minWidth: "42px",
-                        padding: "6px 8px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        background: isActive
-                          ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
-                          : "transparent",
-                        color: isActive ? "white" : "#9ca3af",
-                        border: "1px solid",
-                        borderColor: isActive
-                          ? "rgba(76, 175, 80, 0.5)"
-                          : "rgba(76, 175, 80, 0.1)",
-                        borderRadius: "6px",
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        position: "relative",
-                        overflow: "hidden",
-                        animation: animation,
-                        "&:hover": {
-                          color: "white",
-                          background: isActive
-                            ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
-                            : "rgba(76, 175, 80, 0.1)",
-                          transform: "translateY(-2px)",
-                          boxShadow: isActive
-                            ? "0 4px 12px rgba(76, 175, 80, 0.3)"
-                            : "0 2px 8px rgba(76, 175, 80, 0.2)"
-                        },
-                        "&::after": {
-                          content: '""',
-                          position: "absolute",
-                          bottom: 0,
-                          left: "50%",
-                          transform: "translateX(-50%)",
-                          width: isActive ? "80%" : "0%",
-                          height: "2px",
-                          background: "#4CAF50",
-                          transition: "width 0.3s ease",
-                          borderRadius: "1px"
-                        }
-                      }}
-                    >
-                      {timeframe.label}
-                    </Button>
-                  </Tooltip>
-                );
-              })}
-            </Box>
-          </Box>
         </Box>
 
         {/* Chart Container */}
@@ -464,37 +358,8 @@ function CenterPanel() {
           position: "relative",
           overflow: "hidden"
         }}>
-          <Box sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "linear-gradient(45deg, rgba(10, 14, 23, 0.8), rgba(15, 19, 30, 0.9))",
-            zIndex: 1
-          }} />
-
-          <Box sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 2
-          }}>
-            <TradingViewWidget activeTimeframe={activeTimeframe} />
-          </Box>
-
-          <Box sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 3,
-            pointerEvents: "none"
-          }}>
-            <ChartOverlayLines />
+          <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}>
+            <TradingViewWidget />
           </Box>
 
           {/* Chart corners decoration */}
