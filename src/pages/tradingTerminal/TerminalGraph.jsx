@@ -32,7 +32,7 @@ function TradingViewWidget() {
           "locale": "en",
           "save_image": false,
           "style": "1",
-          "symbol": "OANDA:${selectedSymbol?.name}",
+          "symbol": "OANDA:${typeof selectedSymbol === 'string' ? selectedSymbol : selectedSymbol?.name}",
           "theme": "dark",
           "timezone": "Etc/UTC",
           "backgroundColor": "#0F0F0F",

@@ -1,35 +1,27 @@
-import OrderPlacementForm from "./OrderPlacement/OrderPlacementForm";
-import TerminalGraph from "./TerminalGraph";
-import Grid from "@mui/material/Grid2";
-import TradeHistoryTable from "./OrderPlacement/tradeHistory/TradeHistoryTable";
-import Expander from "../../components/Expander";
-import { Stack } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
+import TopHeader from "./TopHeader";
+import LeftPanel from "./LeftPanel";
+import CenterPanel from "./CenterPanel";
+import RightPanel from "./RightPanel";
 
 function TradingTerminal() {
+    const showLeftPanel = useMediaQuery("(min-width:1024px)");
+    const showRightPanel = useMediaQuery("(min-width:768px)");
+
     return (
-        // <Grid container size={12}>
-        //     <Grid size={10}>
-        //         <Expander
-        //             topContent={<TerminalGraph />}
-        //             bottomContent={<TradeHistoryTable />}
-        //         />
-        //     </Grid>
-        //     <Grid size={2}>
-        //         <OrderPlacementForm />
-        //     </Grid>
-        // </Grid>
-        // <Stack sx={{ flexDirection: "row", width: "100%" }}>
-        // <Stack sx={{ width: "calc(100vw - 300px)" }}>
-        <Expander
-            topContent={<TerminalGraph />}
-            bottomContent={<TradeHistoryTable />}
-        />
-        // </Stack>
-        /* <Stack sx={{ width: "300px" }}>
-            <OrderPlacementForm />
-        </Stack> */
-        // </Stack>
-    )
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", background: "#0a0e17" }}>
+            <TopHeader />
+            <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+                {showLeftPanel && <LeftPanel />}
+                <CenterPanel />
+                {showRightPanel && (
+                    <Box sx={{ width: "300px", flexShrink: 0 }}>
+                        <RightPanel />
+                    </Box>
+                )}
+            </Box>
+        </Box>
+    );
 }
 
 export default TradingTerminal;

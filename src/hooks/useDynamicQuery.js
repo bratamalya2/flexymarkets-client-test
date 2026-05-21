@@ -1,43 +1,31 @@
-import { useClosedOrderListQuery } from "../globalState/trade/tradeApis";
+import { useClosedOrderListQuery, useOpenOrderListQuery } from "../globalState/trade/tradeApis";
 import { initiatePositionSocketConnection } from "../socketENV/positionSocketENV";
 import { useEffect, useRef } from "react";
 
 const useDynamicQuery = (active, activeMT5AccountPositionsDetails, token, login) => {
 
-    const socketRef = useRef()
+    const socketRef = useRef();
 
-    const queryArgs = {
-        login
-    };
+    const queryArgs = { login };
 
-    const closedOrderQuery = useClosedOrderListQuery(queryArgs);
+    const closedOrderQuery = useClosedOrderListQuery(queryArgs, { skip: !login || active !== "history" });
+    const openOrderQuery = useOpenOrderListQuery(queryArgs, { skip: !login || active !== "pending" });
 
     useEffect(() => {
         if (!login || !token) return;
-
-        if (socketRef.current) {
-            socketRef.current.disconnect();
-        }
-
-        socketRef.current = initiatePositionSocketConnection({
-            login,
-            token
-        });
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-            }
-        };
-    }, [active, login, token]);
-
+        socketRef.current?.disconnect();
+        socketRef.current = initiatePositionSocketConnection({ login, token });
+        return () => socketRef.current?.disconnect();
+    }, [login, token]);
 
     const queryResults = {
-        "Open": activeMT5AccountPositionsDetails,
-        "Closed": closedOrderQuery,
+        "market": { data: [], isLoading: false, isError: false },
+        "positions": { data: activeMT5AccountPositionsDetails, isLoading: false, isError: false },
+        "history": closedOrderQuery,
+        "pending": openOrderQuery,
     };
 
-    return queryResults[active] ?? { data: [], isLoading: false, isError: false, error: [] };
+    return queryResults[active] ?? { data: [], isLoading: false, isError: false };
 };
 
 export default useDynamicQuery;

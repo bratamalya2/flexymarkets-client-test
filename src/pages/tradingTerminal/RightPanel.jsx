@@ -38,8 +38,8 @@ function RightPanel() {
     type: "",
     priceOrder: "",
     login: activeMT5AccountLogin,
-    takeProfit: "",
-    stopLoss: "",
+    priceTp: "",
+    priceSl: "",
   };
 
   const {
@@ -61,8 +61,8 @@ function RightPanel() {
   // Watch values for controlled inputs
   const volume = watch("volume");
   const pendingPrice = watch("priceOrder");
-  const pendingTakeProfit = watch("takeProfit");
-  const pendingStopLoss = watch("stopLoss");
+  const pendingTakeProfit = watch("priceTp");
+  const pendingStopLoss = watch("priceSl");
   const currentType = String(watch("type"));
 
   useEffect(() => {
@@ -498,7 +498,7 @@ function RightPanel() {
                 Take Profit
               </Typography>
               <Controller
-                name="takeProfit"
+                name="priceTp"
                 control={control}
                 render={({ field }) => (
                   <Box sx={{
@@ -518,8 +518,8 @@ function RightPanel() {
                       sx={{ flex: 1, "& fieldset": { border: "none" } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("takeProfit", "inc", 0.01)} size="small" sx={{ color: "#4CAF50", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("takeProfit", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "inc", 0.01)} size="small" sx={{ color: "#4CAF50", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}
@@ -533,7 +533,7 @@ function RightPanel() {
                 Stop Loss
               </Typography>
               <Controller
-                name="stopLoss"
+                name="priceSl"
                 control={control}
                 render={({ field }) => (
                   <Box sx={{
@@ -553,8 +553,8 @@ function RightPanel() {
                       sx={{ flex: 1, "& fieldset": { border: "none" } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("stopLoss", "inc", 0.01)} size="small" sx={{ color: "#FF9800", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("stopLoss", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "inc", 0.01)} size="small" sx={{ color: "#FF9800", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}

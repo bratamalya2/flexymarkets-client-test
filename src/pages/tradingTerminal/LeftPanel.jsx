@@ -19,7 +19,7 @@ import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useQuotes } from "../../context/QuotesContext";
-import { useWatchListQuery } from "../../globalState/trade/tradeApis";
+import { useWatchListQuery, useAddSymbolToWatchListMutation } from "../../globalState/trade/tradeApis";
 
 
 const PRIORITY_SYMBOLS = ['XAUUSD', 'XAGUSD'];
@@ -27,6 +27,7 @@ const PRIORITY_SYMBOLS = ['XAUUSD', 'XAGUSD'];
 function LeftPanel() {
 
     const { data, isLoading } = useWatchListQuery()
+    const [addSymbolToWatchList] = useAddSymbolToWatchListMutation()
 
     const allFavSymbols = !isLoading && data?.data?.symbols
 
@@ -154,12 +155,27 @@ function LeftPanel() {
     };
 
     // Toggle watchlist
-    const toggleWatchlist = (symbol, e) => {
+    const toggleWatchlist = async (symbol, e) => {
         e.stopPropagation();
-        if (watchlist.includes(symbol)) {
+        const isInWatchlist = watchlist.includes(symbol);
+        const action = isInWatchlist ? "REMOVE" : "ADD";
+
+        // Optimistic update
+        if (isInWatchlist) {
             setWatchlist(prev => prev.filter(s => s !== symbol));
         } else {
             setWatchlist(prev => [symbol, ...prev]);
+        }
+
+        try {
+            await addSymbolToWatchList({ symbol, action }).unwrap();
+        } catch {
+            // Revert on failure
+            if (isInWatchlist) {
+                setWatchlist(prev => [symbol, ...prev]);
+            } else {
+                setWatchlist(prev => prev.filter(s => s !== symbol));
+            }
         }
     };
 

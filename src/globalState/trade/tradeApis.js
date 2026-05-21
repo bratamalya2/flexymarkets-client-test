@@ -36,7 +36,13 @@ export const tradeStateApis = createApi({
                 method: "POST",
                 body: data
             }),
-            // invalidatesTags: [{ type: 'bankDepositWithdrawalList', id: "PARTIAL-LIST" }]
+        }),
+        closeLimitOrder: builder.mutation({
+            query: (data) => ({
+                url: "/close/limit/order",
+                method: "POST",
+                body: data
+            }),
         }),
         closedOrderList: builder.query({
             query: ({ login }) => {
@@ -92,15 +98,28 @@ export const tradeStateApis = createApi({
             refetchOnMountOrArgChange: true,
             providesTags: [{ type: 'watchList', id: 'PARTIAL-LIST' }]
         }),
+        openOrderList: builder.query({
+            query: ({ login }) => ({
+                url: `${import.meta.env.VITE_BASE_URL}/user/position/open-order/list`,
+                params: login ? { login } : {}
+            }),
+            transformResponse: (response) => ({
+                data: response?.data?.answer ?? response?.data ?? []
+            }),
+            keepUnusedDataFor: 30,
+            refetchOnMountOrArgChange: true,
+        }),
     })
 })
 
 export const {
     usePlaceOrderMutation,
     useCloseOrderMutation,
+    useCloseLimitOrderMutation,
     useLimitTradeRequestMutation,
     useClosedOrderListQuery,
     useAllBotListQuery,
     useAddSymbolToWatchListMutation,
-    useWatchListQuery
+    useWatchListQuery,
+    useOpenOrderListQuery
 } = tradeStateApis;

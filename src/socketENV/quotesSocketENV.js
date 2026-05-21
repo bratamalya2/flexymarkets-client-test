@@ -4,7 +4,7 @@ let socketInstance = null;
 
 export const getQuotesSocket = (token) => {
     if (!socketInstance) {
-        socketInstance = io(`${import.meta.env.VITE_QUOTE_SERVICE_URL}`, {
+        socketInstance = io(`${import.meta.env.VITE_BASE_URL}`, {
             autoConnect: false,
             extraHeaders: {
                 authorization: token

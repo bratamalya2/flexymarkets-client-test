@@ -22,7 +22,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { useQuotes } from "../../context/QuotesContext";
 import useDynamicQuery from "../../hooks/useDynamicQuery";
 import { useDispatch, useSelector } from "react-redux";
-import { useCloseOrderMutation } from "../../globalState/trade/tradeApis";
+import { useCloseOrderMutation, useCloseLimitOrderMutation } from "../../globalState/trade/tradeApis";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
@@ -66,11 +66,12 @@ function OrdersTable() {
     const { token } = useSelector((state) => state.auth);
     const { activeMT5AccountLogin: login, activeMT5AccountPositionsDetails } = useSelector(state => state.mt5)
 
-    const { data, isLoading, isError, error } = useDynamicQuery(activeTab, activeMT5AccountPositionsDetails, quoteData, token, login);
+    const { data, isLoading, isError, error } = useDynamicQuery(activeTab, activeMT5AccountPositionsDetails, token, login);
 
     const listData = data?.data
 
     const [closeOrder, { isLoading: closeOrderLoading }] = useCloseOrderMutation()
+    const [closeLimitOrder, { isLoading: closeLimitOrderLoading }] = useCloseLimitOrderMutation()
 
 
     useEffect(() => {
@@ -619,6 +620,103 @@ function OrdersTable() {
         </Table>
     );
 
+    const renderPendingTable = () => (
+        <Table size="small" sx={{ borderCollapse: 'separate', borderSpacing: '0 4px' }}>
+            <TableHead>
+                <TableRow sx={{
+                    background: "linear-gradient(135deg, rgba(26, 31, 46, 0.9), rgba(14, 18, 28, 0.9))",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(76, 175, 80, 0.2)",
+                    borderRadius: "8px"
+                }}>
+                    {["Order", "Symbol", "Type", "Volume", "Price", "SL", "TP", "Action"].map(col => (
+                        <TableCell key={col} sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>{col}</TableCell>
+                    ))}
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {(!listData || listData.length === 0) ? (
+                    <TableRow>
+                        <TableCell colSpan={8} sx={{ textAlign: "center", padding: "40px", color: "#9ca3af", fontSize: "14px", fontStyle: "italic" }}>
+                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                                <AccessTimeIcon sx={{ fontSize: "48px", color: "rgba(76, 175, 80, 0.3)" }} />
+                                No pending orders
+                                <Typography sx={{ fontSize: "12px", color: "#6b7280" }}>
+                                    Place a limit order from the right panel
+                                </Typography>
+                            </Box>
+                        </TableCell>
+                    </TableRow>
+                ) : (
+                    listData.map((order, index) => {
+                        const typeLabel = order.Action == 2 ? "Buy Limit"
+                            : order.Action == 3 ? "Sell Limit"
+                            : order.Action == 4 ? "Buy Stop"
+                            : order.Action == 5 ? "Sell Stop"
+                            : `Type ${order.Action}`;
+                        const typeColor = [2, 4].includes(Number(order.Action)) ? "#4CAF50" : "#f44336";
+
+                        const handleCancelOrder = async () => {
+                            try {
+                                const response = await closeLimitOrder({
+                                    login,
+                                    order: order.Order,
+                                    symbol: order.Symbol,
+                                    type: String(order.Action)
+                                }).unwrap();
+                                if (response?.status) {
+                                    dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
+                                }
+                            } catch (err) {
+                                dispatch(setNotification({ open: true, message: err?.data?.message || "Failed to cancel order.", severity: "error" }));
+                            }
+                        };
+
+                        return (
+                            <TableRow
+                                key={order.Order ?? index}
+                                sx={{
+                                    background: "rgba(14, 18, 28, 0.7)",
+                                    backdropFilter: "blur(5px)",
+                                    border: "1px solid rgba(76, 175, 80, 0.1)",
+                                    borderRadius: "8px",
+                                    animation: `fadeInUp 0.5s ease ${index * 0.05}s both`,
+                                    "&:hover": { background: "rgba(26, 31, 46, 0.9)" }
+                                }}
+                            >
+                                <TableCell sx={{ color: "#9ca3af", fontSize: "12px", borderBottom: "none", padding: "12px 8px" }}>{order.Order}</TableCell>
+                                <TableCell sx={{ color: "white", fontSize: "13px", fontWeight: 700, borderBottom: "none", padding: "12px 8px" }}>{order.Symbol}</TableCell>
+                                <TableCell sx={{ color: typeColor, fontSize: "12px", fontWeight: 700, borderBottom: "none", padding: "12px 8px" }}>{typeLabel}</TableCell>
+                                <TableCell sx={{ color: "white", fontSize: "13px", borderBottom: "none", padding: "12px 8px" }}>{order.VolumeInitial ? order.VolumeInitial / 10000 : order.Volume}</TableCell>
+                                <TableCell sx={{ color: "#FF9800", fontSize: "13px", fontWeight: 700, borderBottom: "none", padding: "12px 8px" }}>{order.PriceOrder}</TableCell>
+                                <TableCell sx={{ color: "#f44336", fontSize: "12px", borderBottom: "none", padding: "12px 8px" }}>{order.PriceSL || "—"}</TableCell>
+                                <TableCell sx={{ color: "#4CAF50", fontSize: "12px", borderBottom: "none", padding: "12px 8px" }}>{order.PriceTP || "—"}</TableCell>
+                                <TableCell sx={{ borderBottom: "none", padding: "12px 8px" }}>
+                                    <Button
+                                        onClick={handleCancelOrder}
+                                        disabled={closeLimitOrderLoading}
+                                        sx={{
+                                            background: "linear-gradient(135deg, #FF9800, #e65100)",
+                                            color: "white",
+                                            padding: "6px 12px",
+                                            fontSize: "11px",
+                                            fontWeight: 700,
+                                            borderRadius: "6px",
+                                            textTransform: "uppercase",
+                                            "&:hover": { background: "linear-gradient(135deg, #e65100, #FF9800)", transform: "scale(1.05)" }
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })
+                )}
+            </TableBody>
+        </Table>
+    );
+
     return (
         <Box sx={{
             display: "flex",
@@ -765,6 +863,7 @@ function OrdersTable() {
                 {[
                     { id: "market", label: "Market Data", icon: ShowChartIcon },
                     { id: "positions", label: "Positions", icon: AccountBalanceWalletIcon },
+                    { id: "pending", label: "Pending", icon: AccessTimeIcon },
                     { id: "history", label: "History", icon: HistoryIcon }
                 ].map((tab) => (
                     <Box
@@ -844,6 +943,7 @@ function OrdersTable() {
                 }}>
                     {activeTab === "market" && renderMarketTable()}
                     {activeTab === "positions" && renderPositionsTable()}
+                    {activeTab === "pending" && renderPendingTable()}
                     {activeTab === "history" && renderHistoryTable()}
                 </TableContainer>
             </Box>
