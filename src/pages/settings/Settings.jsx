@@ -61,7 +61,7 @@ function Settings() {
     }
 
     return (
-        <Container>
+        <Container sx={{ mb: "2rem" }}>
             <Typography sx={{ fontSize: "2rem", fontWeight: "700", mb: "2rem" }}>
                 Settings
             </Typography>

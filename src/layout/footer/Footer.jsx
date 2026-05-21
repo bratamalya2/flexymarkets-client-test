@@ -24,9 +24,9 @@ function Footer() {
                                 <Typography
                                     key={i}
                                     sx={{ textDecoration: "none" }}
-                                    component={Link}
-                                    to={linkItems.link}
-                                    target='_blank'
+                                    // component={Link}
+                                    // to={linkItems.link}
+                                    // target='_blank'
                                     fontSize={"13px"}
                                     color={"primary.main"}
                                     mb={".3rem"}

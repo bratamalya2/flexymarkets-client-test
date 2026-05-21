@@ -7,43 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AddIcon from '@mui/icons-material/Add';
 import SearchPanel from "../../components/SearchPanel";
 import { setSelectedSymbol } from '../../globalState/terminalState/terminalSlice';
-import { useGetMT5AccountSymbolQuery, useMt5AccountListQuery } from '../../globalState/mt5State/mt5StateApis';
-import { useGetUserDataQuery } from '../../globalState/userState/userStateApis';
-
-
-const allSymbol = [
-    { name: "AUDJPY", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "AUDNZD", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "AUDUSD", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "AUS200", img1: "/symbol_logo/AUS200.svg" },
-    { name: "CADCHF", img1: "/symbol_logo/CAD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "CADJPY", img1: "/symbol_logo/CAD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "CHFJPY", img1: "/symbol_logo/CHF.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "EURAUD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/AUD.svg" },
-    { name: "EURCAD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "EURCHF", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "EURGBP", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/GBP.svg" },
-    { name: "EURJPY", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "EURNZD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "EURUSD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "GBPAUD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/AUD.svg" },
-    { name: "GBPCAD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "GBPCHF", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "GBPJPY", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "GBPNZD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "GBPUSD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "NZDCAD", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "NZDCHF", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "NZDJPY", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "NZDUSD", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "US30", img1: "/symbol_logo/US30.svg" },
-    { name: "USDCAD", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "USDCHF", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "USDJPY", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "USDNOK", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/NOK.svg" },
-    { name: "XAGUSD", img1: "/symbol_logo/XAGUSD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "XAUUSD", img1: "/symbol_logo/XAUUSD.svg", img2: "/symbol_logo/USD.svg" }
-]
+import { useMappedSymbols } from '../../hooks/useMappedSymbols';
 
 
 const StyledMenu = styled((props) => (
@@ -96,54 +60,7 @@ const StyledMenu = styled((props) => (
 
 function TerminalSymbolMenu() {
 
-    const { activeMT5AccountLogin } = useSelector(state => state.mt5)
     const { selectedSymbol } = useSelector(state => state.terminal)
-    // const { data, isLoading } = useGetMT5AccountSymbolQuery({ activeMT5AccountLogin }, { skip: !activeMT5AccountLogin })
-    const { data: userData, isLoading: userDataLoading } = useMt5AccountListQuery({ search: activeMT5AccountLogin }, { skip: !activeMT5AccountLogin })
-
-    const mt5LoginId = userData?.data?.mt5AccountList[0]?.id
-
-    const selectedMT5LoginIdDefaultSym = userData?.data?.mt5AccountList[0]?.defaultSymbol
-
-    // useEffect(() => {
-    //     dispatch(setSelectedSymbol(selectedMT5LoginIdDefaultSym))
-    // }, [selectedMT5LoginIdDefaultSym])
-
-
-    const { data, isLoading } = useGetMT5AccountSymbolQuery({ id: mt5LoginId }, { skip: !mt5LoginId })
-
-    const symbolList = data?.symbolList
-
-    const symbolToShow = [];
-
-    // if (Array.isArray(symbolList) && Array.isArray(allSymbol)) {
-    //     const symbolSet = new Set(symbolList?.map(sym => sym?.includes(".") ? sym?.slice(0, -2) : sym));
-    //     for (const sym of allSymbol) {
-    //         if (symbolSet.has(sym.name)) {
-    //             sym["groupedSym"] = sym.name
-    //             symbolToShow.push(sym);
-    //         }
-    //     }
-    // }
-
-    if (Array.isArray(symbolList) && Array.isArray(allSymbol)) {
-        const symbolMap = new Map(
-            symbolList.map(sym => [
-                sym?.includes(".") ? sym.slice(0, -2) : sym,
-                sym
-            ])
-        );
-
-        for (const sym of allSymbol) {
-            const originalSymbol = symbolMap.get(sym.name);
-            if (originalSymbol) {
-                symbolToShow.push({
-                    ...sym,
-                    groupedSym: originalSymbol,
-                });
-            }
-        }
-    }
 
     const dispatch = useDispatch();
     const [value, setValue] = useState("");
@@ -161,15 +78,17 @@ function TerminalSymbolMenu() {
         setAnchorEl(null);
     };
 
-    const filteredSymbols = symbolToShow.filter(sym =>
-        sym.name.toLowerCase().includes(value.toLowerCase())
+    const { mappedSymbols, defaultSymbol } = useMappedSymbols()
+
+    const filteredSymbols = mappedSymbols.filter(sym =>
+        sym.name?.toLowerCase()?.includes(value.toLowerCase())
     );
 
     useEffect(() => {
-        if (!selectedSymbol && selectedMT5LoginIdDefaultSym) {
-            dispatch(setSelectedSymbol(selectedMT5LoginIdDefaultSym));
+        if (selectedSymbol) {
+            dispatch(setSelectedSymbol(selectedSymbol));
         }
-    }, [selectedMT5LoginIdDefaultSym, selectedSymbol, dispatch]);
+    }, [selectedSymbol, dispatch]);
 
     return (
         <>

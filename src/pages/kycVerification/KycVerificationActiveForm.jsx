@@ -40,7 +40,7 @@ function KycVerificationActiveForm() {
         refetchOnMountOrArgChange: true,
     })
 
-    const areDocsUploaded = docData?.status
+    const areDocsUploaded = !!docData?.data
 
     const { kycStep } = useSelector(state => state.kyc)
 

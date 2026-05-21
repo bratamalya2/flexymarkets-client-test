@@ -93,7 +93,7 @@ function DepositWithdrawList() {
 
     return (
         <Container>
-            <Typography variant='h5' fontWeight={"700"} fontSize={"1.8rem"} mb={"2rem"}>Deposit withdrawal List</Typography>
+            <Typography variant='h5' fontWeight={"700"} fontSize={"1.8rem"} mb={"2rem"}>Wallet Transactions History</Typography>
             <Box sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', lg: 'row' },

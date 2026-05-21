@@ -4,7 +4,7 @@ import SearchableDropdown from "../../components/SearchableDropdown";
 import { allCountryName } from "../../allCountryName";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useDispatch } from "react-redux";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useSignUpMutation } from "../../globalState/auth/authApis";
@@ -191,6 +191,16 @@ function SignUp() {
                     borderRadius: "10px"
                 }}
             >Referral - {referralCode}</Typography>}
+
+            {/* Sign In link */}
+            <Box sx={{ textAlign: "center", mt: "1rem" }}>
+                <Typography variant="body2" color="text.secondary">
+                    Already have an account?{" "}
+                    <Link to="/accounts/signIn" style={{ fontWeight: "bold", color: "black", textDecoration: "none" }}>
+                        Sign in here
+                    </Link>
+                </Typography>
+            </Box>
         </Stack>
     );
 }

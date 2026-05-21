@@ -9,13 +9,13 @@ const SHORT_BRAND_NAME = import.meta.env.VITE_SHORT_BRAND_NAME;
 
 const data = [
   {
-    type: "MT5 Accounts",
+    type: "Web Terminal",
     value: `${SHORT_BRAND_NAME} Terminal`,
     component: SetTradingTerminal,
     button: true
   },
   {
-    type: "MT5 Accounts",
+    type: "MT5 Terminal",
     value: "MetaTrader 5 Terminal",
     component: SetDefaultTerminal,
     button: true
@@ -27,8 +27,9 @@ function TradingTerminals() {
   const [activeIndex, setActiveIndex] = useState(null);
   const matches = useMediaQuery('(max-width:850px)');
 
-  const navigateToMT5Download = () => {
-    window.open("https://www.metatrader5.com/en/download", "_blank");
+  const handleNavigation = (type) => {
+    return type == "Web Terminal" ? window.open("/terminal", "FlexyMarketsTerminal") :
+      window.open("https://www.metatrader5.com/en/download", "_blank");
   }
 
   return (
@@ -100,7 +101,7 @@ function TradingTerminals() {
                   // onClick={() => setActiveIndex(i)}
                   variant="contained"
                   fullWidth={matches}
-                  onClick={navigateToMT5Download}
+                  onClick={() => handleNavigation(item?.type)}
                   sx={{
                     textTransform: "none",
                     boxShadow: "none",
@@ -113,7 +114,7 @@ function TradingTerminals() {
                     "&:hover": { boxShadow: "none", bgcolor: "#f3f5f7" }
                   }}
                 >
-                  Trade
+                  {item?.type == "Web Terminal" ? "Trade" : "Download"}
                 </Button>
               )}
             </Grid>

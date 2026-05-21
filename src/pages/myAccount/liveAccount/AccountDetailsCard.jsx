@@ -36,6 +36,7 @@ function AccountDetailsCard({ accountDetailsData, accountTypeAndNumber, actionBu
                         btnContent={<MoreVertOutlinedIcon />}
                         menuData={menuData}
                         otherMenuData={actionButtons}
+                        modalComponentData={{ login: accountTypeAndNumber.number }}
                         btnSx={{
                             bgcolor: "#f3f5f7",
                             color: "black",

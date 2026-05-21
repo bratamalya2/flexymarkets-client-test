@@ -49,7 +49,7 @@ function OrderHistoryTable({ data, activeTab, isLoading }) {
 
     return (
         <Stack mt={"2rem"}>
-            <Typography variant='h6' fontWeight={"700"} fontSize={"1.8rem"}>Order History Table</Typography>
+            {/* <Typography variant='h6' fontWeight={"700"} fontSize={"1.8rem"}>Order History Table</Typography> */}
             <Stack sx={{ marginTop: '1.2rem', borderRadius: '10px', overflow: 'hidden' }}>
                 <MaterialReactTable table={table} />
             </Stack>

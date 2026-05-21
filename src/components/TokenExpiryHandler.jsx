@@ -3,51 +3,47 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import { setNotification } from "../globalState/notificationState/notificationStateSlice";
+import { setTokenExpTime } from "../globalState/auth/authSlice";
 import { logoutThunk } from "../globalState/auth/authThunk";
 
 function TokenExpiryHandler() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { token, tokenExpTime } = useSelector((state) => state.auth);
+    const { tokenExpTime, token } = useSelector((state) => state.auth);
 
     useEffect(() => {
-        if (!token || !tokenExpTime) return;
+        if (!tokenExpTime) return;
 
-        let timeoutId;
+        // Stale tokenExpTime with no active session — clear silently
+        if (!token) {
+            dispatch(setTokenExpTime(null));
+            return;
+        }
 
-        const checkExpiry = () => {
-            const currentTime = Math.floor(Date.now() / 1000);
-            const expiryTime = Number(tokenExpTime);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeLeft = tokenExpTime - currentTime;
 
-            if (!Number.isFinite(expiryTime)) {
-                dispatch(logoutThunk());
-                return;
-            }
-
-            const timeLeft = expiryTime - currentTime;
-
-            if (timeLeft <= 0) {
-                dispatch(logoutThunk());
-                dispatch(setNotification({
-                    open: true,
-                    message: "Session expired. Please log in again.",
-                    severity: "info",
-                }));
-                return;
-            }
-
-            // Max delay for setTimeout is 2^31-1 (2147483647 ms, approx 24.8 days)
-            // If the delay is larger, it overflows and executes immediately
-            const MAX_TIMEOUT = 2147483647;
-            const delay = Math.min(timeLeft * 1000, MAX_TIMEOUT);
-            
-            timeoutId = setTimeout(checkExpiry, delay);
+        const handleTokenExpiry = () => {
+            dispatch(logoutThunk());
+            dispatch(setNotification({
+                open: true,
+                message: "Session expired. Please log in again.",
+                severity: "info",
+            }));
         };
 
-        checkExpiry();
+        if (timeLeft <= 0) {
+            handleTokenExpiry();
+            return;
+        }
 
-        return () => clearTimeout(timeoutId);
-    }, [token, tokenExpTime, dispatch, navigate]);
+        // setTimeout overflows a 32-bit int past ~24.8 days; skip scheduling — re-evaluated on next mount
+        const timeoutMs = timeLeft * 1000;
+        if (timeoutMs > 2_147_483_647) return;
+
+        const timeout = setTimeout(handleTokenExpiry, timeoutMs);
+        return () => clearTimeout(timeout);
+    }, [tokenExpTime, token, dispatch, navigate]);
 
     return null;
 }

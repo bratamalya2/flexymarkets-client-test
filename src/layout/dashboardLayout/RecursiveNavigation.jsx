@@ -85,9 +85,10 @@ function RecursiveNavigation({ items, sidebarOpen, toggleSidebarOpen, darkMode }
                                 sx={{
                                     height: "3rem",
                                     cursor: "pointer",
-                                    color: darkMode ? "white" : "#00000099",
+                                    color: darkMode ? "white" : isActive ? "white" : "#00000099",
                                     backgroundColor: isActive ? theme => theme.palette.custom.activeNavigation : "transparent",
-                                    "&:hover": { backgroundColor: theme => theme.palette.custom.activeNavigation },
+                                    "&:hover": { backgroundColor: theme => theme.palette.custom.activeNavigation, color: "white" },
+                                    "&:hover .MuiListItemIcon-root": { color: "white" },
                                     borderRadius: '8px',
                                     display: !sidebarOpen && "flex",
                                     alignItems: !sidebarOpen && "center",
@@ -96,7 +97,7 @@ function RecursiveNavigation({ items, sidebarOpen, toggleSidebarOpen, darkMode }
                             >
                                 <ListItemIcon
                                     sx={{
-                                        color: "primary.main",
+                                        color: darkMode ? "white" : isActive ? "white" : "primary.main",
                                         minWidth: !sidebarOpen ? "auto" : "45px"
                                     }}
                                 >

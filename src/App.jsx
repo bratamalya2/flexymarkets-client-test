@@ -218,6 +218,7 @@ import NotFound from './pages/NotFound.jsx';
 import ModalComponent from './components/ModalComponent.jsx';
 import BannerContent from './pages/otherContents/BannerContent.jsx';
 import { useGetBannerQuery } from './globalState/otherContentState/otherContentStateApis.js';
+import { QuotesProvider } from './context/QuotesContext.jsx';
 
 function App() {
 
@@ -234,9 +235,6 @@ function App() {
   const { banner } = useSelector(state => state.otherContent)
   const { token } = useSelector(state => state.auth)
 
-  // Notification
-  const { open, message, severity } = useSelector((state) => state.notification);
-  const handleCloseNotify = () => setOpen(false);
 
   // Extract routes by prefix
   const publicRoutes = routing.filter(
@@ -253,8 +251,6 @@ function App() {
   const clientTerminalRoutes = routing.filter((route) =>
     route.path.startsWith('/terminal')
   );
-
-
 
 
   const { data, isLoading } = useGetBannerQuery(undefined, {
@@ -310,67 +306,64 @@ function App() {
 
       <GoToTop />
 
-      <Notify
-        open={open}
-        onClose={handleCloseNotify}
-        message={message}
-        severity={severity}
-      />
+      <Notify />
 
       {/* Global Suspense Fallback */}
       <Suspense fallback={<Loader />}>
-        <Routes>
-          {/* Public/Auth Routes */}
-          <Route element={<ProtectedAuthRoute />}>
-            <Route element={<AuthLayout />}>
-              {publicRoutes.map(({ path, element }, idx) => (
-                <Route key={idx} path={path} element={element} />
-              ))}
+        <QuotesProvider>
+          <Routes>
+            {/* Public/Auth Routes */}
+            <Route element={<ProtectedAuthRoute />}>
+              <Route element={<AuthLayout />}>
+                {publicRoutes.map(({ path, element }, idx) => (
+                  <Route key={idx} path={path} element={element} />
+                ))}
+              </Route>
             </Route>
-          </Route>
 
-          {/* Trading Terminal Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/terminal" element={<TradingTerminalLayout />}>
-              {clientTerminalRoutes.map(({ path, element }, idx) => (
-                <Route key={idx} path={path} element={element} />
-              ))}
+            {/* Trading Terminal Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/terminal" element={<TradingTerminalLayout />}>
+                {clientTerminalRoutes.map(({ path, element }, idx) => (
+                  <Route key={idx} path={path} element={element} />
+                ))}
+              </Route>
             </Route>
-          </Route>
 
-          {/* Client Dashboard Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/client" element={<DashboardLayout />}>
-              <Route index element={<Navigate to="myAccount" replace />} />
-              {clientRoutes.map(
-                (
-                  {
-                    path,
-                    element,
-                    isKycRequired,
-                    isBankVerificationRequired,
-                    isHalfKycRequired,
-                  },
-                  idx
-                ) => (
-                  <Route
-                    key={idx}
-                    path={path}
-                    element={withVerificationWrapper(
+            {/* Client Dashboard Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/client" element={<DashboardLayout />}>
+                <Route index element={<Navigate to="myAccount" replace />} />
+                {clientRoutes.map(
+                  (
+                    {
+                      path,
                       element,
                       isKycRequired,
                       isBankVerificationRequired,
-                      isHalfKycRequired
-                    )}
-                  />
-                )
-              )}
+                      isHalfKycRequired,
+                    },
+                    idx
+                  ) => (
+                    <Route
+                      key={idx}
+                      path={path}
+                      element={withVerificationWrapper(
+                        element,
+                        isKycRequired,
+                        isBankVerificationRequired,
+                        isHalfKycRequired
+                      )}
+                    />
+                  )
+                )}
+              </Route>
             </Route>
-          </Route>
 
-          {/* 404 Not Found */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </QuotesProvider>
       </Suspense>
     </BrowserRouter>
   );

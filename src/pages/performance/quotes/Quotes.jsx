@@ -117,42 +117,18 @@
 
 
 
-import { Skeleton, Stack } from "@mui/material";
-import Selector from "../../../components/Selector";
-import { useState, useCallback } from "react";
-import { useSelector } from "react-redux";
+import { Container } from "@mui/material";
+import { useMappedSymbols } from "../../../hooks/useMappedSymbols";
 import QuotesTable from "./QuotesTable";
-import { useQuotesSocket } from "../../../socketENV/quotesSocketENV";
-
-
-const symbol = [
-  "AUDJPY", "AUDNZD", "AUDUSD", "AUS200", "CADCHF",
-  "CADJPY", "CHFJPY", "EURAUD", "EURCAD", "EURCHF",
-  "EURGBP", "EURJPY", "EURNZD", "EURUSD", "GBPAUD",
-  "GBPCAD", "GBPCHF", "GBPJPY", "GBPNZD", "GBPUSD",
-  "NZDCAD", "NZDCHF", "NZDJPY", "NZDUSD", "US30",
-  "USDCAD", "USDCHF", "USDJPY", "USDNOK", "XAGUSD",
-  "XAUUSD"
-];
 
 function Quotes() {
-  const { token } = useSelector((state) => state.auth);
-  const [quoteData, setQuoteData] = useState(null);
 
-  // ✅ Handle incoming data from socket
-  const handleQuoteData = useCallback((data) => {
-    if (!data) return;
-    setQuoteData(data);
-  }, []);
-
-  // ✅ Just call your hook here
-  useQuotesSocket(handleQuoteData, token, symbol);
+  const { mappedSymbols } = useMappedSymbols()
 
   return (
-    <Stack>
-      {/* You can re-enable the selector logic later if needed */}
-      <QuotesTable data={quoteData} />
-    </Stack>
+    <Container>
+      <QuotesTable data={mappedSymbols} />
+    </Container>
   );
 }
 

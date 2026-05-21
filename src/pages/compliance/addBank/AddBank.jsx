@@ -4,7 +4,7 @@ import FileUploadTextArea from '../../../components/FileUploadTextArea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addBankSchema } from './addBankSchema';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setNotification } from "../../../globalState/notificationState/notificationStateSlice"
 import { useAddBankMutation } from '../../../globalState/complianceState/complianceStateApis';
 
@@ -12,6 +12,8 @@ import { useAddBankMutation } from '../../../globalState/complianceState/complia
 function AddBank() {
 
     const dispatch = useDispatch();
+
+    const { selectedTheme } = useSelector((state) => state.themeMode);
 
     const defaultValues = {
         holderName: "",
@@ -71,7 +73,7 @@ function AddBank() {
                             {errors.accountNo && <Typography color="error" fontSize={"14px"}>{errors.accountNo.message}</Typography>}
                         </Grid>
                         <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
-                            <InputLabel sx={{ mb: ".5rem" }}>IFSC/Swift Code *</InputLabel>
+                            <InputLabel sx={{ mb: ".5rem" }}>IFSC/Swift Code</InputLabel>
                             <TextField {...register("ifscCode")} size='small' fullWidth placeholder="Enter IFSC/Swift Code" variant="outlined" />
                             {errors.ifscCode && <Typography color="error" fontSize={"14px"}>{errors.ifscCode.message}</Typography>}
                         </Grid>
@@ -96,7 +98,7 @@ function AddBank() {
                             {errors.country && <Typography color="error" fontSize={"14px"}>{errors.country.message}</Typography>}
                         </Grid>
                         <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
-                            <InputLabel sx={{ mb: ".5rem" }}>Book Bank *</InputLabel>
+                            <InputLabel sx={{ mb: ".5rem" }}>Book Bank</InputLabel>
                             <FileUploadTextArea
                                 onChange={(fileData) => setValue("image", fileData, { shouldValidate: true })}
                                 extentionType={['image/jpeg', 'image/png']}

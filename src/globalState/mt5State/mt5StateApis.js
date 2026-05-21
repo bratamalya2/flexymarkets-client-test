@@ -37,7 +37,7 @@ export const mt5StateApis = createApi({
             }),
             invalidatesTags: ["MT5AccountList"]
         }),
-        updateMT5Account: builder.mutation({
+        updateSymbol: builder.mutation({
             query: (data) => ({
                 url: "/update/default-symbol",
                 method: "PUT",
@@ -68,13 +68,14 @@ export const mt5StateApis = createApi({
             }
         }),
         mt5AccountList: builder.query({
-            query: ({ page = 1, sizePerPage = 10, search }) => {
+            query: ({ page = 1, sizePerPage = 10, search, type }) => {
 
                 const params = {};
 
                 if (page > 0) params.page = page;
                 if (sizePerPage > 0) params.sizePerPage = sizePerPage;
-                if (search) params.search = search
+                if (search) params.search = search;
+                if (type) params.type = type;
 
                 return {
                     url: "/account/list",
@@ -130,5 +131,6 @@ export const {
     useUpdateMT5AccountMutation,
     useUpdateMT5PasswordMutation,
     useGetMT5AccountSymbolQuery,
-    useMt5RequestListQuery
+    useMt5RequestListQuery,
+    useUpdateSymbolMutation
 } = mt5StateApis;

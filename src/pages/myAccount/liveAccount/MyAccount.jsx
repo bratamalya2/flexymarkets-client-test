@@ -11,6 +11,7 @@ import HeroOpenAccountPage from "./heroOpenAccountPage/HeroOpenAccountPage";
 import Loader from "../../../components/Loader"
 import { useEffect } from "react";
 import { setActiveMT5AccountType } from "../../../globalState/mt5State/mt5StateSlice";
+import WalletCard from "../../../components/WalletCard";
 
 function MyAccount() {
 
@@ -60,8 +61,10 @@ function MyAccount() {
     return (
         <Stack>
             <Container>
+                <WalletCard />
                 <Stack
                     sx={{
+                        mt: "25px",
                         display: "flex",
                         flexDirection: "row",
                         flexWrap: "wrap",
@@ -71,7 +74,7 @@ function MyAccount() {
                     }}
                 >
                     <Typography sx={{ fontSize: "2rem", fontWeight: "700" }}>
-                        My Accounts
+                        Your Trading Account
                     </Typography>
                     {/* <Tooltip title={!levelOneVerification && "Complete level one verification"}> */}
                     <Button

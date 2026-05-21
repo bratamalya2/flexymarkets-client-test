@@ -121,6 +121,7 @@ function MenuComponent({ btnContent, btnSx, menuData, otherMenuData, specialMenu
                                         ) : (
                                             <ModalComponent
                                                 Content={item.modalType}
+                                                contentData={modalComponentData}
                                                 btnSx={{
                                                     textTransform: "capitalize",
                                                     bgcolor: i && "#f3f5f7",

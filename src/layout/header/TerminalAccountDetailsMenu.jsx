@@ -12,9 +12,14 @@ import { setHideBalance } from '../../globalState/profileState/profileStateSlice
 import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import ModalComponent from '../../components/ModalComponent';
+import MetaDeposit from '../../pages/myAccount/liveAccount/accountDetailsAccordian/MetaDeposit';
+import MetaWithdraw from '../../pages/myAccount/liveAccount/accountDetailsAccordian/MetaWithdraw';
 
 
-function TerminalAccountDetailsMenu() {
+function TerminalAccountDetailsMenu({ data }) {
+
+    const { mainBalance, refetch, modalWidth } = data || {};
 
     const { activeMT5AccountType } = useSelector(state => state.mt5)
 
@@ -188,13 +193,20 @@ function TerminalAccountDetailsMenu() {
                             activeMT5AccountType == "Real"
                                 ?
                                 <Stack sx={{ flexDirection: "row", mt: ".8rem", width: "100%", gap: "10px" }}>
-                                    <Button
-                                        fullWidth
-                                        component={Link}
-                                        to={"/client/transactions/withdrawal"}
-                                        variant='contained'
-                                        size='small'
-                                        sx={{
+                                    <ModalComponent
+                                        btnName={"Withdraw"}
+                                        Content={MetaWithdraw}
+                                        contentData={{
+                                            login: accountDetailsData["Log in"],
+                                            refetch,
+                                            mainBalance: Number(mainBalance || 0).toLocaleString(undefined, {
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 2,
+                                            })
+                                        }}
+                                        modalWidth={modalWidth ? "95%" : 500}
+                                        btnSx={{
+                                            width: "100%",
                                             textTransform: "capitalize",
                                             boxShadow: "none",
                                             color: "white",
@@ -202,16 +214,21 @@ function TerminalAccountDetailsMenu() {
                                                 boxShadow: "none",
                                             },
                                         }}
-                                    >
-                                        Withdraw
-                                    </Button>
-                                    <Button
-                                        fullWidth
-                                        component={Link}
-                                        to={"/client/transactions/deposit"}
-                                        variant='contained'
-                                        size='small'
-                                        sx={{
+                                    />
+                                    <ModalComponent
+                                        btnName={"Deposit"}
+                                        Content={MetaDeposit}
+                                        contentData={{
+                                            login: accountDetailsData["Log in"],
+                                            refetch,
+                                            mainBalance: Number(mainBalance || 0).toLocaleString(undefined, {
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 2,
+                                            })
+                                        }}
+                                        modalWidth={modalWidth ? "95%" : 500}
+                                        btnSx={{
+                                            width: "100%",
                                             textTransform: "capitalize",
                                             boxShadow: "none",
                                             color: "white",
@@ -219,9 +236,7 @@ function TerminalAccountDetailsMenu() {
                                                 boxShadow: "none",
                                             },
                                         }}
-                                    >
-                                        Deposit
-                                    </Button>
+                                    />
                                 </Stack>
                                 :
                                 <Button

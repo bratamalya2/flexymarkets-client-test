@@ -169,29 +169,19 @@
 
 import { Stack, useMediaQuery } from "@mui/material";
 import { useSelector } from "react-redux";
-import { useState, useCallback } from "react";
-import { useQuotesSocket } from "../../socketENV/quotesSocketENV";
+import { useMemo } from "react";
+import { useQuotes } from "../../context/QuotesContext";
 import ModalComponent from "../../components/ModalComponent";
 import OrderPlacementForm from "../../pages/tradingTerminal/OrderPlacement/OrderPlacementForm";
 
 function TerminalBuySell({ value, onChange, handleOpenPrice, activeTradeType }) {
   const { selectedSymbol } = useSelector((state) => state.terminal);
-  const [activeSymbolData, setActiveSymbolData] = useState(null);
+  const { quoteData } = useQuotes();
 
-  // ✅ Handle incoming quote updates
-  const handleQuoteData = useCallback(
-    (data) => {
-      if (!selectedSymbol?.name || !data?.length) return;
-      const selectedSymbolData = data.find(
-        (ele) => ele?.Symbol === selectedSymbol?.name
-      );
-      setActiveSymbolData(selectedSymbolData);
-    },
-    [selectedSymbol?.name]
-  );
-
-  // ✅ Initialize the global shared socket
-  useQuotesSocket(handleQuoteData);
+  const activeSymbolData = useMemo(() => {
+    if (!selectedSymbol?.name || !Array.isArray(quoteData)) return null;
+    return quoteData.find((ele) => ele?.Symbol === selectedSymbol?.name) || null;
+  }, [quoteData, selectedSymbol?.name]);
 
   // --- Extract prices ---
   const sellPrice = activeSymbolData?.Bid;

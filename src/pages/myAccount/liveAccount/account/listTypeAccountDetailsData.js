@@ -10,6 +10,8 @@ import ChangeMaxLeverageModalContent from './ChangeMaxLeverageModalContent';
 import AccountInformationModalContent from './AccountInformationModalContent';
 import ChangeMT5PasswordModalDetails from '../../ChangeMT5PasswordModalDetails';
 import SetReadOnlyAccessModalContent from './SetReadOnlyAccessModalContent';
+import MetaDeposit from '../accountDetailsAccordian/MetaDeposit';
+import MetaWithdraw from '../accountDetailsAccordian/MetaWithdraw';
 
 const SHORT_BRAND_NAME = import.meta.env.VITE_SHORT_BRAND_NAME;
 
@@ -28,8 +30,8 @@ const commonAccountDetailsID = (server, id) => [
 const commonButtons = (isReal) => [
     { name: "Trade", icon: CandlestickChartOutlinedIcon, type: "modal", modal: TradeModalContent },
     !isReal && { name: "Set Balance", icon: ArrowCircleDownOutlinedIcon, type: "modal", modal: SetBalanceModalContent },
-    isReal && { name: "Deposit", icon: ArrowCircleDownOutlinedIcon, type: "redirect", link: "/client/transactions/deposit" },
-    isReal && { name: "Withdraw", icon: ArrowCircleUpOutlinedIcon, type: "redirect", link: "/client/transactions/withdrawal" },
+    isReal && { name: "Deposit", icon: ArrowCircleDownOutlinedIcon, type: "redirect", modal: MetaDeposit },
+    isReal && { name: "Withdraw", icon: ArrowCircleUpOutlinedIcon, type: "redirect", modal: MetaWithdraw },
     {
         icon: MoreVertOutlinedIcon,
         type: "menu",

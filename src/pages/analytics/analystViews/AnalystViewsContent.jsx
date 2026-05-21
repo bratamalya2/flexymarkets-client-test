@@ -4,7 +4,7 @@ import { useState } from "react";
 import AnalystViewsFilters from "./analystViewsFilters/AnalystViewsFilters";
 import TradingSignalsFeed from "./tradingSignalsFeed/TradingSignalsFeed";
 import TradingSignalDetails from "./tradingSignalDetails/TradingSignalDetails";
-import AnalystViewsFooter from "./analystViewsFooter/AnalystViewsFooter";
+
 import { useMediaQuery, useTheme } from "@mui/material";
 
 function AnalystViewsContent({ active }) {
@@ -35,8 +35,7 @@ function AnalystViewsContent({ active }) {
                 )}
             </Grid>
 
-            <Divider sx={{ my: "1.5rem" }} />
-            <AnalystViewsFooter />
+
         </Stack>
     );
 }

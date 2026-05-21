@@ -1,5 +1,9 @@
 import { createMRTColumnHelper } from 'material-react-table';
 import { Typography } from '@mui/material';
+import { useDispatch } from 'react-redux';
+import { setSelectedSymbol } from "../../../globalState/terminalState/terminalSlice";
+import { allSymbol } from '../../../utils/allSymbol';
+
 
 const columnHelper = createMRTColumnHelper();
 
@@ -7,6 +11,29 @@ export const QuotesTableHeaderColumn = [
     columnHelper.accessor('Symbol', {
         header: 'Symbol',
         // size: 40,
+        Cell: ({ row }) => {
+
+            const dispatch = useDispatch()
+            const value = row?.original?.name;
+
+            const handleSymbolClick = () => {
+
+                const symbolData = {
+                    groupedSym: row?.original?.groupedSym,
+                    img1: row?.original?.img1,
+                    img2: row?.original?.img2,
+                    name: row?.original?.name || row?.original?.Symbol
+                }
+
+                dispatch(setSelectedSymbol(symbolData));
+                window.open("/terminal", "FlexyMarketsTerminal");
+            }
+
+            return <Typography
+                onClick={() => handleSymbolClick()}
+                sx={{ textDecoration: "underline", cursor: "pointer" }}
+            >{value}</Typography>
+        },
     }),
     columnHelper.accessor('Ask', {
         header: 'Ask',

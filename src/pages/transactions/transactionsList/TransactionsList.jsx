@@ -21,7 +21,7 @@ const STATUS_OPTIONS = ["PENDING", "COMPLETED", "PROCESSING", "REJECTED"];
 const TRANSACTION_TYPES = ["INTERNAL-DEPOSIT", "INTERNAL-WITHDRAW", "WALLET-DEPOSIT", "WALLET-WITHDRAW", "IB-WITHDRAW", "INTERNAL-TRANSFER", "CREDIT-DEPOSIT", "BONUS-DEPOSIT", "CREDIT-WITHDRAW", "BONUS-WITHDRAW"];
 const PAYMENT_METHODS = ["BANK", "CASH", "CRYPTO"];
 
-function TransactionsList() {
+function TransactionsList({ marginTop, login }) {
 
     const dispatch = useDispatch()
 
@@ -45,6 +45,7 @@ function TransactionsList() {
         ...filters,
         fromDate: formattedFromDate,
         toDate: formattedToDate,
+        login
     });
 
     const showError = error?.data?.message
@@ -92,8 +93,8 @@ function TransactionsList() {
     }, []);
 
     return (
-        <Container>
-            <Typography variant='h5' fontWeight={"700"} fontSize={"1.8rem"} mb={"2rem"}>Transaction list</Typography>
+        <Container sx={{ mt: marginTop ? marginTop : 0 }}>
+            <Typography variant='h5' fontWeight={"700"} fontSize={"1.8rem"} mb={"2rem"}>Accounts Transaction History</Typography>
             <Box sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', lg: 'row' },

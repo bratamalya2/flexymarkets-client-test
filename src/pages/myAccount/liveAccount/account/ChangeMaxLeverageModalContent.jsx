@@ -15,13 +15,13 @@ const schema = z.object({
 
 function ChangeMaxLeverageModalContent({ data, onClose }) {
 
-    const maxLeverage = data?.accountInfo?.accountTypeDetails?.groupMaxLeverage / 100 || 0
+    const maxLeverage = data?.accountInfo?.groupDetails?.leverage / 100 || data?.leverage / 100 || 0
 
     let step = 100;
 
     let leverageOptions = Array.from({ length: maxLeverage }, (_, i) => step * (i + 1));
 
-    const login = data?.mt5Login
+    const login = data?.mt5Login || data?.login
 
     const dispatch = useDispatch()
 

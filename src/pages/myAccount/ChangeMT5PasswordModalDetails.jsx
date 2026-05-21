@@ -22,7 +22,7 @@ const changeMT5PasswordSchema = z.object({
 
 function ChangeMT5PasswordModalDetails({ data, onClose }) {
 
-    const mt5LoginId = data?.mt5Login
+    const mt5LoginId = data?.mt5Login || data?.login
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -57,7 +57,7 @@ function ChangeMT5PasswordModalDetails({ data, onClose }) {
             if (response?.status) {
                 dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
                 reset(defaultValues)
-                onClose()
+                onClose?.()
             }
 
         } catch (error) {

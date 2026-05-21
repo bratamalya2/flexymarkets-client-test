@@ -3,11 +3,20 @@ import AccountDetails from "../accountDetails/AccountDetails";
 import WalletDetails from "../walletDetails/WalletDetails";
 import RecursiveNavigation from "../dashboardLayout/RecursiveNavigation";
 import { getNavigationConfig } from "../dashboardLayout/Navigation";
+import { useGetUserDataQuery } from '../../globalState/userState/userStateApis';
 
+function SideBar({ sidebarRef, sidebarOpen, isLgDown, setSidebarOpen, drawerWidth, isMdDown, selectedTheme, isMobile }) {
+    const { data: userDataResponse } = useGetUserDataQuery();
+    const userData = userDataResponse?.data?.userData;
 
-function SideBar({ sidebarRef, sidebarOpen, isLgDown, setSidebarOpen, drawerWidth, isMdDown, selectedTheme, isMobile, isIbOrSubIb }) {
+    let userType = 'client';
+    if (userData?.isIb) {
+        userType = 'ib';
+    } else if (userData?.isSubIb) {
+        userType = 'subIb';
+    }
 
-    const NAVIGATION = getNavigationConfig(isIbOrSubIb);
+    const NAVIGATION = getNavigationConfig(userType);
 
     return (
         <Drawer

@@ -6,7 +6,7 @@ import {
   InputAdornment,
   Typography,
   Button,
-  CircularProgress,
+  CircularProgress
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -20,6 +20,7 @@ import LiveBuySellCard from "./LiveBuySellCard";
 import { useLimitTradeRequestMutation, usePlaceOrderMutation } from "../../../globalState/trade/tradeApis";
 import { setNotification } from "../../../globalState/notificationState/notificationStateSlice";
 import { orderPlacementFormSchema } from "./orderPlacementFormSchema";
+import Loader from "../../../components/Loader";
 
 const item = ["Regular form", "One-click form", "Risk calculator form"];
 const toggleItem = [{ name: "Market" }, { name: "Pending" }];
@@ -361,7 +362,8 @@ function OrderPlacementForm({ data }) {
         </Stack>
       </Stack>
       :
-      <Typography sx={{ p: "15px" }}>Symbol is not selected</Typography>
+      // <Typography sx={{ p: "15px" }}>Symbol is not selected</Typography>
+      <Loader />
   );
 }
 

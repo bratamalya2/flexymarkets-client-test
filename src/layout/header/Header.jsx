@@ -26,19 +26,24 @@ import ModalComponent from "../../components/ModalComponent";
 import TerminalDepositModal from "../../pages/tradingTerminal/TerminalDepositModal";
 import TerminalMobileDrawer from "../tradingTerminalLayout/TerminalMobileDrawer";
 import TerminalBuySell from "./TerminalBuySell";
+import MetaDeposit from "../../pages/myAccount/liveAccount/accountDetailsAccordian/MetaDeposit";
 
 
 const hideHeaderElementsOnRoutes = ["/accounts", "/accounts/*", "/client/kyc", "/terminal"];
 
+const SHORT_BRAND_NAME = import.meta.env.VITE_SHORT_BRAND_NAME;
+
 function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
+
+    const modalWidth = useMediaQuery('(max-width:600px)');
 
     const { selectedSymbol } = useSelector((state) => state.terminal);
 
     const { token } = useSelector((state) => state.auth);
     const { hideBalance } = useSelector(state => state.profile)
-    const { activeMT5AccountType } = useSelector(state => state.mt5)
+    const { activeMT5AccountType, activeMT5AccountLogin } = useSelector(state => state.mt5)
 
-    const { data, isLoading } = useGetUserDataQuery(undefined, {
+    const { data, isLoading, refetch } = useGetUserDataQuery(undefined, {
         skip: !token,
         refetchOnMountOrArgChange: true,
     })
@@ -108,10 +113,11 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                     <Link to={"/client"}>
                         <img src={selectedTheme === "dark" ? import.meta.env.VITE_BRAND_LOGO_LIGHT : import.meta.env.VITE_BRAND_LOGO_DARK}
                             alt="My Logo"
-                            style={{ width: "5rem" }}
+                            style={{ width: "8rem" }}
                         />
                     </Link>
-                    {(((location.pathname).includes("/terminal")) && selectedSymbol)
+                    {
+                        (((location.pathname).includes("/terminal")) && selectedSymbol)
                         &&
                         <Box sx={{ mx: "10px", display: "flex", gap: "1rem" }}>
                             <Box sx={{ position: "relative", width: "20px", height: "20px", ml: "5px" }}>
@@ -141,7 +147,8 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                                 />
                             </Box>
                             <Typography sx={{ fontSize: "1rem" }}>{selectedSymbol?.name}</Typography>
-                        </Box>}
+                        </Box>
+                    }
                     {(location.pathname).includes("/terminal") && <TerminalSymbolMenu />}
                 </Stack>
                 <Stack
@@ -214,7 +221,7 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                                 </Stack>
                                 :
                                 <Stack sx={{ flexDirection: "row", gap: "20px", alignItems: "center" }}>
-                                    <TerminalAccountDetailsMenu />
+                                    <TerminalAccountDetailsMenu data={{ mainBalance, refetch, modalWidth }} />
                                     <MenuComponent
                                         btnContent={<AppsIcon />}
                                         btnSx={{
@@ -227,7 +234,7 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                                         specialMenuData={
                                             [
                                                 { name: "Personal Area", icon: DashboardOutlinedIcon, link: "/terminal" },
-                                                { name: "FxTrusts Website", icon: DashboardOutlinedIcon, link: "/" }
+                                                { name: `${SHORT_BRAND_NAME} Website`, icon: DashboardOutlinedIcon, link: "/" }
                                             ]
                                         }
                                     />
@@ -239,16 +246,25 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                                     {
                                         activeMT5AccountType == "Real"
                                             ?
-                                            <Button
-                                                component={Link}
-                                                to={"/client/transactions/deposit"}
-                                                sx={{
+                                            <ModalComponent
+                                                btnName={"Deposit"}
+                                                Content={MetaDeposit}
+                                                contentData={{
+                                                    login: activeMT5AccountLogin,
+                                                    refetch,
+                                                    mainBalance: Number(mainBalance || 0).toLocaleString(undefined, {
+                                                        minimumFractionDigits: 0,
+                                                        maximumFractionDigits: 2,
+                                                    })
+                                                }}
+                                                modalWidth={modalWidth ? "95%" : 500}
+                                                btnSx={{
                                                     bgcolor: theme.palette.custom.activeNavigation,
                                                     color: "white",
                                                     px: "4rem",
                                                     py: ".5rem"
                                                 }}
-                                            >Deposit</Button>
+                                            />
                                             :
                                             <ModalComponent
                                                 btnName={"Deposit"}
@@ -260,6 +276,7 @@ function Header({ sidebarOpen, toggleSidebar, toggleTheme }) {
                                                     py: ".5rem",
                                                     boxShadow: "none,"
                                                 }}
+                                                modalWidth={modalWidth ? "95%" : 500}
                                             />
                                     }
                                 </Stack>

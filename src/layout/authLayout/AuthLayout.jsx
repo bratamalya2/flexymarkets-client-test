@@ -2,7 +2,7 @@ import { ThemeProvider, Box } from "@mui/material"
 import { getCustomTheme } from "../../theme";
 import { useSelector } from "react-redux";
 import Header from "../header/Header";
-import Footer from "../footer/Footer";
+
 import { Outlet } from "react-router-dom";
 import AppGlobalStyles from "../../AppGlobalStyles";
 import { useMemo } from "react";
@@ -20,7 +20,7 @@ function AuthLayout() {
                 <Box sx={{ flex: 1 }}>
                     <Outlet />
                 </Box>
-                <Footer />
+
             </Box>
         </ThemeProvider>
     )

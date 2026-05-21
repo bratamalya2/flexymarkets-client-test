@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-    selectedSymbol: JSON.parse(localStorage.getItem("selectedSymbol")) ||
-        { name: "XAUUSD", img1: "/symbol_logo/XAUUSD.svg", img2: "/symbol_logo/USD.svg", groupedSym: "XAUUSD" },
+    selectedSymbol: JSON.parse(localStorage.getItem("selectedSymbol")) || null
+        // { name: "XAUUSD", img1: "/symbol_logo/XAUUSD.svg", img2: "/symbol_logo/USD.svg", groupedSym: "XAUUSD" },
 };
 
 const terminalSlice = createSlice({

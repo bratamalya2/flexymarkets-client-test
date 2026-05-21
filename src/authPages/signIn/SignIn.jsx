@@ -4,6 +4,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
+
 import { useDispatch } from "react-redux";
 import * as z from 'zod';
 import { useLogInMutation } from "../../globalState/auth/authApis";
@@ -11,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice"
 import { setBanner } from "../../globalState/otherContentState/otherContentStateSlice";
-import { initiateAuthSocketConnection } from "../../socketENV/authSocketENV";
+import { initiateAuthSocketConnection, disconnectAuthSocket } from "../../socketENV/authSocketENV";
 
 
 const signinSchema = z.object({
@@ -43,6 +44,7 @@ function SignIn() {
 
         try {
 
+            disconnectAuthSocket(); // Prevent stale socket's "logOut" event from wiping the new session
             const response = await signIn(data).unwrap();
 
             if (response?.status) {
@@ -100,6 +102,18 @@ function SignIn() {
                     {errors.password && <Typography color="error" fontSize={"14px"}>{errors.password.message}</Typography>}
                 </Grid>
             </Grid>
+
+            {/* Remember me + Forgot password row */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: "1rem" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input type="checkbox" style={{ width: "16px", height: "16px" }} />
+                    <Typography fontSize="14px">Remember me</Typography>
+                </Box>
+                <Link to="/accounts/resetPassword" style={{ fontWeight: 600, color: "#1172cc", textDecoration: "none", fontSize: "14px" }}>
+                    I forgot my password
+                </Link>
+            </Box>
+
             <Button
                 fullWidth
                 variant="contained"
@@ -107,41 +121,23 @@ function SignIn() {
                 type="submit"
                 disabled={isLoading}
                 sx={{
-                    mt: "3rem",
+                    mt: "2rem",
                     textTransform: "none",
                     boxShadow: "none",
                     color: "white",
                     py: ".6rem",
-                    "&:hover": {
-                        boxShadow: "none"
-                    }
+                    "&:hover": { boxShadow: "none" }
                 }}
             >Continue</Button>
-            {/* <Box sx={{ display: "flex", alignItems: "center", my: 2 }}>
-                <Divider sx={{ flex: 1, borderColor: "#ccc" }} />
-                <Typography sx={{ mx: 2, whiteSpace: "nowrap" }}>
-                    Or sign in with
+
+            {/* Sign Up link */}
+            <Box sx={{ textAlign: "center", mt: "1.5rem" }}>
+                <Typography variant="body2" color="text.secondary">
+                    Don't have an account?{" "}
+                    <Link to="/accounts/signUp" style={{ fontWeight: "bold", color: "black", textDecoration: "none" }}>
+                        Sign Up
+                    </Link>
                 </Typography>
-                <Divider sx={{ flex: 1, borderColor: "#ccc" }} />
-            </Box>
-            <Button
-                startIcon={<Icon icon="flat-color-icons:google" width="20" height="20" />}
-                fullWidth
-                variant="contained"
-                color="primary"
-                sx={{
-                    textTransform: "none",
-                    boxShadow: "none",
-                    bgcolor: "#f3f5f7",
-                    color: "black",
-                    py: ".6rem",
-                    "&:hover": {
-                        boxShadow: "none"
-                    }
-                }}
-            >Google</Button> */}
-            <Box sx={{ textAlign: "center", mt: "1.2rem" }}>
-                <Typography component={Link} to={"/accounts/resetPassword"} sx={{ textDecoration: "none", color: "#1172cc" }}>I forgot my password</Typography>
             </Box>
         </Stack>
     );

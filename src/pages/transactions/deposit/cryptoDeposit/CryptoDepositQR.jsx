@@ -9,8 +9,7 @@ import {
     Box,
     ListItem,
     List,
-    Skeleton,
-    Button
+    Skeleton
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 // import CountdownTimer from "../../../../components/CountdownTimer"
@@ -19,8 +18,6 @@ import { useState } from "react";
 import { QRCodeCanvas } from 'qrcode.react';
 import useCountdownTimer from "../../../../hooks/useCountdownTimer";
 import { removeDepositQRData, removeCreatedTime, removeExpireTime, setHasStarted } from "../../../../globalState/paymentState/paymentSlice";
-import { setNotification } from '../../../../globalState/notificationState/notificationStateSlice';
-import { useLazyCheckPaymentStatusQuery } from '../../../../globalState/userState/userStateApis';
 import CloseIcon from '@mui/icons-material/Close';
 
 
@@ -30,7 +27,6 @@ function CryptoDepositQR() {
 
 
     const { depositQRData, createdTime, expireTime } = useSelector(state => state.payment);
-    const qrValue = depositQRData?.payment_address || depositQRData?.invoice_payment_url;
 
     const timeLeft = useCountdownTimer(createdTime, expireTime, () => {
         dispatch(removeDepositQRData());
@@ -54,30 +50,6 @@ function CryptoDepositQR() {
         setTimeout(() => {
             setCopied(false);
         }, 1500);
-    };
-
-    const [checkPaymentStatus, { isFetching }] = useLazyCheckPaymentStatusQuery();
-
-    const handleCheckStatus = async () => {
-        if (!depositQRData?.order_no) {
-            dispatch(setNotification({ open: true, message: 'Order ID not found.', severity: 'error' }));
-            return;
-        }
-        
-        try {
-            const res = await checkPaymentStatus(depositQRData.order_no).unwrap();
-            dispatch(setNotification({
-                open: true,
-                message: res.message || 'Status checked.',
-                severity: res.status ? 'success' : 'info'
-            }));
-        } catch (err) {
-            dispatch(setNotification({
-                open: true,
-                message: err?.data?.message || 'Failed to check status.',
-                severity: 'error'
-            }));
-        }
     };
 
     const handlePaymentWindowClose = () => {
@@ -105,12 +77,10 @@ function CryptoDepositQR() {
                     wordBreak: "break-word",
                 }}
             >
-                <Typography variant='h6'>
-                    {depositQRData?.payment_address ? "Scan QR Code to Complete Deposit" : "Open Checkout to Complete Deposit"}
-                </Typography>
-                {qrValue ? (
+                <Typography variant='h6'>Scan QR Code to Complete Deposit</Typography>
+                {depositQRData ? (
                     <QRCodeCanvas
-                        value={qrValue}
+                        value={depositQRData?.payment_address}
                         size={200}
                         bgColor="#ffffff"
                         fgColor="#000000"
@@ -122,28 +92,6 @@ function CryptoDepositQR() {
                         QR Code not available
                     </Typography>
                 )}
-                {depositQRData?.invoice_payment_url && (
-                    <Button
-                        href={depositQRData.invoice_payment_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        variant="contained"
-                        sx={{ textTransform: "none", color: "white" }}
-                    >
-                        Open payment page
-                    </Button>
-                )}
-                
-                <Button 
-                    variant="outlined" 
-                    color="primary" 
-                    onClick={handleCheckStatus} 
-                    disabled={isFetching}
-                    sx={{ mt: 1, textTransform: "none" }}
-                >
-                    {isFetching ? "Checking..." : "Check Payment Status"}
-                </Button>
-
                 <Typography color="red">Your transaction will automatically complete after payment confirmation</Typography>
                 {/* <CountdownTimer /> */}
                 <Typography fontSize={"1.2rem"} fontWeight={600} color={isTimedOut ? 'error' : 'text.primary'}>
@@ -156,25 +104,23 @@ function CryptoDepositQR() {
                     </Box>
                     <Typography>{depositQRData?.token_name}</Typography>
                 </Stack>
-                {depositQRData?.payment_address && (
-                    <Stack>
-                        <Typography fontWeight={"bold"}>Deposit Address:</Typography>
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <Typography>{depositQRData?.payment_address}</Typography>
-                            <Tooltip title={copied ? "Copied!" : "Copy"}>
-                                <IconButton onClick={() => handleCopy(depositQRData?.payment_address)}>
-                                    <ContentCopyOutlinedIcon sx={{ fontSize: "20px" }} />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-                    </Stack>
-                )}
+                <Stack>
+                    <Typography fontWeight={"bold"}>Deposit Address:</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Typography>{depositQRData?.payment_address}</Typography>
+                        <Tooltip title={copied ? "Copied!" : "Copy"}>
+                            <IconButton onClick={() => handleCopy(depositQRData?.payment_address)}>
+                                <ContentCopyOutlinedIcon sx={{ fontSize: "20px" }} />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </Stack>
                 <List sx={{ listStyleType: "disc", pl: 2, py: 0 }}>
                     <Typography fontWeight={"bold"} fontSize={"1.5rem"}>Important Note:</Typography>
                     <ListItem sx={{ display: "list-item", p: 0 }}>The system will automatically confirm your payments.</ListItem>
                     <ListItem sx={{ display: "list-item", p: 0 }}>After sending payment please wait for at least 3 to 4 minutes for confirmations, your deposit will be processed automatically.</ListItem>
-                    <ListItem sx={{ display: "list-item", p: 0 }}>The above address will be valid for 3 hours to send payment.</ListItem>
-                    <ListItem sx={{ display: "list-item", p: 0 }}>If you send payment after 1 hour on the above address it will be ignored.</ListItem>
+                    <ListItem sx={{ display: "list-item", p: 0 }}>The above address will be valid for 10 minutes to send payment.</ListItem>
+                    <ListItem sx={{ display: "list-item", p: 0 }}>If you send payment after 10 minutes on the above address it will be ignored.</ListItem>
                     <ListItem sx={{ display: "list-item", p: 0 }}>Transfer exact amount showing above, other amounts will be ignored.</ListItem>
                 </List>
             </CardContent>

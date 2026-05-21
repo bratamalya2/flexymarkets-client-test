@@ -1,5 +1,10 @@
 import { createMRTColumnHelper } from 'material-react-table';
-import { Typography } from '@mui/material';
+import { Typography, Stack, IconButton, Tooltip } from '@mui/material';
+import { useDispatch } from 'react-redux';
+import { useCloseOrderMutation } from "../../../../globalState/trade/tradeApis";
+import CloseIcon from '@mui/icons-material/Close';
+import { setNotification } from '../../../../globalState/notificationState/notificationStateSlice';
+
 
 const columnHelper = createMRTColumnHelper();
 
@@ -80,6 +85,49 @@ export const OrderHistoryTableHeaderColumn = (activeTab) => {
                     );
                 },
             }),
+            // columnHelper.display({
+            //     header: 'Close trade',
+            //     Cell: ({ row }) => {
+
+            //         const symbol = row?.original?.Symbol
+            //         const dispatch = useDispatch()
+            //         const data = {
+            //             symbol: symbol,
+            //             volume: row?.original?.Volume,
+            //             typeFill: "1",
+            //             type: (row?.original?.Action === 1 || row?.original?.Action === "1") ? "0" : "1",
+            //             login: row?.original?.Login,
+            //             position: row?.original?.Position
+            //         }
+
+            //         const [closeOrder, { isLoading }] = useCloseOrderMutation()
+
+            //         const onSubmit = async (data) => {
+
+            //             try {
+            //                 const response = await closeOrder(data).unwrap();
+            //                 if (response?.status) {
+            //                     dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
+            //                 }
+            //             } catch (error) {
+            //                 if (!error?.data?.status) {
+            //                     dispatch(setNotification({ open: true, message: error?.data?.message || "Failed to submit. Please try again later.", severity: "error" }));
+            //                 }
+            //             }
+            //         };
+
+            //         return (
+            //             <Stack sx={{ flexDirection: "row", gap: "10px" }}>
+            //                 <IconButton onClick={() => onSubmit(data)} disabled={isLoading}>
+            //                     <Tooltip title="Close order" placement='right'>
+            //                         <CloseIcon />
+            //                     </Tooltip>
+            //                 </IconButton>
+            //             </Stack>
+            //         )
+            //     },
+            //     size: 100,
+            // })
         ]
         :
         [

@@ -14,14 +14,14 @@ const Quotes = lazy(() => import("./quotes/Quotes"));
 const TABS = {
     // SUMMARY: "Summary",
     HISTORY: "History of Orders",
-    BENEFITS: "Benefits",
+    // BENEFITS: "Benefits",
     QUOTES: "Quotes"
 };
 
 const PATHS = {
     // [TABS.SUMMARY]: "ordersSummary",
     [TABS.HISTORY]: "ordersHistory",
-    [TABS.BENEFITS]: "benefits",
+    // [TABS.BENEFITS]: "benefits",
     [TABS.QUOTES]: "quotes"
 };
 

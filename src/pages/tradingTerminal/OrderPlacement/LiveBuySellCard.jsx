@@ -147,30 +147,21 @@
 
 
 
-import { Typography } from "@mui/material";
-import Grid from "@mui/material/Grid2";
+import { Stack, useMediaQuery, Typography } from "@mui/material";
 import { useSelector } from "react-redux";
-import { useState, useCallback } from "react";
-import { useQuotesSocket } from "../../../socketENV/quotesSocketENV";
+import { useState, useMemo } from "react";
+import { useQuotes } from "../../../context/QuotesContext";
+import Grid from "@mui/material/Grid2";
 
 function LiveBuySellCard({ value, onChange, handleOpenPrice, activeTradeType }) {
     const { selectedSymbol } = useSelector((state) => state.terminal);
-    const [activeSymbolData, setActiveSymbolData] = useState(null);
 
-    // ✅ Handle incoming quote updates
-    const handleQuoteData = useCallback(
-        (data) => {
-            if (!selectedSymbol?.name || !Array.isArray(data)) return;
-            const selectedSymbolData = data.find(
-                (ele) => ele?.Symbol === selectedSymbol?.name
-            );
-            setActiveSymbolData(selectedSymbolData);
-        },
-        [selectedSymbol?.name]
-    );
+    const { quoteData } = useQuotes();
 
-    // ✅ Initialize global shared quote socket (no manual connect/disconnect)
-    useQuotesSocket(handleQuoteData);
+    const activeSymbolData = useMemo(() => {
+        if (!selectedSymbol?.name || !Array.isArray(quoteData)) return null;
+        return quoteData.find((ele) => ele?.Symbol === selectedSymbol?.name) || null;
+    }, [quoteData, selectedSymbol?.name]);
 
     const sellPrice = activeSymbolData?.Bid;
     const buyPrice = activeSymbolData?.Ask;
@@ -197,7 +188,7 @@ function LiveBuySellCard({ value, onChange, handleOpenPrice, activeTradeType }) 
 
     return (
         <Grid container xs={12} my={"5px"} spacing={"5px"}>
-            {/* SELL Button */}
+
             <Grid
                 size={{ xs: 6 }}
                 sx={{
@@ -245,7 +236,6 @@ function LiveBuySellCard({ value, onChange, handleOpenPrice, activeTradeType }) 
                 </Typography>
             </Grid>
 
-            {/* BUY Button */}
             <Grid
                 size={{ xs: 6 }}
                 sx={{
@@ -294,6 +284,7 @@ function LiveBuySellCard({ value, onChange, handleOpenPrice, activeTradeType }) 
                     </Typography>
                 </Typography>
             </Grid>
+
         </Grid>
     );
 }

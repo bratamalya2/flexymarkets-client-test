@@ -3,9 +3,9 @@ import { createTheme } from "@mui/material/styles";
 export const getCustomTheme = (selectedTheme) => {
 
     const brandColors = {
-        brandLight: "#699d89",
-        brandDark: "#17433d",
-        activeNavigation: "#17433d4a"
+        brandLight: import.meta.env.VITE_THEME_BRAND_LIGHT || "#006691",
+        brandDark: import.meta.env.VITE_THEME_BRAND_DARK || "#300091",
+        activeNavigation: import.meta.env.VITE_THEME_BRAND_ACTIVE_NAVIGATION || "#300091"
     };
 
     return createTheme({
@@ -14,7 +14,9 @@ export const getCustomTheme = (selectedTheme) => {
         },
         palette: {
             mode: selectedTheme === "dark" ? "dark" : "light",
-            primary: { main: selectedTheme === "dark" ? brandColors.brandLight : brandColors.brandDark },
+            primary: {
+                main: selectedTheme === "dark" ? brandColors.brandLight : brandColors.brandDark
+            },
             background: {
                 default: selectedTheme === "dark" ? "#121212" : "#f5f5f5",
                 paper: selectedTheme === "dark" ? "#1e1e1e" : "#ffffff",
@@ -28,7 +30,6 @@ export const getCustomTheme = (selectedTheme) => {
             },
         },
         typography: {
-            // fontFamily: "'Roboto', sans-serif",
             fontFamily: "'Tomato Grotesk', 'Roboto', sans-serif",
         },
         components: {
@@ -62,18 +63,22 @@ export const getCustomTheme = (selectedTheme) => {
                         backgroundColor: selectedTheme === "dark" ? brandColors.brandLight : brandColors.brandDark,
                         color: "#fff",
                         '&:hover': {
-                            backgroundColor: selectedTheme === "dark" ? "#5a8d7a" : "#0e2e29",
+                            backgroundColor: selectedTheme === "dark"
+                                ? import.meta.env.VITE_BRAND_DARK_HOVER || "#5a8d7a"
+                                : import.meta.env.VITE_BRAND_LIGHT_HOVER || "#0e2e29",
                         }
                     },
                     outlinedPrimary: {
                         borderColor: selectedTheme === "dark" ? brandColors.brandLight : brandColors.brandDark,
                         color: selectedTheme === "dark" ? brandColors.brandLight : brandColors.brandDark,
                         '&:hover': {
-                            backgroundColor: selectedTheme === "dark" ? "rgba(105, 157, 137, 0.1)" : "rgba(23, 67, 61, 0.1)",
+                            backgroundColor: selectedTheme === "dark"
+                                ? `${brandColors.brandLight}1a`
+                                : `${brandColors.brandDark}1a`,
                         }
                     }
                 }
             }
         }
-    })
+    });
 };

@@ -1,11 +1,11 @@
 import {
+  Box,
   Button,
   Stack,
   Typography,
   InputAdornment,
   InputLabel,
   OutlinedInput,
-  CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,9 +16,8 @@ import { useNavigate } from "react-router-dom";
 
 import Selector from "../../../../components/Selector";
 import { cryptoDepositSchema } from "./cryptoDepositSchema";
-import { useGetUserDataQuery } from "../../../../globalState/userState/userStateApis";
+import { useGetUserDataQuery, useGetPaymentChargesQuery } from "../../../../globalState/userState/userStateApis";
 import { setNotification } from "../../../../globalState/notificationState/notificationStateSlice";
-import { setHasStarted, removeDepositQRData } from "../../../../globalState/paymentState/paymentSlice";
 import { initiatePaymentSocketConnection } from "../../../../socketENV/paymentSocketENV";
 
 const networks = [
@@ -35,6 +34,10 @@ function CryptoDepositForm({ typeParam }) {
 
   const { depositQRData, depositState, hasStarted } = useSelector((state) => state.payment);
   const { token } = useSelector((state) => state.auth);
+
+  const { data: chargeResponse } = useGetPaymentChargesQuery();
+  const depositCharge = chargeResponse?.data?.deposit;
+  const activeCharge = depositCharge?.status === 'ACTIVE' ? depositCharge : null;
 
   const { refetch } = useGetUserDataQuery(undefined, {
     skip: !token,
@@ -64,7 +67,6 @@ function CryptoDepositForm({ typeParam }) {
   }, [typeParam]);
 
   useEffect(() => {
-    dispatch(setHasStarted(false));
     return () => {
       if (socketRef.current) {
         socketRef.current.cleanup?.();
@@ -86,7 +88,7 @@ function CryptoDepositForm({ typeParam }) {
     }
 
     try {
-      if (hasStarted) {
+      if (socketRef.current) {
         dispatch(
           setNotification({
             open: true,
@@ -101,13 +103,6 @@ function CryptoDepositForm({ typeParam }) {
 
       // 
 
-      if (socketRef.current) {
-          socketRef.current.cleanup();
-      }
-
-      dispatch(removeDepositQRData());
-      dispatch(setHasStarted(false));
-
       const result = initiatePaymentSocketConnection({
         token,
         network: data.network.toUpperCase(),
@@ -115,8 +110,8 @@ function CryptoDepositForm({ typeParam }) {
         dispatch,
         refetch,
         navigate,
-        depositQRData: null,
-        hasStarted: false
+        depositQRData,
+        hasStarted
       });
 
       socketRef.current = result;
@@ -179,22 +174,63 @@ function CryptoDepositForm({ typeParam }) {
           p: "1rem",
           my: "2rem",
           bgcolor: "#f8f9f9",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
+          borderRadius: "8px",
+          gap: "0.5rem",
         }}
       >
-        <Typography color="black">To be deposited</Typography>
-        <Typography fontWeight="bold" fontSize="2rem" color="black">
-          {watch("amount") || "0"}
-          <Typography
-            fontWeight="bold"
-            component="span"
-            fontSize="1.2rem"
-          >
-            .00 USD
-          </Typography>
-        </Typography>
+        {(() => {
+          const rawAmount = parseFloat(watch("amount")) || 0;
+          let chargeAmt = 0;
+          if (activeCharge && rawAmount > 0) {
+            chargeAmt = activeCharge.chargeType === "PERCENTAGE"
+              ? (rawAmount * Number(activeCharge.chargeValue)) / 100
+              : Number(activeCharge.chargeValue);
+            chargeAmt = parseFloat(Math.min(chargeAmt, rawAmount).toFixed(2));
+          }
+          const netAmount = parseFloat((rawAmount - chargeAmt).toFixed(2));
+
+          return (
+            <>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography color="text.secondary" fontSize="14px">Deposit amount</Typography>
+                <Typography fontWeight="bold" fontSize="1.4rem" color="black">
+                  {rawAmount > 0 ? rawAmount.toFixed(2) : "0.00"} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                </Typography>
+              </Stack>
+
+              {activeCharge && rawAmount > 0 && (
+                <>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography color="error.main" fontSize="14px">
+                      Payment charge ({activeCharge.chargeType === "PERCENTAGE"
+                        ? `${Number(activeCharge.chargeValue)}%`
+                        : `$${Number(activeCharge.chargeValue).toFixed(2)} flat`})
+                    </Typography>
+                    <Typography color="error.main" fontWeight={600} fontSize="14px">
+                      −{chargeAmt.toFixed(2)} USD
+                    </Typography>
+                  </Stack>
+                  <Box sx={{ height: "1px", bgcolor: "#e0e0e0" }} />
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography fontWeight={700} fontSize="15px">You receive</Typography>
+                    <Typography fontWeight="bold" fontSize="1.4rem" color="success.main">
+                      {netAmount.toFixed(2)} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                    </Typography>
+                  </Stack>
+                </>
+              )}
+
+              {(!activeCharge || rawAmount === 0) && (
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mt={0.5}>
+                  <Typography color="black" fontSize="14px">To be deposited</Typography>
+                  <Typography fontWeight="bold" fontSize="1.4rem" color="black">
+                    {rawAmount > 0 ? rawAmount.toFixed(2) : "0.00"} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                  </Typography>
+                </Stack>
+              )}
+            </>
+          );
+        })()}
       </Stack>
 
       <Button
@@ -210,13 +246,11 @@ function CryptoDepositForm({ typeParam }) {
           "&:hover": { boxShadow: "none" },
         }}
       >
-        {loading || hasStarted ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : depositState === "details" ? (
-          "Continue"
-        ) : (
-          "Confirm"
-        )}
+        {loading
+          ? "Connecting..."
+          : depositState === "details"
+            ? "Continue"
+            : "Confirm"}
       </Button>
     </Stack>
   );

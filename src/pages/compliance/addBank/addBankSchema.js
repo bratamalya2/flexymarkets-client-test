@@ -12,16 +12,18 @@ export const addBankSchema = z.object({
         .min(8, "Account number must be at least 8 characters")
         .max(17, "Invalid Account number")
         .regex(/^\d+$/, "Account number must contain only numbers"),
-    ifscCode: z.string()
-        .min(1, "Please type your IFSC code")
-        .length(11, "IFSC code must be exactly 11 characters")
-        .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code"),
+    ifscCode: emptyToUndefined(z.string()
+        .min(1, "Please type your Swift/IFSC code")
+        // .length(11, "IFSC code must be exactly 11 characters")
+        // .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code")
+    ),
     ibanNo: emptyToUndefined(z.string()
         .min(15, "IBAN must be at least 15 characters")
         .max(34, "IBAN cannot exceed 34 characters")
-        .regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/, "Invalid IBAN format")),
+        .regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/, "Invalid IBAN format")
+    ),
     bankAddress: z.string().min(2, "Please type your bank address"),
-    image: z
+    image: emptyToUndefined(z
         .instanceof(File, { message: "Please upload a valid image file" })
         .refine(
             (file) => file && ["image/jpeg", "image/png"].includes(file.type),
@@ -30,7 +32,7 @@ export const addBankSchema = z.object({
         .refine(
             (file) => file && file.size <= 5 * 1024 * 1024,
             { message: "Image size must not exceed 5MB" }
-        )
+        ))
 }).transform((obj) => {
     return Object.fromEntries(
         Object.entries(obj).filter(([_, v]) => v !== undefined)

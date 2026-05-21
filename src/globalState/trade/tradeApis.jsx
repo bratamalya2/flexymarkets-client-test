@@ -12,7 +12,7 @@ export const tradeStateApis = createApi({
             return headers;
         }
     }),
-    tagTypes: [],
+    tagTypes: ["watchList"],
     endpoints: (builder) => ({
         placeOrder: builder.mutation({
             query: (data) => ({
@@ -56,6 +56,25 @@ export const tradeStateApis = createApi({
                 }
             },
         }),
+        addSymbolToWatchList: builder.mutation({
+            query: (data) => ({
+                url: "/update/watchlist",
+                method: "POST",
+                body: data
+            }),
+            invalidatesTags: [{ type: 'watchList', id: "PARTIAL-LIST" }]
+        }),
+        watchList: builder.query({
+            query: () => {
+
+                return {
+                    url: "/watchlist",
+                };
+            },
+            keepUnusedDataFor: 60,
+            refetchOnMountOrArgChange: true,
+            providesTags: [{ type: 'watchList', id: 'PARTIAL-LIST' }]
+        }),
     })
 })
 
@@ -63,5 +82,7 @@ export const {
     usePlaceOrderMutation,
     useCloseOrderMutation,
     useLimitTradeRequestMutation,
-    useClosedOrderListQuery
+    useClosedOrderListQuery,
+    useAddSymbolToWatchListMutation,
+    useWatchListQuery
 } = tradeStateApis;

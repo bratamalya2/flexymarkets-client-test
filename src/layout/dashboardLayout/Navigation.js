@@ -12,64 +12,176 @@ import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import ChecklistIcon from '@mui/icons-material/Checklist';
-import { useGetUserDataQuery } from '../../globalState/userState/userStateApis';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
-import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import HistoryToggleOffIcon from '@mui/icons-material/HistoryToggleOff';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import ConnectWithoutContactIcon from '@mui/icons-material/ConnectWithoutContact';
 
+// Features enabled by default — set to 'false' in .env to disable
+const USER_MANAGEMENT_ENABLED = import.meta.env.VITE_ENABLE_USER_MANAGEMENT !== 'false';
+const TRANSACTION_ENABLED = import.meta.env.VITE_ENABLE_TRANSACTION !== 'false';
+const PARTNER_MANAGEMENT_ENABLED = import.meta.env.VITE_ENABLE_PARTNER_MANAGEMENT !== 'false';
+const TICKETS_ENABLED = import.meta.env.VITE_ENABLE_TICKETS !== 'false';
+const NEWS_ENABLED = import.meta.env.VITE_ENABLE_NEWS !== 'false';
+const REWARDS_ENABLED = import.meta.env.VITE_ENABLE_REWARDS !== 'false';
+const ALL_REPORTS_ENABLED = import.meta.env.VITE_ENABLE_ALL_REPORTS !== 'false';
 
-const SOCIAL_TRADING_ENABLED = import.meta.env.VITE_ENABLE_SOCIAL_TRADING !== 'false';
+// Features disabled by default — set to 'true' in .env to enable
+const COPY_TRADING_ENABLED = import.meta.env.VITE_ENABLE_COPY_TRADING === 'true';
+const BOT_MANAGEMENT_ENABLED = import.meta.env.VITE_ENABLE_BOT_MANAGEMENT === 'true';
 
-// export const NAVIGATION = [
-export const getNavigationConfig = (isIbOrSubIb = false) => [
-    // {
-    //     segment: '/client/dashboard',
-    //     title: 'Dashboard',
-    //     icon: DashboardOutlinedIcon,
-    // },
-    {
-        segment: '/client/myAccount',
-        title: 'My Account',
-        icon: AccountBoxOutlinedIcon
-    },
-    {
-        title: 'MT5 List',
-        icon: ChecklistIcon,
-        children: [
-            // {
-            //     segment: '/client/MT5RequestList',
-            //     title: 'MT5 request list',
-            //     icon: CircleOutlinedIcon
-            // },
+// Helper: returns Partner Programme sub-menu items based on user type
+const getPartnerProgrammeMenu = (userType) => {
+    // Full IB access
+    if (userType === 'ib') {
+        return [
             {
-                segment: '/client/MT5AccountList',
-                title: 'MT5 account list',
-                icon: CircleOutlinedIcon
-            },
-        ]
-    },
-    {
-        title: 'Compliance',
-        icon: UploadFileOutlinedIcon,
-        children: [
-            // {
-            //     segment: '/client/compliance/documentUpload',
-            //     title: 'Document Upload',
-            //     icon: CircleOutlinedIcon,
-            // },
-            {
-                segment: '/client/compliance/bank/add',
-                title: 'Bank Details',
+                segment: '/client/IBProgramme/IBDashboard',
+                title: 'Partner Dashboard',
                 icon: CircleOutlinedIcon
             },
             {
-                segment: '/client/compliance/document/list',
-                title: 'Document List',
+                segment: '/client/IBProgramme/IBOverview',
+                title: 'Partner Overview',
                 icon: CircleOutlinedIcon
             },
-        ],
-    },
-    {
+            {
+                segment: '/client/IBProgramme/myClients',
+                title: 'Partner Clients',
+                icon: CircleOutlinedIcon
+            },
+            {
+                title: 'Reports',
+                icon: InsertChartOutlinedIcon,
+                children: [
+                    {
+                        segment: '/client/IBProgramme/myCommission',
+                        title: 'My Commission',
+                        icon: CircleOutlinedIcon
+                    },
+                    {
+                        segment: '/client/IBProgramme/IBWithdraw',
+                        title: 'IB Withdraw',
+                        icon: CircleOutlinedIcon
+                    },
+                    {
+                        segment: '/client/IBProgramme/myClientTransaction',
+                        title: 'Client Transaction',
+                        icon: CircleOutlinedIcon
+                    },
+                    {
+                        title: 'Trader/Sub IB',
+                        icon: InsertChartOutlinedIcon,
+                        children: [
+                            {
+                                segment: '/client/IBProgramme/transactionReport',
+                                title: 'Transaction',
+                                icon: CircleOutlinedIcon
+                            },
+                            {
+                                segment: '/client/IBProgramme/tradeReport',
+                                title: 'Trade',
+                                icon: CircleOutlinedIcon
+                            },
+                            {
+                                segment: '/client/IBProgramme/liveAccountReport',
+                                title: 'Live Account',
+                                icon: CircleOutlinedIcon
+                            },
+                            {
+                                segment: '/client/IBProgramme/analyticsReport',
+                                title: 'Analytics',
+                                icon: CircleOutlinedIcon
+                            },
+                        ]
+                    }
+                ]
+            },
+        ];
+    }
+
+    // Sub-IB: limited access
+    if (userType === 'subIb') {
+        return [
+            {
+                segment: '/client/IBProgramme/IBDashboard',
+                title: 'Partner Dashboard',
+                icon: CircleOutlinedIcon
+            },
+            {
+                segment: '/client/IBProgramme/myClients',
+                title: 'My Clients',
+                icon: CircleOutlinedIcon
+            },
+            {
+                title: 'Reports',
+                icon: InsertChartOutlinedIcon,
+                children: [
+                    {
+                        segment: '/client/IBProgramme/myCommission',
+                        title: 'My Commission',
+                        icon: CircleOutlinedIcon
+                    },
+                    {
+                        segment: '/client/IBProgramme/IBWithdraw',
+                        title: 'IB Withdraw',
+                        icon: CircleOutlinedIcon
+                    },
+                    {
+                        segment: '/client/IBProgramme/myClientTransaction',
+                        title: 'Client Transaction',
+                        icon: CircleOutlinedIcon
+                    },
+                ]
+            },
+        ];
+    }
+
+    // Regular client: only IB application
+    return [
+        {
+            segment: '/client/IBProgramme/IBRequest',
+            title: 'IB Request',
+            icon: CircleOutlinedIcon
+        }
+    ];
+};
+
+export const getNavigationConfig = (userType = 'client') => [
+    // My Account, Trading Accounts, Compliance
+    ...(USER_MANAGEMENT_ENABLED ? [
+        {
+            segment: '/client/myAccount',
+            title: 'My Account',
+            icon: AccountBoxOutlinedIcon
+        },
+        {
+            segment: '/client/MT5AccountList',
+            title: 'Trading Accounts',
+            icon: ChecklistIcon
+        },
+        {
+            title: 'Compliance',
+            icon: UploadFileOutlinedIcon,
+            children: [
+                {
+                    segment: '/client/compliance/bank/add',
+                    title: 'Bank Details',
+                    icon: CircleOutlinedIcon
+                },
+                {
+                    segment: '/client/compliance/document/list',
+                    title: 'Document List',
+                    icon: CircleOutlinedIcon
+                },
+            ],
+        },
+    ] : []),
+
+    // My Transactions
+    ...(TRANSACTION_ENABLED ? [{
         title: 'My Transactions',
         icon: AccountBalanceOutlinedIcon,
         children: [
@@ -88,76 +200,55 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
                 title: 'Internal transfer',
                 icon: CircleOutlinedIcon
             },
-            // {
-            //     segment: '/client/transactions/history',
-            //     title: 'Transactions history',
-            //     icon: CircleOutlinedIcon,
-            // },
             {
                 segment: '/client/transactions/depositWithdrawList',
-                title: 'Deposit withdraw list',
+                title: 'Wallet Transactions History',
                 icon: CircleOutlinedIcon
             },
             {
                 segment: '/client/transactions/transactionsList',
-                title: 'Transactions List',
+                title: 'Accounts Transaction History',
                 icon: CircleOutlinedIcon
             },
         ],
-    },
-    // {
-    //     title: 'Analytics',
-    //     icon: InsertChartOutlinedIcon,
-    //     children: [
-    //         {
-    //             segment: 'https://flexymarkets.com/economic_calender',
-    //             title: 'Economic Calendar',
-    //             icon: CircleOutlinedIcon,
-    //             external: true
-    //         },
-    //         {
-    //             segment: '/client/analytics/analystViews',
-    //             title: 'Analyst Views',
-    //             icon: CircleOutlinedIcon
-    //         },
-    //         {
-    //             segment: '/client/analytics/marketNews',
-    //             title: 'Market News',
-    //             icon: CircleOutlinedIcon
-    //         }
-    //     ],
-    // },
-    {
-        title: 'Performance',
-        icon: SignalCellularAltIcon,
-        children: [
-            // {
-            //     segment: '/client/performance/ordersSummary',
-            //     title: 'Summary',
-            //     icon: CircleOutlinedIcon
-            // },
-            {
-                segment: '/client/performance/ordersHistory',
-                title: 'History of orders',
-                icon: CircleOutlinedIcon
-            },
-            {
-                segment: '/client/performance/benefits',
-                title: 'Benefits',
-                icon: CircleOutlinedIcon
-            },
-            {
-                segment: '/client/performance/quotes',
-                title: 'Quotes',
-                icon: CircleOutlinedIcon
-            }
-        ],
-    },
-    // {
-    //     title: "Promotions",
-    //     icon: CardGiftcardOutlinedIcon,
-    //     segment: "/client/promotions"
-    // },
+    }] : []),
+
+    // History of orders
+    ...(ALL_REPORTS_ENABLED ? [{
+        segment: '/client/ordersHistory',
+        title: 'History of orders',
+        icon: HistoryToggleOffIcon
+    }] : []),
+
+    // Copy Trading
+    ...(COPY_TRADING_ENABLED ? [{
+        segment: '/client/copytrading',
+        title: 'Copy Trading',
+        icon: ConnectWithoutContactIcon
+    }] : []),
+
+    // Bots
+    ...(BOT_MANAGEMENT_ENABLED ? [{
+        segment: '/client/bots',
+        title: 'Bots',
+        icon: SmartToyOutlinedIcon
+    }] : []),
+
+    // Promotions
+    ...(REWARDS_ENABLED ? [{
+        segment: '/client/promotions',
+        title: 'Promotions',
+        icon: CardGiftcardOutlinedIcon,
+    }] : []),
+
+    // News
+    ...(NEWS_ENABLED ? [{
+        segment: '/client/news',
+        title: 'News',
+        icon: ArticleOutlinedIcon,
+    }] : []),
+
+    // Settings — always visible
     {
         title: 'Settings',
         icon: SettingsOutlinedIcon,
@@ -182,214 +273,18 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
                 title: 'Trading Conditions',
                 icon: CircleOutlinedIcon
             },
-            // {
-            //     segment: '/client/settings/virtualPrivateServer',
-            //     title: 'Virtual Private Server',
-            //     icon: CircleOutlinedIcon,
-            // }
         ],
     },
-    {
-        title: 'IB Programme',
+
+    // Partner Programme
+    ...(PARTNER_MANAGEMENT_ENABLED ? [{
+        title: 'Partner Programme',
         icon: AssistantOutlinedIcon,
-        children: isIbOrSubIb ?
-            [
-                // {
-                //     segment: '/client/IBProgramme/IBDashboard',
-                //     title: 'IB ELITE',
-                //     icon: CircleOutlinedIcon
-                // },
-                {
-                    segment: '/client/IBProgramme/IBDashboard',
-                    title: 'IB Dashboard',
-                    icon: CircleOutlinedIcon
-                },
-                {
-                    segment: '/client/IBProgramme/IBOverview',
-                    title: 'IB Overview',
-                    icon: CircleOutlinedIcon
-                },
-                {
-                    segment: '/client/IBProgramme/myClients',
-                    title: 'My Clients',
-                    icon: CircleOutlinedIcon
-                },
-                // {
-                //     segment: '/client/IBProgramme/treeChart',
-                //     title: 'Tree Chart',
-                //     icon: CircleOutlinedIcon
-                // },
-                {
-                    title: 'Reports',
-                    icon: InsertChartOutlinedIcon,
-                    children: [
-                        {
-                            segment: '/client/IBProgramme/myCommission',
-                            title: 'My Commission',
-                            icon: CircleOutlinedIcon
-                        },
-                        {
-                            segment: '/client/IBProgramme/IBWithdraw',
-                            title: 'IB Withdraw',
-                            icon: CircleOutlinedIcon
-                        },
-                        // {
-                        //     segment: '/client/IBProgramme/teamDepositReport',
-                        //     title: 'Deposit Report',
-                        //     icon: CircleOutlinedIcon
-                        // },
-                        // {
-                        //     segment: '/client/IBProgramme/teamWithdrawReport',
-                        //     title: 'Withdraw Report',
-                        //     icon: CircleOutlinedIcon
-                        // },
-                        {
-                            segment: '/client/IBProgramme/myClientTransaction',
-                            title: 'Client Transaction',
-                            icon: CircleOutlinedIcon
-                        },
-                        {
-                            title: 'Trader/Sub IB',
-                            icon: InsertChartOutlinedIcon,
-                            children: [
-                                {
-                                    segment: '/client/IBProgramme/transactionReport',
-                                    title: 'Transaction',
-                                    icon: CircleOutlinedIcon
-                                },
-                                {
-                                    segment: '/client/IBProgramme/tradeReport',
-                                    title: 'Trade',
-                                    icon: CircleOutlinedIcon
-                                },
-                                {
-                                    segment: '/client/IBProgramme/liveAccountReport',
-                                    title: 'Live Account',
-                                    icon: CircleOutlinedIcon
-                                },
-                                // {
-                                //     segment: '/client/IBProgramme/commissionReport',
-                                //     title: 'Commission',
-                                //     icon: CircleOutlinedIcon
-                                // },
-                                {
-                                    segment: '/client/IBProgramme/analyticsReport',
-                                    title: 'Analytics',
-                                    icon: CircleOutlinedIcon
-                                },
-                            ]
-                        }
-                    ]
-                },
-                // {
-                //     segment: '/client/IBProgramme/myCommission',
-                //     title: 'My Commission',
-                //     icon: CircleOutlinedIcon
-                // },
-                // {
-                //     segment: '/client/IBProgramme/IBWithdraw',
-                //     title: 'IB Withdraw',
-                //     icon: CircleOutlinedIcon
-                // },
-                // {
-                //     segment: '/client/IBProgramme/teamDepositReport',
-                //     title: 'Team Deposit Report',
-                //     icon: CircleOutlinedIcon
-                // },
-                // {
-                //     segment: '/client/IBProgramme/teamWithdrawReport',
-                //     title: 'Team Withdraw Report',
-                //     icon: CircleOutlinedIcon
-                // },
-            ]
-            :
-            [
-                {
-                    segment: '/client/IBProgramme/IBRequest',
-                    title: 'IB Request',
-                    icon: CircleOutlinedIcon
-                }
-            ]
-    },
-    // {
-    //     title: 'My Reports',
-    //     icon: AssessmentOutlinedIcon,
-    //     children: [
-    //         {
-    //             segment: '/client/myReports/deposit',
-    //             title: 'Deposit Report',
-    //             icon: CircleOutlinedIcon,
-    //         },
-    //         {
-    //             segment: '/client/myReports/withdrawal',
-    //             title: 'Withdraw Report',
-    //             icon: CircleOutlinedIcon,
-    //         },
-    //         {
-    //             segment: '/client/myReports/internalTransfer',
-    //             title: 'Internal Transfer Report',
-    //             icon: CircleOutlinedIcon,
-    //         },
-    //         {
-    //             segment: '/client/myReports/dealReport',
-    //             title: 'Deal Report',
-    //             icon: CircleOutlinedIcon,
-    //         }
-    //     ],
-    // },
-    // {
-    //     title: 'My Wallet',
-    //     icon: AccountBalanceWalletOutlinedIcon,
-    //     children: [
-    //         {
-    //             segment: '/client/myWallet/walletHistory',
-    //             title: 'Wallet History',
-    //             icon: CircleOutlinedIcon,
-    //         },
-    //         {
-    //             segment: '/client/myWallet/MT5ToWallet',
-    //             title: 'MT5 To Wallet',
-    //             icon: CircleOutlinedIcon,
-    //         },
-    //         {
-    //             segment: '/client/myWallet/walletToMT5',
-    //             title: 'Wallet To MT5',
-    //             icon: CircleOutlinedIcon,
-    //         }
-    //     ],
-    // },
-    // {
-    //     segment: '/client/news',
-    //     title: 'News',
-    //     icon: ArticleOutlinedIcon,
-    // },
-    ...(SOCIAL_TRADING_ENABLED ? [{
-        title: 'Social Trading',
-        icon: PeopleAltOutlinedIcon,
-        children: [
-            {
-                segment: '/client/socialTrading/discover',
-                title: 'Discover Traders',
-                icon: CircleOutlinedIcon,
-            },
-            {
-                segment: '/client/socialTrading/mySubscriptions',
-                title: 'My Subscriptions',
-                icon: CircleOutlinedIcon,
-            },
-            {
-                segment: '/client/socialTrading/myWatchlist',
-                title: 'My Watchlist',
-                icon: CircleOutlinedIcon,
-            },
-            {
-                segment: '/client/socialTrading/myProfile',
-                title: 'My Trader Profile',
-                icon: CircleOutlinedIcon,
-            },
-        ],
+        children: getPartnerProgrammeMenu(userType)
     }] : []),
-    {
+
+    // Help Desk
+    ...(TICKETS_ENABLED ? [{
         title: 'Help Desk',
         icon: HelpCenterOutlinedIcon,
         children: [
@@ -404,7 +299,9 @@ export const getNavigationConfig = (isIbOrSubIb = false) => [
                 icon: CircleOutlinedIcon
             }
         ],
-    },
+    }] : []),
+
+    // Logout — always visible
     {
         title: 'Logout',
         icon: LogoutIcon,

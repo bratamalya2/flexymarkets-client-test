@@ -225,58 +225,17 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { Box, Typography } from '@mui/material';
-import { useState, useCallback } from 'react';
-import { useQuotesSocket } from '../../socketENV/quotesSocketENV';
+import { useQuotes } from '../../context/QuotesContext';
 import Loader from "../../components/Loader";
-
-const allSymbol = [
-    { name: "AUDJPY", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "AUDNZD", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "AUDUSD", img1: "/symbol_logo/AUD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "AUS200", img1: "/symbol_logo/AUS200.svg" },
-    { name: "CADCHF", img1: "/symbol_logo/CAD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "CADJPY", img1: "/symbol_logo/CAD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "CHFJPY", img1: "/symbol_logo/CHF.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "EURAUD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/AUD.svg" },
-    { name: "EURCAD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "EURCHF", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "EURGBP", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/GBP.svg" },
-    { name: "EURJPY", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "EURNZD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "EURUSD", img1: "/symbol_logo/EUR.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "GBPAUD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/AUD.svg" },
-    { name: "GBPCAD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "GBPCHF", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "GBPJPY", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "GBPNZD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/NZD.svg" },
-    { name: "GBPUSD", img1: "/symbol_logo/GBP.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "NZDCAD", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "NZDCHF", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "NZDJPY", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "NZDUSD", img1: "/symbol_logo/NZD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "US30", img1: "/symbol_logo/US30.svg" },
-    { name: "USDCAD", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/CAD.svg" },
-    { name: "USDCHF", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/CHF.svg" },
-    { name: "USDJPY", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/JYP.svg" },
-    { name: "USDNOK", img1: "/symbol_logo/USD.svg", img2: "/symbol_logo/NOK.svg" },
-    { name: "XAGUSD", img1: "/symbol_logo/XAGUSD.svg", img2: "/symbol_logo/USD.svg" },
-    { name: "XAUUSD", img1: "/symbol_logo/XAUUSD.svg", img2: "/symbol_logo/USD.svg" }
-];
+import { allSymbol } from '../../utils/allSymbol';
 
 function createData(name, bid, ask) {
     return { name, bid, ask };
 }
 
 function TerminalSideBarSymbol() {
-    const [quoteData, setQuoteData] = useState(null);
-
-    const handleQuoteData = useCallback((data) => {
-        if (!data) return;
-        setQuoteData(data);
-    }, []);
-
-    // 👇 Use the custom hook
-    useQuotesSocket(handleQuoteData);
+    
+    const { quoteData } = useQuotes();
 
     const rows = (Array.isArray(quoteData) && quoteData.length > 0)
         ? quoteData.map(item => {

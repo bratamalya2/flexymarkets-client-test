@@ -2,8 +2,24 @@ import { Stack, Box, Typography } from '@mui/material';
 import GoToTerminalCard from '../../../../components/GoToTerminalCard';
 import MetaTrader5Card from '../../../../components/MetaTrader5Card';
 import { Link } from 'react-router-dom';
+import { notifyMt5AccountChange } from '../../../../utils/notifyMt5AccountChange';
+import { setActiveMT5AccountLogin } from '../../../../globalState/mt5State/mt5StateSlice';
+import { useDispatch } from 'react-redux';
+import { setSelectedSymbol } from '../../../../globalState/terminalState/terminalSlice';
 
-function TradeModalContent({ onClose }) {
+function TradeModalContent({ onClose, data }) {
+
+    const dispatch = useDispatch()
+
+    const handleTerminalClick = () => {
+        if (data?.login) {
+            dispatch(setActiveMT5AccountLogin(data?.login))
+            dispatch(setSelectedSymbol(null))
+            notifyMt5AccountChange(data?.login);
+        }
+        window.open('/terminal', 'FlexyMarketsTerminal');
+        onClose();
+    };
 
     return (
         <Stack>
@@ -23,13 +39,9 @@ function TradeModalContent({ onClose }) {
                         cursor: "pointer",
                         textDecoration: "none"
                     }}
-                    component={Link}
-                    target='_blank'
-                    to={`/terminal`}
-                    rel="noopener noreferrer"
-                    onClick={onClose}
+                    onClick={handleTerminalClick}
                 ><GoToTerminalCard /></Box>
-                <Box sx={{ cursor: "pointer" }} onClick={onClose} ><MetaTrader5Card /></Box>
+                <Box sx={{ cursor: "pointer" }} onClick={handleTerminalClick} ><MetaTrader5Card /></Box>
             </Box>
             {/* <MT5InstallDetailsAccordian /> */}
             {/* <Box>

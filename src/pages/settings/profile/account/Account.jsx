@@ -34,7 +34,7 @@ function Account() {
         {
             icon: AttachMoneyOutlinedIcon,
             title: "Deposit limit",
-            amount: isKycVerified ? "50,000" : "0",
+            amount: isKycVerified ? "300,000" : "0",
             content: isKycVerified ? "Verified" : "Verify your account to unlock limits",
             tooltipIcon: InfoOutlinedIcon,
             tooltip: "This is the maximum amount you can currently deposit. Once you reach the limit, you will not be able to deposit or receive internal transfers. Withdrawals will remain available",

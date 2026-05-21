@@ -72,50 +72,6 @@ import {
 } from "../globalState/paymentState/paymentSlice";
 import { setNotification } from "../globalState/notificationState/notificationStateSlice";
 
-const ADDRESS_FIELDS = [
-    "payment_address",
-    "to_address",
-    "address",
-    "wallet_address",
-    "deposit_address",
-    "pay_address",
-    "paymentAddress",
-    "toAddress",
-    "walletAddress",
-    "depositAddress",
-    "payAddress",
-];
-const PAYMENT_URL_FIELDS = [
-    "invoice_payment_url",
-    "checkout_url",
-    "payment_url",
-    "pay_url",
-    "redirect_url",
-    "payment_link",
-    "hosted_url",
-    "url",
-    "link",
-    "checkoutUrl",
-    "paymentUrl",
-    "payUrl",
-    "redirectUrl",
-    "paymentLink",
-    "hostedUrl",
-];
-
-function firstPopulatedValue(source, fields) {
-    if (!source || typeof source !== "object") return null;
-
-    for (const field of fields) {
-        const value = source[field];
-        if (value !== undefined && value !== null && String(value).trim() !== "") {
-            return value;
-        }
-    }
-
-    return null;
-}
-
 export function initiatePaymentSocketConnection({
     token,
     network,
@@ -132,46 +88,24 @@ export function initiatePaymentSocketConnection({
 
     const socket = io(import.meta.env.VITE_BASE_URL, {
         autoConnect: false,
-        forceNew: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
-        timeout: 60000,
-        auth: {
-            token,
-            authorization: token,
-        },
+        timeout: 10000,
         extraHeaders: {
             authorization: token,
         },
     });
 
-    let timeoutId;
+    socket.connect();
 
-    const onConnect = () => {
+    socket.on("connect", () => {
+
         if (!hasStarted && network && amount && !depositQRData) {
-            dispatch(setHasStarted(true));
-            dispatch(
-                setNotification({
-                    open: true,
-                    message: "Creating payment invoice...",
-                    severity: "info",
-                })
-            );
+            dispatch(setHasStarted(true))
             socket.emit("startPayment", { network, amount });
-
-            // Set a frontend timeout in case the backend hangs
-            timeoutId = setTimeout(() => {
-                handlePaymentError({ message: "Payment request timed out from the server. Please try again." });
-            }, 60000);
         }
-    };
-
-    socket.on("connect", onConnect);
-
-    if (socket.connected) {
-        onConnect();
-    }
+    });
 
     socket.on("connect_error", (err) => {
         console.warn("⚠️ Socket connection error:", err.message);
@@ -183,25 +117,7 @@ export function initiatePaymentSocketConnection({
                 severity: "error",
             })
         );
-        dispatch(setHasStarted(false));
     });
-
-    const handlePaymentError = (err, ack) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        dispatch(
-            setNotification({
-                open: true,
-                message: err?.message || "Payment gateways could not create an invoice. Please try again.",
-                severity: "error",
-            })
-        );
-        dispatch(setHasStarted(false));
-        if (typeof ack === "function") ack();
-        socket.disconnect();
-    };
-
-    socket.on("paymentError", handlePaymentError);
-    socket.on("error", handlePaymentError);
 
     socket.on("disconnect", (reason) => {
 
@@ -218,34 +134,7 @@ export function initiatePaymentSocketConnection({
     });
 
     socket.on("paymentReady", (data) => {
-        if (timeoutId) clearTimeout(timeoutId);
         if (!data || depositQRData) return;
-
-        const invoice = data?.data || {};
-        const paymentInfo = invoice?.payment_info?.[0] || {};
-        const paymentAddress = firstPopulatedValue(paymentInfo, ADDRESS_FIELDS)
-            || firstPopulatedValue(invoice, ADDRESS_FIELDS);
-        const invoicePaymentUrl = firstPopulatedValue(invoice, PAYMENT_URL_FIELDS)
-            || firstPopulatedValue(paymentInfo, PAYMENT_URL_FIELDS);
-
-        const normalizedDepositData = {
-            ...paymentInfo,
-            payment_address: paymentAddress,
-            receive_amount: paymentInfo?.receive_amount || paymentInfo?.amount || invoice?.receive_amount || invoice?.order_amount || invoice?.amount_usd || invoice?.amount || null,
-            token_symbol: paymentInfo?.token_symbol || paymentInfo?.coinname || invoice?.token_symbol || invoice?.coinname || "USDT",
-            token_name: paymentInfo?.token_name || invoice?.token_name || invoice?.coinname || "USDT",
-            blockchain: paymentInfo?.blockchain || invoice?.blockchain || invoice?.networkname || null,
-            invoice_payment_url: invoicePaymentUrl,
-            payment_gateway: invoice?.payment_gateway,
-            order_no: invoice?.gateway_order_id || invoice?.cregis_id || invoice?.orderno || null,
-        };
-
-        if (!normalizedDepositData.payment_address && !normalizedDepositData.invoice_payment_url) {
-            handlePaymentError({
-                message: "Payment invoice was created, but no deposit address or checkout link was returned.",
-            });
-            return;
-        }
 
         dispatch(
             setNotification({
@@ -255,11 +144,9 @@ export function initiatePaymentSocketConnection({
             })
         );
 
-        dispatch(setDepositQRData(normalizedDepositData));
-        dispatch(setCreatedTime(invoice?.created_time || Date.now()));
-        dispatch(setExpireTime(invoice?.expire_time || Date.now() + 60 * 60 * 1000));
-        dispatch(setHasStarted(false));
-
+        dispatch(setDepositQRData(data?.data?.payment_info[0]));
+        dispatch(setCreatedTime(data?.data?.created_time));
+        dispatch(setExpireTime(data?.data?.expire_time));
     });
 
 
@@ -274,26 +161,25 @@ export function initiatePaymentSocketConnection({
         dispatch(
             setNotification({
                 open: true,
-                message: "Payment processed successfully!",
-                severity: "success",
+                message: data === "PENDING"
+                    ? "Payment received! Your deposit is pending admin approval."
+                    : "Payment processed successfully!",
+                severity: data === "PENDING" ? "info" : "success",
             })
         );
         dispatch(removeDepositQRData(null));
         dispatch(removeCreatedTime(null));
         dispatch(removeExpireTime(null));
-        dispatch(setHasStarted(false))
+        dispatch(setHasStarted(false));
 
-        navigate("/client/myAccount");
+        navigate("/client/transactions/deposit");
     });
 
 
     const cleanup = () => {
-        if (timeoutId) clearTimeout(timeoutId);
         socket.removeAllListeners();
         socket.disconnect();
     };
-
-    socket.connect();
 
     return { socket, cleanup };
 }

@@ -27,7 +27,7 @@
 
 
 
-import { logout, setMFAData, setResendOtpCreatedTime, setResendOtpExpiryTime, setTokenExpTime } from './authSlice';
+import { logout, setTempToken, setMFAData, setResendOtpCreatedTime, setResendOtpExpiryTime, setTokenExpTime } from './authSlice';
 import {
     removeDepositQRData,
     removeCreatedTime,
@@ -44,6 +44,7 @@ import { setSelectedSymbol } from "../terminalState/terminalSlice"
 export const logoutThunk = () => (dispatch) => {
     disconnectAuthSocket()
     dispatch(logout());
+    dispatch(setTempToken(null));
 
     dispatch(removeDepositQRData());
     dispatch(removeCreatedTime());

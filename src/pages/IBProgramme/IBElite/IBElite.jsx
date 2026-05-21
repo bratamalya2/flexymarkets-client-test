@@ -24,15 +24,15 @@ function IBElite() {
 
     return (
         <>
-            <HeroSection applicationFormRef={applicationFormRef} />
+            {/* <HeroSection applicationFormRef={applicationFormRef} />
             <RewardsGrid />
             <LuxuryRewardsShowcase />
             <RewardTiers />
             <DashboardPreview />
             <HowItWorks />
-            <GlobalTrust />
+            <GlobalTrust /> */}
             <div ref={applicationFormRef}><IBApplicationForm /></div>
-            <CTABanner applicationFormRef={applicationFormRef} />
+            {/* <CTABanner applicationFormRef={applicationFormRef} /> */}
         </>
     )
 }

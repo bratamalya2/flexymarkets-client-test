@@ -12,7 +12,7 @@ export const userStateApis = createApi({
             return headers;
         }
     }),
-    tagTypes: ["bankDepositWithdrawalList", "userData"],
+    tagTypes: ["bankDepositWithdrawalList", "userData", "ibClientTrxList"],
     endpoints: (builder) => ({
         updateProfile: builder.mutation({
             query: (data) => ({
@@ -40,9 +40,6 @@ export const userStateApis = createApi({
         getUserData: builder.query({
             query: () => `/updated/data`,
             providesTags: ["userData"]
-        }),
-        checkPaymentStatus: builder.query({
-            query: (orderNo) => `/payment/status/${orderNo}`,
         }),
         bankDeposit: builder.mutation({
             query: (data) => {
@@ -115,7 +112,7 @@ export const userStateApis = createApi({
             refetchOnMountOrArgChange: true,
         }),
         transactionList: builder.query({
-            query: ({ page = 1, sizePerPage = 10, search = "", status, transactionType, paymentMethod, fromDate, toDate }) => {
+            query: ({ page = 1, sizePerPage = 10, search = "", status, transactionType, paymentMethod, fromDate, toDate, login }) => {
                 const params = {};
 
                 if (page > 0) params.page = page;
@@ -126,6 +123,7 @@ export const userStateApis = createApi({
                 if (paymentMethod) params.paymentMethods = paymentMethod;
                 if (fromDate) params.fromDate = fromDate;
                 if (toDate) params.toDate = toDate;
+                if (login) params.login = login;
 
                 return {
                     url: "/transaction/list",
@@ -194,6 +192,29 @@ export const userStateApis = createApi({
         getEconomicCalenderData: builder.query({
             query: () => `/analytics/economics-calender`
         }),
+        getPaymentCharges: builder.query({
+            query: () => `/payment-charges/list`,
+        }),
+        getIbClientTrxList: builder.query({
+            query: ({ page = 1, sizePerPage = 10, transactionType, status, fromDate, toDate } = {}) => {
+                const params = {};
+                if (page > 0) params.page = page;
+                if (sizePerPage > 0) params.sizePerPage = sizePerPage;
+                if (transactionType) params.transactionType = transactionType;
+                if (status) params.status = status;
+                if (fromDate) params.fromDate = fromDate;
+                if (toDate) params.toDate = toDate;
+                return { url: "/ib/client/trx-list", params };
+            },
+            providesTags: (result) => {
+                const data = result?.data?.trxList || [];
+                return data.length > 0
+                    ? [...data.map(({ id }) => ({ type: "ibClientTrxList", id })), { type: "ibClientTrxList", id: "PARTIAL-LIST" }]
+                    : [{ type: "ibClientTrxList", id: "PARTIAL-LIST" }];
+            },
+            keepUnusedDataFor: 60,
+            refetchOnMountOrArgChange: true,
+        }),
     })
 })
 
@@ -214,5 +235,6 @@ export const {
     useActiveMT5AccountBalanceQuery,
     useGetEconomicCalenderDataQuery,
     useAcceptPromotionMutation,
-    useLazyCheckPaymentStatusQuery,
+    useGetPaymentChargesQuery,
+    useGetIbClientTrxListQuery,
 } = userStateApis;

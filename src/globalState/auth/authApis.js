@@ -33,10 +33,11 @@ export const authApi = createApi({
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if (data?.data) {
-                        const decoded = jwtDecode(data?.data?.token);
-                        dispatch(login(data?.data?.token));
-                        dispatch(setTokenExpTime(decoded?.exp))
+                    const token = data?.data?.token;
+                    if (token) {
+                        const decoded = jwtDecode(token);
+                        dispatch(login(token));
+                        dispatch(setTokenExpTime(decoded?.exp));
                     }
                 } catch (error) {
                     console.error("Login failed:", error);

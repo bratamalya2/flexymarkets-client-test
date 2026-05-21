@@ -30,7 +30,7 @@ function MetaTrader5Card() {
             onClick={navigateToMT5Download}
         >
             <Stack sx={{ flexDirection: "row", gap: "1.2rem" }}>
-                <Stack sx={{ width: "48px", height: "48px", bgcolor: "#09332f", borderRadius: "10px" }}>
+                <Stack sx={{ width: "48px", height: "48px", bgcolor: (theme) => selectedTheme !== "dark" ? theme.palette.custom.brandDark : theme.palette.custom.brandLight, borderRadius: "10px" }}>
                     <img src={data.image} alt="error" style={{ width: "48px", height: "48px", borderRadius: "5px" }} />
                 </Stack>
                 <Stack>

@@ -1,4 +1,4 @@
-import { Skeleton, Stack, Box } from '@mui/material';
+import { Skeleton, Typography, Box, Container } from '@mui/material';
 import OrderHistoryTable from './orderHistoryTable/OrderHistoryTable';
 import Toggle from '../../../components/Toggle';
 import Selector from '../../../components/Selector';
@@ -12,7 +12,7 @@ import Loader from '../../../components/Loader';
 
 const toggleItems = [{ name: "Open positions" }, { name: "Closed positions" }];
 
-function OrderHistory() {
+function OrderHistory({ login, marginTop }) {
   const [active, setActive] = useState(toggleItems[0]?.name);
   const [accountType, setAccountType] = useState("Real");
   const [MT5Account, setMT5Account] = useState("");
@@ -57,7 +57,7 @@ function OrderHistory() {
   }, [accountType, realMT5Accounts, demoMT5Accounts]);
 
   useEffect(() => {
-    if (!MT5Account || !token || active !== "Open positions") return;
+    if (!(login ? login : MT5Account) || !token || active !== "Open positions") return;
 
     setIsTableLoading(true);
 
@@ -67,7 +67,7 @@ function OrderHistory() {
     }
 
     socketRef.current = initiatePositionSocketConnection({
-      login: MT5Account,
+      login: login ? login : MT5Account,
       token,
       handlePositionData: (data) => {
         setPositionData(data);
@@ -82,12 +82,12 @@ function OrderHistory() {
       }
       setPositionData(null);
     };
-  }, [MT5Account, token, active]);
+  }, [(login ? login : MT5Account), token, active]);
 
   const { data: closedOrderData, isFetching: isClosedOrderFetching } =
     useClosedOrderListQuery(
-      { login: MT5Account },
-      { skip: !token || !MT5Account || active !== "Closed positions" }
+      { login: login ? login : MT5Account },
+      { skip: !token || !(login ? login : MT5Account) || active !== "Closed positions" }
     );
 
   const closedOrders = closedOrderData?.data;
@@ -121,29 +121,33 @@ function OrderHistory() {
     (active === "Closed positions" && isClosedOrderFetching);
 
   return (
-    <Stack mt="2rem">
+    <Container sx={{ mt: marginTop ? marginTop : 0 }}>
+      <Typography variant='h6' fontWeight={"700"} fontSize={"1.8rem"} mb={"2rem"}>Order History Table</Typography>
+      {
+        !login
+        &&
+        <Box sx={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          {isLoading ? (
+            <Skeleton />
+          ) : (
+            <Selector
+              onChange={handleChangeAccount}
+              showDefaultOption={false}
+              items={mtAccountSelectorItems}
+              value={MT5Account}
+              width={{ xs: "100%", sm: "400px" }}
+            />
+          )}
 
-      <Box sx={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        {isLoading ? (
-          <Skeleton />
-        ) : (
           <Selector
-            onChange={handleChangeAccount}
+            onChange={handleChangeAccountType}
             showDefaultOption={false}
-            items={mtAccountSelectorItems}
-            value={MT5Account}
-            width={{ xs: "100%", sm: "400px" }}
+            items={allAccountTypes}
+            value={accountType}
+            width="100px"
           />
-        )}
-
-        <Selector
-          onChange={handleChangeAccountType}
-          showDefaultOption={false}
-          items={allAccountTypes}
-          value={accountType}
-          width="100px"
-        />
-      </Box>
+        </Box>
+      }
 
       <Toggle
         items={toggleItems}
@@ -159,7 +163,7 @@ function OrderHistory() {
         activeTab={active}
         isLoading={isTableDataLoading}
       />
-    </Stack>
+    </Container>
   );
 }
 

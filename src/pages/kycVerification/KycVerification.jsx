@@ -28,7 +28,7 @@ function KycVerification() {
         refetchOnMountOrArgChange: true,
     })
 
-    const documentNotUploaded = !docData?.status || docData?.data?.status == "REJECTED"
+    const documentNotUploaded = !docData?.data?.status || docData?.data?.status === "REJECTED"
     const isKycVerified = data?.data?.userData?.isKycVerified
 
     const dispatch = useDispatch()

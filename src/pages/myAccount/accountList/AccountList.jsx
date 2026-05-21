@@ -26,7 +26,7 @@ const data = [
 ];
 
 function AccountList() {
-    // Memoize columns for performance
+
     const columns = useMemo(
         () => [
             { accessorKey: 'serialNo', header: 'Serial No.', size: 100 },

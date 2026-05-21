@@ -1,14 +1,66 @@
-import { Button, Stack, Typography, TextField, InputLabel, Box, Container } from '@mui/material'
+import { Button, Stack, Typography, TextField, InputLabel, Box, Container, Divider } from '@mui/material'
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
 import { setNotification } from '../../../../globalState/notificationState/notificationStateSlice';
-import { useBankWithdrawMutation } from '../../../../globalState/userState/userStateApis';
+import { useBankWithdrawMutation, useGetPaymentChargesQuery } from '../../../../globalState/userState/userStateApis';
 import { getWithdrawalSchema } from './bankWithdrawalFormSchema';
 import { useGetUserDataQuery } from '../../../../globalState/userState/userStateApis';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+
+function WithdrawSummary({ rawAmount, activeCharge }) {
+    const amount = parseFloat(rawAmount) || 0;
+    let chargeAmt = 0;
+    if (activeCharge && amount > 0) {
+        chargeAmt = activeCharge.chargeType === 'PERCENTAGE'
+            ? (amount * Number(activeCharge.chargeValue)) / 100
+            : Number(activeCharge.chargeValue);
+        chargeAmt = parseFloat(Math.min(chargeAmt, amount).toFixed(2));
+    }
+    const netAmount = parseFloat((amount - chargeAmt).toFixed(2));
+
+    return (
+        <Stack sx={{ p: '1rem', my: '2rem', bgcolor: '#f8f9f9', borderRadius: '8px', gap: '0.5rem' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography color="text.secondary" fontSize="14px">Withdrawal amount</Typography>
+                <Typography fontWeight="bold" fontSize="1.4rem" color="black">
+                    {amount > 0 ? amount.toFixed(2) : '0.00'} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                </Typography>
+            </Stack>
+            {activeCharge && amount > 0 && (
+                <>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography color="error.main" fontSize="14px">
+                            Payment charge ({activeCharge.chargeType === 'PERCENTAGE'
+                                ? `${Number(activeCharge.chargeValue)}%`
+                                : `$${Number(activeCharge.chargeValue).toFixed(2)} flat`})
+                        </Typography>
+                        <Typography color="error.main" fontWeight={600} fontSize="14px">
+                            −{chargeAmt.toFixed(2)} USD
+                        </Typography>
+                    </Stack>
+                    <Divider />
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography fontWeight={700} fontSize="15px">You receive</Typography>
+                        <Typography fontWeight="bold" fontSize="1.4rem" color="success.main">
+                            {netAmount.toFixed(2)} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                        </Typography>
+                    </Stack>
+                </>
+            )}
+            {(!activeCharge || amount === 0) && (
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mt={0.5}>
+                    <Typography color="black">To be withdrawn</Typography>
+                    <Typography fontWeight="bold" fontSize="1.4rem" color="black">
+                        {amount > 0 ? amount.toFixed(2) : '0.00'} <Typography component="span" fontSize="1rem" fontWeight="bold">USD</Typography>
+                    </Typography>
+                </Stack>
+            )}
+        </Stack>
+    );
+}
 
 function BankWithdrawalForm() {
 
@@ -45,6 +97,10 @@ function BankWithdrawalForm() {
     });
 
     const [bankWithdraw, { isLoading }] = useBankWithdrawMutation();
+
+    const { data: chargeResponse } = useGetPaymentChargesQuery();
+    const withdrawalCharge = chargeResponse?.data?.withdrawal;
+    const activeCharge = withdrawalCharge?.status === 'ACTIVE' ? withdrawalCharge : null;
 
     const onSubmit = async (data) => {
         try {
@@ -107,10 +163,10 @@ function BankWithdrawalForm() {
                             size='small' fullWidth placeholder="Enter Code" variant="outlined" />
                         {errors.code && <Typography color="error" fontSize={"14px"}>{errors.code.message}</Typography>}
                     </Box>}
-                    <Stack sx={{ p: "1rem", my: "2rem", bgcolor: "#f8f9f9", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography color='black'>To be withdrawn</Typography>
-                        <Typography fontWeight={"bold"} fontSize={"2rem"} color='black'>{watch("amount") || amountParam || "0"}<Typography fontWeight={"bold"} component={"span"} fontSize={"1.2rem"}>.00 USD</Typography></Typography>
-                    </Stack>
+                    <WithdrawSummary
+                        rawAmount={watch("amount") || amountParam || "0"}
+                        activeCharge={activeCharge}
+                    />
                     <Button
                         type='submit'
                         variant='contained'
