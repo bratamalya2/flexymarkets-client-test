@@ -6,12 +6,10 @@ export const getQuotesSocket = (token) => {
     if (!socketInstance) {
         socketInstance = io(`${import.meta.env.VITE_BASE_URL}`, {
             autoConnect: false,
-            extraHeaders: {
-                authorization: token
-            }
+            auth: { authorization: token }
         });
-    } else if (token && socketInstance.io.opts.extraHeaders.authorization !== token) {
-        socketInstance.io.opts.extraHeaders.authorization = token;
+    } else if (token && socketInstance.auth?.authorization !== token) {
+        socketInstance.auth = { authorization: token };
     }
 
     return socketInstance;

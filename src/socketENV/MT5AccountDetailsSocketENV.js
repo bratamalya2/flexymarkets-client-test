@@ -6,9 +6,7 @@ export function initiateMT5AccountDetailsSocketConnection({ token, login, accoun
 
     const socket = io(import.meta.env.VITE_BASE_URL, {
         autoConnect: false,
-        extraHeaders: {
-            authorization: token
-        }
+        auth: { authorization: token }
     });
 
     socket.connect();
