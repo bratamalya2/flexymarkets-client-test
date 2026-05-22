@@ -113,21 +113,26 @@ function TerminalGraph() {
             headers: { Authorization: token },
             signal: controller.signal,
         })
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
             .then(res => {
-                console.log('[Chart] raw response sample:', Array.isArray(res.data) ? res.data.slice(0, 2) : res.data);
+                if (!res.status) throw new Error(res.message || 'Chart data unavailable');
+                console.log('[Chart] raw sample:', Array.isArray(res.data) ? res.data.slice(0, 2) : res.data);
                 const candles = normalizeCandles(res.data);
-                console.log('[Chart] normalized candles count:', candles.length, candles[0]);
+                console.log('[Chart] candles:', candles.length, candles[0]);
                 if (seriesRef.current) {
                     seriesRef.current.setData(candles);
-                    chartRef.current?.timeScale().fitContent();
+                    if (candles.length > 0) chartRef.current?.timeScale().fitContent();
                 }
                 currentCandleRef.current = candles.length > 0 ? candles[candles.length - 1] : null;
                 setLoading(false);
+                if (candles.length === 0) setError('No chart data for this period');
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    setError('Failed to load chart data');
+                    setError(err.message || 'Failed to load chart data');
                     setLoading(false);
                 }
             });

@@ -20,6 +20,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useQuotes } from "../../context/QuotesContext";
 import { useWatchListQuery, useAddSymbolToWatchListMutation } from "../../globalState/trade/tradeApis";
+import { allSymbol } from "../../utils/allSymbol";
 
 
 const PRIORITY_SYMBOLS = ['XAUUSD', 'XAGUSD'];
@@ -103,10 +104,19 @@ function LeftPanel() {
     }, [quoteData])
 
     const filteredSymbols = useMemo(() => {
-        const symbols =
-            activeTab === "watchlist"
-                ? quoteData?.filter(q => watchlist?.includes(q?.Symbol))
-                : quoteData;
+        const hasLiveQuotes = quoteData?.length > 0;
+
+        let symbols;
+        if (activeTab === "watchlist") {
+            symbols = hasLiveQuotes
+                ? quoteData.filter(q => watchlist?.includes(q?.Symbol))
+                : watchlist.map(name => ({ Symbol: name, Ask: null, Bid: null }));
+        } else {
+            // FOREX tab: live quotes when available, static list as fallback
+            symbols = hasLiveQuotes
+                ? quoteData
+                : allSymbol.map(s => ({ Symbol: s.name, Ask: null, Bid: null }));
+        }
 
         const filtered = symbols?.filter(symbol =>
             symbol?.Symbol?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -115,7 +125,6 @@ function LeftPanel() {
         return filtered?.sort((a, b) => {
             const aPriority = PRIORITY_SYMBOLS.includes(a.Symbol);
             const bPriority = PRIORITY_SYMBOLS.includes(b.Symbol);
-
             if (aPriority && !bPriority) return -1;
             if (!aPriority && bPriority) return 1;
             return 0;
