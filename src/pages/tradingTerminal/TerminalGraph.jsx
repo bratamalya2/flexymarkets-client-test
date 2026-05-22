@@ -25,11 +25,11 @@ function normalizeCandles(raw) {
     }
     return raw
         .map(c => ({
-            time: Number(c.time ?? c.date ?? c.timestamp ?? 0),
-            open: Number(c.open),
-            high: Number(c.high),
-            low: Number(c.low),
-            close: Number(c.close),
+            time: Number(c.time ?? c.Time ?? c.date ?? c.timestamp ?? 0),
+            open: Number(c.open ?? c.Open),
+            high: Number(c.high ?? c.High),
+            low: Number(c.low ?? c.Low),
+            close: Number(c.close ?? c.Close),
         }))
         .filter(c => c.time > 0 && !isNaN(c.open));
 }
