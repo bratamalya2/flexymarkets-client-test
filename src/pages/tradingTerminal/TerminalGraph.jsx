@@ -5,13 +5,13 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import { useQuotes } from '../../context/QuotesContext';
 
 const TIMEFRAMES = [
-    { label: '1M',  period: 1,     candleSec: 60,      range: 3  * 60 * 60 },
-    { label: '5M',  period: 5,     candleSec: 300,     range: 12 * 60 * 60 },
-    { label: '15M', period: 15,    candleSec: 900,     range: 2  * 24 * 60 * 60 },
-    { label: '30M', period: 30,    candleSec: 1800,    range: 4  * 24 * 60 * 60 },
-    { label: '1H',  period: 60,    candleSec: 3600,    range: 7  * 24 * 60 * 60 },
-    { label: '4H',  period: 240,   candleSec: 14400,   range: 30 * 24 * 60 * 60 },
-    { label: '1D',  period: 1440,  candleSec: 86400,   range: 365 * 24 * 60 * 60 },
+    { label: '1M',  period: 1,     candleSec: 60,      range: 10 * 365 * 24 * 60 * 60 },
+    { label: '5M',  period: 5,     candleSec: 300,     range: 10 * 365 * 24 * 60 * 60 },
+    { label: '15M', period: 15,    candleSec: 900,     range: 10 * 365 * 24 * 60 * 60 },
+    { label: '30M', period: 30,    candleSec: 1800,    range: 10 * 365 * 24 * 60 * 60 },
+    { label: '1H',  period: 60,    candleSec: 3600,    range: 10 * 365 * 24 * 60 * 60 },
+    { label: '4H',  period: 240,   candleSec: 14400,   range: 10 * 365 * 24 * 60 * 60 },
+    { label: '1D',  period: 1440,  candleSec: 86400,   range: 10 * 365 * 24 * 60 * 60 },
 ];
 
 function normalizeCandles(raw) {
