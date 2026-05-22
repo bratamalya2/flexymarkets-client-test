@@ -144,15 +144,26 @@ function TerminalGraph() {
     useEffect(() => {
         if (!quoteData?.length || !seriesRef.current || !selectedSymbol || !currentCandleRef.current) return;
 
-        const tick = quoteData.find(q => q.Symbol === selectedSymbol);
+        const normalize = (s) => s?.split('.')[0]?.toUpperCase() || "";
+        const selectedNorm = normalize(selectedSymbol);
+        const tick = quoteData.find(q => normalize(q.Symbol) === selectedNorm);
         if (!tick) return;
 
         const price = (parseFloat(tick.Bid) + parseFloat(tick.Ask)) / 2;
         if (isNaN(price)) return;
 
         const now = Math.floor(Date.now() / 1000);
-        const candleTime = Math.floor(now / activeTimeframe.candleSec) * activeTimeframe.candleSec;
         const prev = currentCandleRef.current;
+
+        // Dynamic timezone offset calculation:
+        // We find the difference between the historical candle's time and what the client's current candle time would be.
+        const clientCandleTime = Math.floor(now / activeTimeframe.candleSec) * activeTimeframe.candleSec;
+        const timezoneOffset = prev._offset !== undefined
+            ? prev._offset
+            : prev.time - clientCandleTime;
+
+        prev._offset = timezoneOffset;
+        const candleTime = clientCandleTime + timezoneOffset;
 
         if (candleTime === prev.time) {
             const updated = {
@@ -161,11 +172,19 @@ function TerminalGraph() {
                 high: Math.max(prev.high, price),
                 low: Math.min(prev.low, price),
                 close: price,
+                _offset: timezoneOffset,
             };
             currentCandleRef.current = updated;
             seriesRef.current.update(updated);
         } else if (candleTime > prev.time) {
-            const newCandle = { time: candleTime, open: prev.close, high: price, low: price, close: price };
+            const newCandle = {
+                time: candleTime,
+                open: prev.close,
+                high: price,
+                low: price,
+                close: price,
+                _offset: timezoneOffset,
+            };
             currentCandleRef.current = newCandle;
             seriesRef.current.update(newCandle);
         }

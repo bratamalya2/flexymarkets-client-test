@@ -36,11 +36,11 @@ function LeftPanel() {
     const [activeTab, setActiveTab] = useState("forex");
     const [searchTerm, setSearchTerm] = useState("");
     const [symbolData, setSymbolData] = useState({});
-    const [watchlist, setWatchlist] = useState(allFavSymbols || []);
+    const [watchlist, setWatchlist] = useState(() => (allFavSymbols || []).map(s => s?.split('.')[0]?.toUpperCase()));
 
     useEffect(() => {
         if (allFavSymbols) {
-            setWatchlist(allFavSymbols);
+            setWatchlist(allFavSymbols.map(s => s?.split('.')[0]?.toUpperCase()));
         }
     }, [allFavSymbols]);
 
@@ -109,7 +109,7 @@ function LeftPanel() {
         let symbols;
         if (activeTab === "watchlist") {
             symbols = hasLiveQuotes
-                ? quoteData.filter(q => watchlist?.includes(q?.Symbol))
+                ? quoteData.filter(q => watchlist?.includes(q?.Symbol?.split('.')[0]?.toUpperCase()))
                 : watchlist.map(name => ({ Symbol: name, Ask: null, Bid: null }));
         } else {
             // FOREX tab: live quotes when available, static list as fallback
@@ -150,10 +150,6 @@ function LeftPanel() {
 
         dispatch(setSelectedSymbol(symbol));
 
-        if (!watchlist.includes(symbol)) {
-            setWatchlist(prev => [symbol, ...prev]);
-        }
-
         const listItem = document.querySelector(`[data-symbol="${symbol}"]`);
         if (listItem) {
             listItem.style.animation = "symbolSelected 0.3s ease";
@@ -166,24 +162,25 @@ function LeftPanel() {
     // Toggle watchlist
     const toggleWatchlist = async (symbol, e) => {
         e.stopPropagation();
-        const isInWatchlist = watchlist.includes(symbol);
+        const normalizedSymbol = symbol?.split('.')[0]?.toUpperCase();
+        const isInWatchlist = watchlist.includes(normalizedSymbol);
         const action = isInWatchlist ? "REMOVE" : "ADD";
 
         // Optimistic update
         if (isInWatchlist) {
-            setWatchlist(prev => prev.filter(s => s !== symbol));
+            setWatchlist(prev => prev.filter(s => s !== normalizedSymbol));
         } else {
-            setWatchlist(prev => [symbol, ...prev]);
+            setWatchlist(prev => [normalizedSymbol, ...prev]);
         }
 
         try {
-            await addSymbolToWatchList({ symbol, action }).unwrap();
+            await addSymbolToWatchList({ symbol: normalizedSymbol, action }).unwrap();
         } catch {
             // Revert on failure
             if (isInWatchlist) {
-                setWatchlist(prev => [symbol, ...prev]);
+                setWatchlist(prev => [normalizedSymbol, ...prev]);
             } else {
-                setWatchlist(prev => prev.filter(s => s !== symbol));
+                setWatchlist(prev => prev.filter(s => s !== normalizedSymbol));
             }
         }
     };
@@ -493,7 +490,7 @@ function LeftPanel() {
                                             top: "8px",
                                             right: "8px",
                                             padding: "2px",
-                                            color: watchlist.includes(symbol) ? "#FFD700" : "rgba(255, 255, 255, 0.3)",
+                                            color: watchlist.includes(symbol?.split('.')[0]?.toUpperCase()) ? "#FFD700" : "rgba(255, 255, 255, 0.3)",
                                             transition: "all 0.3s",
                                             zIndex: 2,
                                             "&:hover": {
@@ -502,7 +499,7 @@ function LeftPanel() {
                                             }
                                         }}
                                     >
-                                        {watchlist.includes(symbol) ? (
+                                        {watchlist.includes(symbol?.split('.')[0]?.toUpperCase()) ? (
                                             <StarIcon sx={{ fontSize: "14px" }} />
                                         ) : (
                                             <StarBorderIcon sx={{ fontSize: "14px" }} />
