@@ -70,10 +70,19 @@ function TradingTerminalLayout() {
     const mt5AccountList = userData?.data?.mt5AccountList;
 
     useEffect(() => {
-        if (!activeMT5AccountLogin || !mt5AccountList || selectedSymbol) return;
-        const currentAccount = mt5AccountList.find(acc => acc.Login == activeMT5AccountLogin);
-        if (!currentAccount) return;
-        const sym = currentAccount.accountType === "DEMO" ? "BTCUSD" : "XAUUSD";
+        if (!mt5AccountList?.length || selectedSymbol) return;
+
+        // Use the active account, or fall back to the first available account
+        const login = activeMT5AccountLogin ?? String(mt5AccountList[0].Login);
+        const account = mt5AccountList.find(acc => acc.Login == login) ?? mt5AccountList[0];
+
+        // Persist the account selection so sockets pick it up
+        if (!activeMT5AccountLogin) {
+            localStorage.setItem("mt5-active-account", String(account.Login));
+            dispatch(setActiveMT5AccountLogin(String(account.Login)));
+        }
+
+        const sym = account.accountType === "DEMO" ? "BTCUSD" : "XAUUSD";
         dispatch(setSelectedSymbol(sym));
     }, [activeMT5AccountLogin, mt5AccountList, selectedSymbol, dispatch]);
 
