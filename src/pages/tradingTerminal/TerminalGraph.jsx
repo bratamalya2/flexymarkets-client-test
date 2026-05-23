@@ -47,6 +47,7 @@ function TerminalGraph() {
     const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[1]); // 5M default
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     // Create chart once on mount
     useEffect(() => {
@@ -130,6 +131,42 @@ function TerminalGraph() {
         });
     }, [chartSettings]);
 
+    // Listen to zoom and refresh events from the toolbar
+    useEffect(() => {
+        const handleZoomIn = () => {
+            if (chartRef.current) {
+                const timeScale = chartRef.current.timeScale();
+                const currentSpacing = (typeof timeScale.options === 'function' ? timeScale.options().barSpacing : timeScale.options?.barSpacing) || 6;
+                timeScale.applyOptions({ barSpacing: Math.min(50, currentSpacing + 2) });
+            }
+        };
+
+        const handleZoomOut = () => {
+            if (chartRef.current) {
+                const timeScale = chartRef.current.timeScale();
+                const currentSpacing = (typeof timeScale.options === 'function' ? timeScale.options().barSpacing : timeScale.options?.barSpacing) || 6;
+                timeScale.applyOptions({ barSpacing: Math.max(0.5, currentSpacing - 2) });
+            }
+        };
+
+        const handleRefresh = () => {
+            setRefreshKey(prev => prev + 1);
+            if (chartRef.current) {
+                chartRef.current.timeScale().fitContent();
+            }
+        };
+
+        window.addEventListener('chartZoomIn', handleZoomIn);
+        window.addEventListener('chartZoomOut', handleZoomOut);
+        window.addEventListener('refreshChart', handleRefresh);
+
+        return () => {
+            window.removeEventListener('chartZoomIn', handleZoomIn);
+            window.removeEventListener('chartZoomOut', handleZoomOut);
+            window.removeEventListener('refreshChart', handleRefresh);
+        };
+    }, [setRefreshKey]);
+
     // Fetch OHLC history whenever symbol or timeframe changes
     useEffect(() => {
         if (!selectedSymbol || !token) return;
@@ -177,7 +214,7 @@ function TerminalGraph() {
             });
 
         return () => controller.abort();
-    }, [selectedSymbol, activeTimeframe, token]);
+    }, [selectedSymbol, activeTimeframe, token, refreshKey]);
 
     // Real-time last-candle updates from the quotes socket
     useEffect(() => {

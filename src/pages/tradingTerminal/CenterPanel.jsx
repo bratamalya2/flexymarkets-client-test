@@ -279,27 +279,33 @@ function CenterPanel() {
               border: "1px solid rgba(76, 175, 80, 0.1)"
             }}>
               <Tooltip title="Zoom In">
-                <IconButton sx={{
-                  padding: "4px",
-                  color: "#9ca3af",
-                  "&:hover": {
-                    color: "#4CAF50",
-                    background: "rgba(76, 175, 80, 0.1)"
-                  }
-                }}>
+                <IconButton
+                  onClick={() => window.dispatchEvent(new CustomEvent('chartZoomIn'))}
+                  sx={{
+                    padding: "4px",
+                    color: "#9ca3af",
+                    "&:hover": {
+                      color: "#4CAF50",
+                      background: "rgba(76, 175, 80, 0.1)"
+                    }
+                  }}
+                >
                   <ZoomInIcon sx={{ fontSize: "16px" }} />
                 </IconButton>
               </Tooltip>
 
               <Tooltip title="Zoom Out">
-                <IconButton sx={{
-                  padding: "4px",
-                  color: "#9ca3af",
-                  "&:hover": {
-                    color: "#4CAF50",
-                    background: "rgba(76, 175, 80, 0.1)"
-                  }
-                }}>
+                <IconButton
+                  onClick={() => window.dispatchEvent(new CustomEvent('chartZoomOut'))}
+                  sx={{
+                    padding: "4px",
+                    color: "#9ca3af",
+                    "&:hover": {
+                      color: "#4CAF50",
+                      background: "rgba(76, 175, 80, 0.1)"
+                    }
+                  }}
+                >
                   <ZoomOutIcon sx={{ fontSize: "16px" }} />
                 </IconButton>
               </Tooltip>
