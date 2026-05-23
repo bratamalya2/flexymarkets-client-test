@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, IconButton, Tooltip, Chip } from "@mui/material";
-import { useSelector } from "react-redux";
+import { Box, Typography, IconButton, Tooltip, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Grid } from "@mui/material";
+import { useSelector, useDispatch } from "react-redux";
+import { setChartSettings, resetChartSettings } from "../../globalState/terminalState/terminalSlice";
 import TradingViewWidget from "./TerminalGraph";
 import OrdersTable from "./OrdersTable";
 // import { useQuotesSocket } from "../../socketENV/quotesSocketENV";
@@ -17,10 +18,12 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 function CenterPanel() {
+  const dispatch = useDispatch();
   const [chartData, setChartData] = useState({ price: 0, changePercent: 0 });
   const [priceAnimation, setPriceAnimation] = useState("none");
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const { selectedSymbol } = useSelector(state => state.terminal);
+  const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleQuoteData = (data) => {
     if (!data || !Array.isArray(data) || !selectedSymbol) return;
@@ -335,14 +338,17 @@ function CenterPanel() {
               </Tooltip>
 
               <Tooltip title="Chart Settings">
-                <IconButton sx={{
-                  padding: "4px",
-                  color: "#9ca3af",
-                  "&:hover": {
-                    color: "#FF9800",
-                    background: "rgba(255, 152, 0, 0.1)"
-                  }
-                }}>
+                <IconButton
+                  onClick={() => setSettingsOpen(true)}
+                  sx={{
+                    padding: "4px",
+                    color: "#9ca3af",
+                    "&:hover": {
+                      color: "#FF9800",
+                      background: "rgba(255, 152, 0, 0.1)"
+                    }
+                  }}
+                >
                   <SettingsIcon sx={{ fontSize: "16px" }} />
                 </IconButton>
               </Tooltip>
@@ -588,6 +594,235 @@ function CenterPanel() {
           }
         `}
       </style>
+
+      {/* Chart Settings Dialog */}
+      <Dialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        PaperProps={{
+          sx: {
+            background: "rgba(10, 14, 23, 0.95)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(76, 175, 80, 0.25)",
+            borderRadius: "16px",
+            color: "white",
+            maxWidth: "480px",
+            width: "100%",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+            overflow: "hidden"
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          borderBottom: "1px solid rgba(76, 175, 80, 0.15)",
+          background: "rgba(26, 31, 46, 0.4)",
+          padding: "16px 24px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px"
+        }}>
+          <SettingsIcon sx={{ color: "#FF9800", fontSize: "20px" }} />
+          <Typography sx={{ fontWeight: "700", fontSize: "16px", color: "white" }}>
+            Chart Settings
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* Candle Colors */}
+          <Box>
+            <Typography sx={{ fontSize: "11px", fontWeight: "700", color: "#9ca3af", mb: "12px", letterSpacing: "1px" }}>
+              CANDLESTICK APPEARANCE
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography sx={{ fontSize: "12px", color: "#cbd5e1", mb: "6px" }}>Bullish (Up)</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="color"
+                    value={chartSettings?.upColor || "#4CAF50"}
+                    onChange={(e) => dispatch(setChartSettings({ upColor: e.target.value }))}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      cursor: "pointer",
+                      background: "none",
+                      padding: 0
+                    }}
+                  />
+                  <Typography sx={{ fontSize: "12px", color: "#9ca3af", textTransform: "uppercase" }}>
+                    {chartSettings?.upColor || "#4CAF50"}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography sx={{ fontSize: "12px", color: "#cbd5e1", mb: "6px" }}>Bearish (Down)</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="color"
+                    value={chartSettings?.downColor || "#f44336"}
+                    onChange={(e) => dispatch(setChartSettings({ downColor: e.target.value }))}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      cursor: "pointer",
+                      background: "none",
+                      padding: 0
+                    }}
+                  />
+                  <Typography sx={{ fontSize: "12px", color: "#9ca3af", textTransform: "uppercase" }}>
+                    {chartSettings?.downColor || "#f44336"}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Box sx={{ height: "1px", background: "rgba(255,255,255,0.06)" }} />
+
+          {/* Grid Lines */}
+          <Box>
+            <Typography sx={{ fontSize: "11px", fontWeight: "700", color: "#9ca3af", mb: "12px", letterSpacing: "1px" }}>
+              GRID CONFIGURATION
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography sx={{ fontSize: "13px", color: "#cbd5e1" }}>Vertical Grid Lines</Typography>
+                <Switch
+                  checked={chartSettings?.showVertLines ?? true}
+                  onChange={(e) => dispatch(setChartSettings({ showVertLines: e.target.checked }))}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#4CAF50" },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#4CAF50" }
+                  }}
+                />
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography sx={{ fontSize: "13px", color: "#cbd5e1" }}>Horizontal Grid Lines</Typography>
+                <Switch
+                  checked={chartSettings?.showHorzLines ?? true}
+                  onChange={(e) => dispatch(setChartSettings({ showHorzLines: e.target.checked }))}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#4CAF50" },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#4CAF50" }
+                  }}
+                />
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: "4px" }}>
+                <Typography sx={{ fontSize: "13px", color: "#cbd5e1" }}>Grid Lines Color</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="color"
+                    value={chartSettings?.gridColor?.startsWith("rgba") ? "#333333" : (chartSettings?.gridColor || "#333333")}
+                    onChange={(e) => dispatch(setChartSettings({ gridColor: e.target.value }))}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      background: "none",
+                      padding: 0
+                    }}
+                  />
+                  <Typography sx={{ fontSize: "11px", color: "#9ca3af", textTransform: "uppercase" }}>
+                    {chartSettings?.gridColor || "#333333"}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box sx={{ height: "1px", background: "rgba(255,255,255,0.06)" }} />
+
+          {/* Background and Layout */}
+          <Box>
+            <Typography sx={{ fontSize: "11px", fontWeight: "700", color: "#9ca3af", mb: "12px", letterSpacing: "1px" }}>
+              BACKGROUND THEME
+            </Typography>
+            <Box sx={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              {[
+                { name: "Dark Slate", color: "#0F0F0F" },
+                { name: "Midnight Navy", color: "#0a0e17" },
+                { name: "Deep Charcoal", color: "#1E1E1E" },
+                { name: "Jet Black", color: "#000000" }
+              ].map((theme) => (
+                <Box
+                  key={theme.color}
+                  onClick={() => dispatch(setChartSettings({ backgroundColor: theme.color }))}
+                  sx={{
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    background: theme.color === chartSettings?.backgroundColor ? "rgba(76, 175, 80, 0.15)" : "rgba(255, 255, 255, 0.03)",
+                    border: `1px solid ${theme.color === chartSettings?.backgroundColor ? "#4CAF50" : "rgba(255, 255, 255, 0.08)"}`,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    "&:hover": {
+                      background: "rgba(255, 255, 255, 0.06)",
+                      borderColor: "rgba(255, 255, 255, 0.15)"
+                    }
+                  }}
+                >
+                  <Box sx={{ width: "12px", height: "12px", borderRadius: "50%", background: theme.color, border: "1px solid rgba(255,255,255,0.2)" }} />
+                  <Typography sx={{ fontSize: "11px", fontWeight: "600", color: theme.color === chartSettings?.backgroundColor ? "#4CAF50" : "#cbd5e1" }}>
+                    {theme.name}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{
+          borderTop: "1px solid rgba(76, 175, 80, 0.15)",
+          padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          background: "rgba(26, 31, 46, 0.4)"
+        }}>
+          <Button
+            onClick={() => dispatch(resetChartSettings())}
+            sx={{
+              color: "#9ca3af",
+              fontSize: "12px",
+              fontWeight: "600",
+              textTransform: "none",
+              "&:hover": { color: "#f44336", background: "none" }
+            }}
+          >
+            Reset Defaults
+          </Button>
+          <Button
+            onClick={() => setSettingsOpen(false)}
+            variant="contained"
+            sx={{
+              background: "linear-gradient(135deg, #4CAF50, #2E7D32)",
+              color: "white",
+              fontSize: "12px",
+              fontWeight: "700",
+              textTransform: "none",
+              borderRadius: "8px",
+              padding: "6px 18px",
+              boxShadow: "0 4px 12px rgba(76, 175, 80, 0.3)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #45a049, #256b29)",
+                boxShadow: "0 6px 16px rgba(76, 175, 80, 0.4)"
+              }
+            }}
+          >
+            Apply & Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

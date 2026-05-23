@@ -34,7 +34,7 @@ function normalizeCandles(raw) {
 }
 
 function TerminalGraph() {
-    const { selectedSymbol } = useSelector(state => state.terminal);
+    const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
     const { token } = useSelector(state => state.auth);
     const { quoteData } = useQuotes();
 
@@ -55,12 +55,18 @@ function TerminalGraph() {
         const chart = createChart(containerRef.current, {
             autoSize: true,
             layout: {
-                background: { color: '#0F0F0F' },
-                textColor: '#9ca3af',
+                background: { color: chartSettings?.backgroundColor || '#0F0F0F' },
+                textColor: chartSettings?.textColor || '#9ca3af',
             },
             grid: {
-                vertLines: { color: 'rgba(255,255,255,0.04)' },
-                horzLines: { color: 'rgba(255,255,255,0.04)' },
+                vertLines: {
+                    visible: chartSettings?.showVertLines ?? true,
+                    color: chartSettings?.showVertLines ? (chartSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                },
+                horzLines: {
+                    visible: chartSettings?.showHorzLines ?? true,
+                    color: chartSettings?.showHorzLines ? (chartSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                },
             },
             crosshair: { mode: 1 },
             rightPriceScale: { borderColor: 'rgba(76,175,80,0.2)' },
@@ -72,12 +78,12 @@ function TerminalGraph() {
         });
 
         const series = chart.addSeries(CandlestickSeries, {
-            upColor: '#4CAF50',
-            downColor: '#f44336',
-            borderUpColor: '#4CAF50',
-            borderDownColor: '#f44336',
-            wickUpColor: '#4CAF50',
-            wickDownColor: '#f44336',
+            upColor: chartSettings?.upColor || '#4CAF50',
+            downColor: chartSettings?.downColor || '#f44336',
+            borderUpColor: chartSettings?.upColor || '#4CAF50',
+            borderDownColor: chartSettings?.downColor || '#f44336',
+            wickUpColor: chartSettings?.upColor || '#4CAF50',
+            wickDownColor: chartSettings?.downColor || '#f44336',
         });
 
         chartRef.current = chart;
@@ -89,6 +95,40 @@ function TerminalGraph() {
             seriesRef.current = null;
         };
     }, []);
+
+    // Apply settings changes dynamically in real time
+    useEffect(() => {
+        if (!chartRef.current || !seriesRef.current || !chartSettings) return;
+
+        const chart = chartRef.current;
+        const series = seriesRef.current;
+
+        chart.applyOptions({
+            layout: {
+                background: { color: chartSettings.backgroundColor || '#0F0F0F' },
+                textColor: chartSettings.textColor || '#9ca3af',
+            },
+            grid: {
+                vertLines: {
+                    visible: chartSettings.showVertLines ?? true,
+                    color: chartSettings.showVertLines ? (chartSettings.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                },
+                horzLines: {
+                    visible: chartSettings.showHorzLines ?? true,
+                    color: chartSettings.showHorzLines ? (chartSettings.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                },
+            }
+        });
+
+        series.applyOptions({
+            upColor: chartSettings.upColor || '#4CAF50',
+            downColor: chartSettings.downColor || '#f44336',
+            borderUpColor: chartSettings.upColor || '#4CAF50',
+            borderDownColor: chartSettings.downColor || '#f44336',
+            wickUpColor: chartSettings.upColor || '#4CAF50',
+            wickDownColor: chartSettings.downColor || '#f44336',
+        });
+    }, [chartSettings]);
 
     // Fetch OHLC history whenever symbol or timeframe changes
     useEffect(() => {
@@ -191,14 +231,14 @@ function TerminalGraph() {
 
     if (!selectedSymbol) {
         return (
-            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F0F0F' }}>
+            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
                 <Typography sx={{ color: '#9ca3af', fontSize: '14px' }}>Select a symbol to view the chart</Typography>
             </Box>
         );
     }
 
     return (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0F0F0F' }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
             {/* Toolbar */}
             <Box sx={{
                 display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap',

@@ -1,8 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const defaultSettings = {
+    upColor: '#4CAF50',
+    downColor: '#f44336',
+    showVertLines: true,
+    showHorzLines: true,
+    gridColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#0F0F0F',
+    textColor: '#9ca3af'
+};
+
 const initialState = {
-    selectedSymbol: JSON.parse(localStorage.getItem("selectedSymbol")) || null
-        // { name: "XAUUSD", img1: "/symbol_logo/XAUUSD.svg", img2: "/symbol_logo/USD.svg", groupedSym: "XAUUSD" },
+    selectedSymbol: JSON.parse(localStorage.getItem("selectedSymbol")) || null,
+    chartSettings: JSON.parse(localStorage.getItem("chartSettings")) || defaultSettings
 };
 
 const terminalSlice = createSlice({
@@ -17,11 +27,24 @@ const terminalSlice = createSlice({
                 state.selectedSymbol = action.payload
                 localStorage.removeItem("selectedSymbol")
             }
+        },
+        setChartSettings: (state, action) => {
+            state.chartSettings = {
+                ...state.chartSettings,
+                ...action.payload
+            };
+            localStorage.setItem("chartSettings", JSON.stringify(state.chartSettings));
+        },
+        resetChartSettings: (state) => {
+            state.chartSettings = defaultSettings;
+            localStorage.setItem("chartSettings", JSON.stringify(defaultSettings));
         }
     }
 });
 
 export const {
-    setSelectedSymbol
+    setSelectedSymbol,
+    setChartSettings,
+    resetChartSettings
 } = terminalSlice.actions;
 export default terminalSlice.reducer;
