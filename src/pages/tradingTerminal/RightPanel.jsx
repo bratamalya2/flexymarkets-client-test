@@ -174,14 +174,16 @@ function RightPanel() {
 
   const handleMarketSubmit = (orderType) => {
     // 0 = Buy, 1 = Sell for Market
-    setValue("type", orderType === "BUY" ? "0" : "1");
-    handleSubmit(onSubmit)();
+    const typeValue = orderType === "BUY" ? "0" : "1";
+    setValue("type", typeValue, { shouldValidate: true, shouldDirty: true });
+    handleSubmit((data) => onSubmit({ ...data, type: typeValue }))();
   };
 
   const handlePendingSubmit = (tradeType) => {
     // 2 = Buy Limit, 3 = Sell Limit
-    setValue("type", tradeType === "BUY" ? "2" : "3");
-    handleSubmit(onSubmit)();
+    const typeValue = tradeType === "BUY" ? "2" : "3";
+    setValue("type", typeValue, { shouldValidate: true, shouldDirty: true });
+    handleSubmit((data) => onSubmit({ ...data, type: typeValue }))();
   };
 
   const formatPrice = (price) => {
