@@ -196,8 +196,13 @@ function TerminalGraph() {
             .then(res => {
                 if (!res.status) throw new Error(res.message || 'Chart data unavailable');
                 console.log('[Chart] raw sample:', Array.isArray(res.data) ? res.data.slice(0, 2) : res.data);
-                const candles = normalizeCandles(res.data);
-                console.log('[Chart] candles:', candles.length, candles[0]);
+                
+                // Normalize, sort ascending, and deduplicate by time to prevent lightweight-charts sorting errors
+                let candles = normalizeCandles(res.data);
+                candles.sort((a, b) => a.time - b.time);
+                candles = candles.filter((item, idx, arr) => idx === 0 || item.time !== arr[idx - 1].time);
+                
+                console.log('[Chart] candles after sorting/dedup:', candles.length);
                 if (seriesRef.current) {
                     seriesRef.current.setData(candles);
                     if (candles.length > 0) chartRef.current?.timeScale().fitContent();
@@ -307,8 +312,8 @@ function TerminalGraph() {
             </Box>
 
             {/* Chart area */}
-            <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+            <Box sx={{ flex: 1, position: 'relative', minHeight: 0, width: '100%', height: '100%' }}>
+                <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }} />
 
                 {loading && (
                     <Box sx={{
