@@ -328,7 +328,9 @@ function OrdersTable() {
                                 typeFill: "1",
                                 type: (data?.Type === 1 || data?.Type === "1" || data?.Type === 1) ? "0" : "1",
                                 login: data?.Login,
-                                position: data?.Position
+                                position: data?.Position,
+                                priceOrder: data?.PriceCurrent,
+                                digits: data?.Digits || 2
                             }
 
 

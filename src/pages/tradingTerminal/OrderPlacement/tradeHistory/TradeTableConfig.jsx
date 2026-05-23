@@ -100,7 +100,9 @@ export const TradeTableConfig = {
                         typeFill: "1",
                         type: (row?.original?.Type === 1 || row?.original?.Type === "1" || row?.original?.Type === 1) ? "0" : "1",
                         login: row?.original?.Login,
-                        position: row?.original?.Position
+                        position: row?.original?.Position,
+                        priceOrder: row?.original?.PriceCurrent,
+                        digits: row?.original?.Digits || 2
                     }
 
                     const [closeOrder, { isLoading }] = useCloseOrderMutation()
