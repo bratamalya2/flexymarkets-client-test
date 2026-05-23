@@ -22,12 +22,13 @@ export const TradeTableConfig = {
                 header: 'Symbol',
                 size: 100,
             }),
-            columnHelper.accessor('Action', {
+            columnHelper.accessor('Type', {
                 header: 'Action',
                 size: 100,
                 Cell: ({ row }) => {
-                    const value = row?.original?.Action;
-                    return <Typography sx={{ color: value == 1 ? "red" : "green" }}>{value == 1 ? "Sell" : "Buy"}</Typography>
+                    const value = row?.original?.Type;
+                    const isSell = value == 1 || value == "1";
+                    return <Typography sx={{ color: isSell ? "red" : "green" }}>{isSell ? "Sell" : "Buy"}</Typography>
                 },
             }),
             columnHelper.accessor('PriceOpen', {
@@ -50,8 +51,8 @@ export const TradeTableConfig = {
                 header: 'Volume',
                 size: 100,
                 Cell: ({ row }) => {
-                    const value = row?.original?.Volume;
-                    return <Typography>{value / 10000}</Typography>
+                    const value = row?.original?.Volume || row?.original?.VolumeInitial;
+                    return <Typography>{value ? value / 10000 : 0}</Typography>
                 },
             }),
             columnHelper.accessor('Profit', {
@@ -62,11 +63,11 @@ export const TradeTableConfig = {
                     return <Typography color={value.includes("-") ? "red" : "green"}>{value}</Typography>
                 },
             }),
-            columnHelper.accessor('TimeCreate', {
+            columnHelper.accessor('TimeSetup', {
                 header: 'Created AT',
                 size: 200,
                 Cell: ({ row }) => {
-                    const timestamp = row.original.TimeCreate;
+                    const timestamp = row.original.TimeSetup;
                     const date = new Date(timestamp * 1000);
 
                     const formattedDateTime = date.toLocaleString('en-CA', {
@@ -95,9 +96,9 @@ export const TradeTableConfig = {
 
                     const data = {
                         symbol: symbol,
-                        volume: row?.original?.Volume,
+                        volume: row?.original?.Volume || row?.original?.VolumeInitial,
                         typeFill: "1",
-                        type: (row?.original?.Action === 1 || row?.original?.Action === "1") ? "0" : "1",
+                        type: (row?.original?.Type === 1 || row?.original?.Type === "1" || row?.original?.Type === 1) ? "0" : "1",
                         login: row?.original?.Login,
                         position: row?.original?.Position
                     }

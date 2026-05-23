@@ -285,9 +285,9 @@ function OrdersTable() {
                 </TableRow>
             </TableHead>
             <TableBody>
-                {(activeMT5AccountPositionsDetails?.length == 0 || (activeMT5AccountPositionsDetails?.positionList == false)) ? (
+                {(!activeMT5AccountPositionsDetails || activeMT5AccountPositionsDetails?.length == 0 || (activeMT5AccountPositionsDetails?.positionList == false)) ? (
                     <TableRow>
-                        <TableCell colSpan={7} sx={{
+                        <TableCell colSpan={8} sx={{
                             textAlign: "center",
                             padding: "40px",
                             color: "#9ca3af",
@@ -318,15 +318,15 @@ function OrdersTable() {
                 ) : (
                     activeMT5AccountPositionsDetails?.map((pos, index) => {
 
-                        const isHovered = hoveredRow === pos.id;
+                        const isHovered = hoveredRow === pos.Position;
 
                         const handleCloseOrder = async (data) => {
 
                             const closeData = {
                                 symbol: data?.Symbol,
-                                volume: data?.Volume,
+                                volume: data?.Volume || data?.VolumeInitial,
                                 typeFill: "1",
-                                type: (data?.Action === 1 || data?.Action === "1") ? "0" : "1",
+                                type: (data?.Type === 1 || data?.Type === "1" || data?.Type === 1) ? "0" : "1",
                                 login: data?.Login,
                                 position: data?.Position
                             }
@@ -345,10 +345,13 @@ function OrdersTable() {
 
                         }
 
+                        const isSell = pos.Type == 1 || pos.Type == "1";
+                        const volumeVal = pos.Volume || pos.VolumeInitial;
+
                         return (
                             <TableRow
-                                key={pos.id}
-                                onMouseEnter={() => setHoveredRow(pos.id)}
+                                key={pos.Position}
+                                onMouseEnter={() => setHoveredRow(pos.Position)}
                                 onMouseLeave={() => setHoveredRow(null)}
                                 sx={{
                                     background: isHovered
@@ -385,7 +388,7 @@ function OrdersTable() {
                                     {pos.Position}
                                 </TableCell>
                                 <TableCell sx={{
-                                    color: pos.Action == 1 ? "#f44336" : "#4CAF50",
+                                    color: isSell ? "#f44336" : "#4CAF50",
                                     fontSize: "12px",
                                     fontWeight: 700,
                                     borderBottom: "none",
@@ -397,13 +400,13 @@ function OrdersTable() {
                                         gap: "4px",
                                         padding: "4px 8px",
                                         borderRadius: "4px",
-                                        background: pos.type === "BUY"
+                                        background: !isSell
                                             ? "rgba(76, 175, 80, 0.1)"
                                             : "rgba(244, 67, 54, 0.1)",
-                                        border: `1px solid ${pos.Action == 1 ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`
+                                        border: `1px solid ${isSell ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`
                                     }}>
-                                        {pos.Action == 1 ? "↓" : "↑"}
-                                        {pos.Action == 1 ? "Sell" : "Buy"}
+                                        {isSell ? "↓" : "↑"}
+                                        {isSell ? "Sell" : "Buy"}
                                     </Box>
                                 </TableCell>
                                 <TableCell sx={{
@@ -412,7 +415,7 @@ function OrdersTable() {
                                     borderBottom: "none",
                                     padding: "12px 8px"
                                 }}>
-                                    {pos.Volume / 10000}
+                                    {volumeVal ? volumeVal / 10000 : 0}
                                 </TableCell>
                                 <TableCell sx={{
                                     fontSize: "13px",
