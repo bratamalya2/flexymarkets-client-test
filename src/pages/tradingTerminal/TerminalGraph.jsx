@@ -16,15 +16,29 @@ const TIMEFRAMES = [
 
 function normalizeCandles(raw) {
     if (!Array.isArray(raw) || raw.length === 0) return [];
+    
+    const ensureSeconds = (t) => {
+        const val = Number(t);
+        // If the timestamp is greater than 10 digits (9,999,999,999), it is in milliseconds.
+        // We divide by 1000 to convert to standard UNIX seconds required by lightweight-charts.
+        return val > 9999999999 ? Math.floor(val / 1000) : val;
+    };
+
     const first = raw[0];
     if (Array.isArray(first)) {
         return raw
-            .map(c => ({ time: Number(c[0]), open: Number(c[1]), high: Number(c[2]), low: Number(c[3]), close: Number(c[4]) }))
+            .map(c => ({
+                time: ensureSeconds(c[0]),
+                open: Number(c[1]),
+                high: Number(c[2]),
+                low: Number(c[3]),
+                close: Number(c[4])
+            }))
             .filter(c => c.time > 0 && c.open > 0);
     }
     return raw
         .map(c => ({
-            time: Number(c.time ?? c.Time ?? c.date ?? c.timestamp ?? 0),
+            time: ensureSeconds(c.time ?? c.Time ?? c.date ?? c.timestamp ?? 0),
             open: Number(c.open ?? c.Open),
             high: Number(c.high ?? c.High),
             low: Number(c.low ?? c.Low),
