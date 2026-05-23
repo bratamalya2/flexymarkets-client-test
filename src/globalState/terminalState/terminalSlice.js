@@ -10,9 +10,20 @@ const defaultSettings = {
     textColor: '#9ca3af'
 };
 
+const safeJsonParse = (key, fallback) => {
+    try {
+        const item = localStorage.getItem(key);
+        if (!item) return fallback;
+        return JSON.parse(item);
+    } catch (e) {
+        const item = localStorage.getItem(key);
+        return item || fallback;
+    }
+};
+
 const initialState = {
-    selectedSymbol: JSON.parse(localStorage.getItem("selectedSymbol")) || null,
-    chartSettings: JSON.parse(localStorage.getItem("chartSettings")) || defaultSettings
+    selectedSymbol: safeJsonParse("selectedSymbol", null),
+    chartSettings: safeJsonParse("chartSettings", defaultSettings)
 };
 
 const terminalSlice = createSlice({
