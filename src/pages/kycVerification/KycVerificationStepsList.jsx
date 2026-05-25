@@ -1,101 +1,106 @@
-import ListSubheader from '@mui/material/ListSubheader';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Collapse from '@mui/material/Collapse';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import StarBorder from '@mui/icons-material/StarBorder';
+import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    Box,
+    Stack,
+    Typography
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Box, Container, Typography } from '@mui/material';
-import { useGetUserDataQuery } from "../../globalState/userState/userStateApis"
-import { useGetDocumentDataQuery } from '../../globalState/complianceState/complianceStateApis';
-import WatchLaterIcon from '@mui/icons-material/WatchLater';
 
 function KycVerificationStepsList() {
+    const [expanded, setExpanded] = useState(true);
+    const { kycStep } = useSelector((state) => state.kyc);
 
-    const [open, setOpen] = useState(false);
+    const verificationSteps = [
+        {
+            id: "emailVerification",
+            label: "Email Verification"
+        },
+        {
+            id: "phoneVerification",
+            label: "Phone Verification"
+        },
+        {
+            id: "personalInfoVerification",
+            label: "Personal Information"
+        },
+        {
+            id: "documentsVerification",
+            label: "Document Upload"
+        },
+        {
+            id: "documentSubmitted",
+            label: "Verification Review"
+        },
+    ];
 
-    const handleClick = () => {
-        setOpen(!open);
+    const getStepStatus = (stepId) => {
+        const steps = ["emailVerification", "phoneVerification", "personalInfoVerification", "documentsVerification", "documentSubmitted"];
+        const currentIndex = steps.indexOf(kycStep);
+        const stepIndex = steps.indexOf(stepId);
+
+        if (stepIndex < currentIndex) return "completed";
+        if (stepIndex === currentIndex) return "current";
+        return "pending";
     };
 
-    const { token } = useSelector((state) => state.auth);
-    const { data: userData, isLoading } = useGetUserDataQuery(undefined, {
-        skip: !token,
-        refetchOnMountOrArgChange: true,
-    })
-
-    const isEmailVerified = !isLoading && userData?.data?.userData?.isEmailVerified
-    const isMobileVerified = !isLoading && userData?.data?.userData?.isMobileVerified
-    const userName = !isLoading && userData?.data?.userData?.name
-
-    const { data: docData, isError } = useGetDocumentDataQuery(undefined, {
-        skip: !token,
-        refetchOnMountOrArgChange: true,
-    })
-
-    const areDocsUploaded = docData?.data?.status == "PENDING"
-
-    const data = [
-        {
-            name: "Verify email",
-            verified: isEmailVerified || false,
-            icon: CheckCircleIcon
-        },
-        {
-            name: "Verify phone",
-            verified: isMobileVerified || false,
-            icon: CheckCircleIcon
-        },
-        {
-            name: "Personal information",
-            verified: userName || false,
-            icon: CheckCircleIcon
-        },
-        // {
-        //     name: "Economic profile",
-        //     verified: false,
-        //     icon: CheckCircleIcon
-        // },
-        {
-            name: "Verify documents",
-            verified: areDocsUploaded || false,
-            icon: WatchLaterIcon
-        }
-    ]
-
     return (
-        <List
-            sx={{ width: '100%', bgcolor: 'background.paper', m: 0 }}
-            component="nav"
-            aria-labelledby="nested-list-subheader"
+        <Accordion
+            expanded={expanded}
+            onChange={() => setExpanded((current) => !current)}
+            elevation={0}
+            sx={{
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: '8px !important',
+                '&:before': { display: 'none' }
+            }}
         >
-            <ListItemButton onClick={handleClick}>
-                <ListItemText primary="Steps" />
-                {open ? <ExpandLess /> : <ExpandMore />}
-            </ListItemButton>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                    <ListItemButton>
-                        <ListItemText
-                            primary={
-                                data.map((item, i) => (
-                                    <Box key={i} sx={{ py: "20px", display: "flex", justifyContent: "space-between" }}>
-                                        <Typography>{item.name}</Typography>
-                                        {item.verified && <item.icon sx={{ color: item.name === "Verify documents" ? "#e3e33d" : "#46cd7c", fontSize: "1.7rem" }} />}
-                                    </Box>
-                                ))
-                            }
-                        />
-                    </ListItemButton>
-                </List>
-            </Collapse>
-        </List>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                    Verification Steps
+                </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+                <Stack spacing={2}>
+                    {verificationSteps.map((step, index) => {
+                        const status = getStepStatus(step.id);
+
+                        return (
+                            <Box key={step.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box sx={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: status === 'completed' ? 'success.main' :
+                                        status === 'current' ? 'primary.main' :
+                                            'action.disabledBackground',
+                                    color: status === 'pending' ? 'text.disabled' : '#fff',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600
+                                }}>
+                                    {status === 'completed' ? (
+                                        <CheckCircleIcon sx={{ fontSize: 16 }} />
+                                    ) : (
+                                        index + 1
+                                    )}
+                                </Box>
+
+                                <Typography variant="body2" fontWeight={status === 'current' ? 600 : 400}>
+                                    {step.label}
+                                </Typography>
+                            </Box>
+                        );
+                    })}
+                </Stack>
+            </AccordionDetails>
+        </Accordion>
     );
 }
 

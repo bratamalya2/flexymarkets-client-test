@@ -1,11 +1,10 @@
 import { Box, Stack, OutlinedInput, InputAdornment, Typography, Button, Skeleton } from "@mui/material";
 import DocumentVerificationSvg from "./DocumentVerificationSvg";
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { setKycStep } from "../../../globalState/kycState/kycStateSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { useGetUserDataQuery } from "../../../globalState/userState/userStateApis"
 
-function UploadDocument({ onClick }) {
+function UploadDocument() {
 
     const { token } = useSelector((state) => state.auth);
     const { data, isLoading } = useGetUserDataQuery(undefined, {
@@ -68,6 +67,7 @@ function UploadDocument({ onClick }) {
             </Box>
             <Button
                 variant='contained'
+                type='button'
                 onClick={() => dispatch(setKycStep("dataUseAgreement"))}
                 sx={{
                     textTransform: "none",

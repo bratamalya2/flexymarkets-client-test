@@ -1,67 +1,91 @@
 import { Box, Stack, Typography } from "@mui/material";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useGetUserDataQuery } from "../../globalState/userState/userStateApis"
-import WatchLaterIcon from '@mui/icons-material/WatchLater';
-import { useGetDocumentDataQuery } from "../../globalState/complianceState/complianceStateApis";
 import { useSelector } from "react-redux";
 
 function KycVerificationSidebar() {
+    const { kycStep } = useSelector((state) => state.kyc);
 
-    const { token } = useSelector((state) => state.auth);
-    const { data: userData, isLoading } = useGetUserDataQuery(undefined, {
-        skip: !token,
-        refetchOnMountOrArgChange: true,
-    })
-
-    const isEmailVerified = !isLoading && userData?.data?.userData?.isEmailVerified
-    const isMobileVerified = !isLoading && userData?.data?.userData?.isMobileVerified
-    const userName = !isLoading && userData?.data?.userData?.name
-
-    const { data: docData } = useGetDocumentDataQuery(undefined, {
-        skip: !token,
-        refetchOnMountOrArgChange: true,
-    })
-
-    const areDocsUploaded = docData?.data?.status == "PENDING"
-
-    const data = [
+    const verificationSteps = [
         {
-            name: "Verify email",
-            verified: isEmailVerified || false,
-            icon: CheckCircleIcon
+            id: "emailVerification",
+            label: "Email Verification",
+            description: "Verify your email address"
         },
         {
-            name: "Verify phone",
-            verified: isMobileVerified || false,
-            icon: CheckCircleIcon
+            id: "phoneVerification",
+            label: "Phone Verification",
+            description: "Add phone number"
         },
         {
-            name: "Personal information",
-            verified: userName || false,
-            icon: CheckCircleIcon
+            id: "personalInfoVerification",
+            label: "Personal Information",
+            description: "Provide personal details"
         },
-        // {
-        //     name: "Economic profile",
-        //     verified: false,
-        //     icon: CheckCircleIcon
-        // },
         {
-            name: "Verify documents",
-            verified: areDocsUploaded || false,
-            icon: WatchLaterIcon
+            id: "documentsVerification",
+            label: "Document Upload",
+            description: "Upload identification"
+        },
+        {
+            id: "documentSubmitted",
+            label: "Verification Review",
+            description: "Under review"
         }
-    ]
+    ];
+
+    const getStepStatus = (stepId) => {
+        const steps = ["emailVerification", "phoneVerification", "personalInfoVerification", "documentsVerification", "documentSubmitted"];
+        const currentIndex = steps.indexOf(kycStep);
+        const stepIndex = steps.indexOf(stepId);
+
+        if (stepIndex < currentIndex) return "completed";
+        if (stepIndex === currentIndex) return "current";
+        return "pending";
+    };
 
     return (
-        <Stack>
-            {
-                data.map((item, i) => (
-                    <Box key={i} sx={{ width: "220px", p: "20px 16px", display: "flex", justifyContent: "space-between" }}>
-                        <Typography>{item.name}</Typography>
-                        {item.verified && <item.icon sx={{ color: item.name === "Verify documents" ? "#e3e33d" : "#46cd7c", fontSize: "1.7rem" }} />}
-                    </Box>
-                ))
-            }
+        <Stack sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+                Verification Steps
+            </Typography>
+
+            <Stack spacing={2}>
+                {verificationSteps.map((step, index) => {
+                    const status = getStepStatus(step.id);
+                    return (
+                        <Box key={step.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: status === 'completed' ? 'success.main' :
+                                    status === 'current' ? 'primary.main' :
+                                        'action.disabledBackground',
+                                color: status === 'pending' ? 'text.disabled' : '#fff',
+                                fontWeight: 600
+                            }}>
+                                {status === 'completed' ? (
+                                    <CheckCircleIcon sx={{ fontSize: 20 }} />
+                                ) : (
+                                    index + 1
+                                )}
+                            </Box>
+
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" fontWeight={status === 'current' ? 600 : 400}>
+                                    {step.label}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {step.description}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    );
+                })}
+            </Stack>
         </Stack>
     )
 }

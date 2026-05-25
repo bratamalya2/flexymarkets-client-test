@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { setKycStep } from "../../../globalState/kycState/kycStateSlice";
 import { setNotification } from "../../../globalState/notificationState/notificationStateSlice";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useGetUserDataQuery } from "../../../globalState/userState/userStateApis";
 import { useVerifyEmailAndMobileOtpMutation } from "../../../globalState/auth/authApis";
 import { useVerifyEmailAndMobileMutation } from "../../../globalState/auth/authApis";
@@ -14,6 +14,7 @@ import useCountdownTimer from "../../../hooks/useCountdownTimer";
 import { setResendOtpCreatedTime, setResendOtpExpiryTime } from "../../../globalState/auth/authSlice";
 
 
+// eslint-disable-next-line react/prop-types
 function PhoneOtpVerification({ onClose }) {
 
     const dispatch = useDispatch()
@@ -51,6 +52,10 @@ function PhoneOtpVerification({ onClose }) {
     const { handleSubmit, setValue, watch } = useForm({
         defaultValues: defaultValues
     });
+
+    useEffect(() => {
+        setValue("mobile", userMobile || "");
+    }, [setValue, userMobile]);
 
     const [verifyEmailAndMobileOtp] = useVerifyEmailAndMobileOtpMutation();
 
@@ -168,13 +173,13 @@ function PhoneOtpVerification({ onClose }) {
                             {`Get a new code in: ${formatTime(timeLeft)}`}
                         </Typography>
                 }
-                <Typography component={Link} fontSize={"14px"} color="blue">I didn't receive a code</Typography>
+                <Typography component={Link} fontSize={"14px"} color="blue">I didn&apos;t receive a code</Typography>
             </Box>
             {!(typeof onClose === "function")
                 &&
                 <Button
                     variant='contained'
-                    type='submit'
+                    type='button'
                     disabled={isLoading}
                     onClick={() => dispatch(setKycStep("phoneVerification"))}
                     sx={{

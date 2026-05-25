@@ -1,36 +1,13 @@
-// import * as z from 'zod';
-
-// export const documentsUploadSchema = z.object({
-//     poi: z
-//         .instanceof(File, { message: "Please upload a valid image file" })
-//         .refine(
-//             (file) => file && ["image/jpeg", "image/png", "image/jpg", "application/pdf"].includes(file.type),
-//             { message: "Only JPEG, PNG, JPG and PDF images are allowed" }
-//         )
-//         .refine(
-//             (file) => file && file.size <= 3 * 1024 * 1024,
-//             { message: "Image size must not exceed 3MB" }
-//         ),
-//     poa: z
-//         .instanceof(File, { message: "Please upload a valid image file" })
-//         .refine(
-//             (file) => file && ["image/jpeg", "image/png", "image/jpg", "application/pdf"].includes(file.type),
-//             { message: "Only JPEG, PNG, JPG and PDF images are allowed" }
-//         )
-//         .refine(
-//             (file) => file && file.size <= 3 * 1024 * 1024,
-//             { message: "Image size must not exceed 3MB" }
-//         )
-// });
-
-
-
-
-
 import * as z from 'zod';
 
 const fileTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
-const maxSize = 3 * 1024 * 1024;
+const defaultMaxSizeMb = 10;
+const configuredMaxSizeMb = Number(import.meta.env.VITE_KYC_DOCUMENT_MAX_UPLOAD_MB);
+const maxSizeMb = Number.isFinite(configuredMaxSizeMb) && configuredMaxSizeMb > 0
+    ? configuredMaxSizeMb
+    : defaultMaxSizeMb;
+const maxSize = maxSizeMb * 1024 * 1024;
+const maxSizeMessage = `File size must not exceed ${maxSizeMb}MB`;
 
 export const documentsUploadSchema = z.object({
     poi: z
@@ -39,7 +16,7 @@ export const documentsUploadSchema = z.object({
             message: "Only JPEG, PNG, JPG and PDF are allowed"
         })
         .refine((file) => file && file.size <= maxSize, {
-            message: "File size must not exceed 3MB"
+            message: maxSizeMessage
         }),
 
     poa: z
@@ -48,7 +25,7 @@ export const documentsUploadSchema = z.object({
             message: "Only JPEG, PNG, JPG and PDF are allowed"
         })
         .refine((file) => file && file.size <= maxSize, {
-            message: "File size must not exceed 3MB"
+            message: maxSizeMessage
         }),
 
     extraDocs: z
@@ -64,6 +41,6 @@ export const documentsUploadSchema = z.object({
             (files) =>
                 !files ||
                 files.every((file) => file.size <= maxSize),
-            { message: "Each file must not exceed 3MB" }
+            { message: `Each file must not exceed ${maxSizeMb}MB` }
         ),
 });

@@ -9,13 +9,15 @@ import * as z from 'zod';
 import { setNotification } from "../../../globalState/notificationState/notificationStateSlice";
 import { setKycStep } from '../../../globalState/kycState/kycStateSlice';
 import { useUpdateProfileMutation } from '../../../globalState/userState/userStateApis';
-import { useVerifyEmailAndMobileMutation } from '../../../globalState/auth/authApis';
 import { useGetUserDataQuery } from '../../../globalState/userState/userStateApis';
 import { useEffect, useState } from 'react';
-import { setResendOtpCreatedTime, setResendOtpExpiryTime } from '../../../globalState/auth/authSlice';
 
+const phoneVerificationDefaultValues = {
+    countryCode: "",
+    mobile: ""
+};
 
-export const phoneVerificationSchema = z.object({
+const phoneVerificationSchema = z.object({
     countryCode: z.string().trim().min(1, "Please select your country code"),
     mobile: z.string().trim().min(10, "Please type your mobile number"),
 })
@@ -24,7 +26,7 @@ export const phoneVerificationSchema = z.object({
 function PhoneVerification() {
     const { selectedTheme } = useSelector((state) => state.themeMode);
     const { token } = useSelector((state) => state.auth);
-    const { data: userData, isLoading: isUserDataLoading } = useGetUserDataQuery(undefined, {
+    const { data: userData, isLoading: isUserDataLoading, refetch } = useGetUserDataQuery(undefined, {
         skip: !token,
         refetchOnMountOrArgChange: true,
     })
@@ -33,19 +35,15 @@ function PhoneVerification() {
 
     const userMobile = userData?.data?.userData?.mobile;
     const userCountryCode = userData?.data?.userData?.countryCode;
-
-    const defaultValues = {
-        countryCode: "",
-        mobile: ""
-    };
+    const hasUserData = Boolean(userData);
 
     const { handleSubmit, setValue, reset, formState: { errors } } = useForm({
         resolver: zodResolver(phoneVerificationSchema),
-        defaultValues: defaultValues
+        defaultValues: phoneVerificationDefaultValues
     });
 
     useEffect(() => {
-        if (!isUserDataLoading && userData && !hasPrefilled) {
+        if (!isUserDataLoading && hasUserData && !hasPrefilled) {
             if (userCountryCode && userMobile) {
                 const fullPhoneNumber = `${userCountryCode}${userMobile}`;
                 setPhoneNumber(fullPhoneNumber);
@@ -54,14 +52,13 @@ function PhoneVerification() {
                 setHasPrefilled(true);
             } else {
                 setPhoneNumber("");
-                reset(defaultValues);
+                reset(phoneVerificationDefaultValues);
             }
         }
-    }, [userCountryCode, userMobile, isUserDataLoading, hasPrefilled]);
+    }, [hasPrefilled, hasUserData, isUserDataLoading, reset, setValue, userCountryCode, userMobile]);
 
     const dispatch = useDispatch();
     const [updateProfile, { isLoading }] = useUpdateProfileMutation();
-    const [verifyEmailAndMobile] = useVerifyEmailAndMobileMutation();
 
     const onSubmit = async (data) => {
         const countryCodeWithoutPlus = data?.countryCode?.replace("+", "");
@@ -80,18 +77,7 @@ function PhoneVerification() {
             const response = await updateProfile(updatedData).unwrap();
 
             if (response?.status) {
-                const verifyMobileResponse = await verifyEmailAndMobile({ mobile: updatedData.mobile }).unwrap();
-
-                if (verifyMobileResponse?.status) {
-
-                    const now = Date.now();
-                    const expire = now + 2 * 60 * 1000;
-
-                    dispatch(setResendOtpCreatedTime(now));
-                    dispatch(setResendOtpExpiryTime(expire));
-
-                }
-
+                refetch();
                 dispatch(setKycStep("personalInfoVerification"));
                 dispatch(setNotification({
                     open: true,
@@ -156,7 +142,7 @@ function PhoneVerification() {
                     }}
                 />
                 <InputLabel sx={{ mt: "2px", fontSize: "12px" }}>
-                    We'll send a verification code to this number
+                    This number will be saved to your profile
                 </InputLabel>
                 {errors.mobile && (
                     <Typography color="error" fontSize={"14px"}>

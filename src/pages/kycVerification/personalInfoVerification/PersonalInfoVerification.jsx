@@ -6,7 +6,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { allCountryName } from "../../../allCountryName";
 import Selector from '../../../components/Selector';
 import { useDispatch, useSelector } from 'react-redux';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -19,7 +19,6 @@ import { useForm } from 'react-hook-form';
 import { useGetUserDataQuery, useUpdateProfileMutation } from "../../../globalState/userState/userStateApis"
 import dayjs from 'dayjs';
 import { setNotification } from '../../../globalState/notificationState/notificationStateSlice';
-import CountrySelect from '../../../components/CountryCodeSelector';
 
 
 function PersonalInfoVerification() {
@@ -35,6 +34,12 @@ function PersonalInfoVerification() {
   })
 
   const userCountry = userDataLoading ? "" : data?.data?.userData?.country
+  const userData = data?.data?.userData;
+  const hasUserData = Boolean(userData);
+  const userName = userData?.name;
+  const userDob = userData?.dob;
+  const userGender = userData?.gender;
+  const userAddress = userData?.address;
 
   // const handleChange = (event) => {
   //   setMethod(event.target.value);
@@ -54,6 +59,17 @@ function PersonalInfoVerification() {
   });
 
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
+
+  useEffect(() => {
+    if (!hasUserData) return;
+
+    reset({
+      name: userName || "",
+      dob: userDob ? dayjs(userDob) : null,
+      gender: userGender || "",
+      address: userAddress || ""
+    });
+  }, [reset, hasUserData, userName, userDob, userGender, userAddress]);
 
   const onSubmit = async (formData) => {
 

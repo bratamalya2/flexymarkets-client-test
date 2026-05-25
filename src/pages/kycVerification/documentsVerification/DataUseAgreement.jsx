@@ -26,6 +26,7 @@ function DataUseAgreement() {
             />
             {checked && <Button
                 variant='contained'
+                type='button'
                 onClick={() => dispatch(setKycStep("verifyIdentity"))}
                 sx={{
                     textTransform: "none",

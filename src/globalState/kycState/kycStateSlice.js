@@ -1,7 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+const getInitialKycStep = () => {
+    const savedStep = localStorage.getItem("kycStep");
+    return savedStep === "phoneOtpVerification" ? "phoneVerification" : savedStep || "emailVerification";
+};
+
 const initialState = {
-    kycStep: "emailVerification",
+    kycStep: getInitialKycStep(),
     mobileOnOtpSent: localStorage.getItem("mobileOnOtpSent") || "",
     emailOnOtpSentKyc: localStorage.getItem("emailOnOtpSentKyc") || ""
 };
@@ -12,6 +17,7 @@ const kycStateSlice = createSlice({
     reducers: {
         setKycStep: (state, action) => {
             state.kycStep = action.payload;
+            localStorage.setItem("kycStep", action.payload);
         },
         setMobileOnOtpSent: (state, action) => {
             state.mobileOnOtpSent = action.payload
