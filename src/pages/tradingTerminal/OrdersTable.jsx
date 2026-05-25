@@ -321,12 +321,13 @@ function OrdersTable() {
                         const isHovered = hoveredRow === pos.Position;
 
                         const handleCloseOrder = async (data) => {
+                            const positionAction = data?.Action ?? data?.Type;
 
                             const closeData = {
                                 symbol: data?.Symbol,
                                 volume: data?.Volume || data?.VolumeInitial,
                                 typeFill: "1",
-                                type: (data?.Type === 1 || data?.Type === "1" || data?.Type === 1) ? "0" : "1",
+                                type: (positionAction === 1 || positionAction === "1") ? "0" : "1",
                                 login: data?.Login,
                                 position: data?.Position,
                                 priceOrder: data?.PriceCurrent,
@@ -347,7 +348,8 @@ function OrdersTable() {
 
                         }
 
-                        const isSell = pos.Type == 1 || pos.Type == "1";
+                        const positionAction = pos.Action ?? pos.Type;
+                        const isSell = positionAction == 1 || positionAction == "1";
                         const volumeVal = pos.Volume || pos.VolumeInitial;
 
                         return (

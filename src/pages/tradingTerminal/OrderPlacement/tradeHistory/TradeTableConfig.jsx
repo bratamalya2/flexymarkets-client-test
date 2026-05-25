@@ -26,7 +26,7 @@ export const TradeTableConfig = {
                 header: 'Action',
                 size: 100,
                 Cell: ({ row }) => {
-                    const value = row?.original?.Type;
+                    const value = row?.original?.Action ?? row?.original?.Type;
                     const isSell = value == 1 || value == "1";
                     return <Typography sx={{ color: isSell ? "red" : "green" }}>{isSell ? "Sell" : "Buy"}</Typography>
                 },
@@ -93,12 +93,13 @@ export const TradeTableConfig = {
 
                     const symbol = row?.original?.Symbol
                     const dispatch = useDispatch()
+                    const positionAction = row?.original?.Action ?? row?.original?.Type;
 
                     const data = {
                         symbol: symbol,
                         volume: row?.original?.Volume || row?.original?.VolumeInitial,
                         typeFill: "1",
-                        type: (row?.original?.Type === 1 || row?.original?.Type === "1" || row?.original?.Type === 1) ? "0" : "1",
+                        type: (positionAction === 1 || positionAction === "1") ? "0" : "1",
                         login: row?.original?.Login,
                         position: row?.original?.Position,
                         priceOrder: row?.original?.PriceCurrent,
