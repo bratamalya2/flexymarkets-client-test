@@ -135,22 +135,35 @@ function normalizeCandles(raw) {
         .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
 }
 
-function getSymbolName(symbol) {
-    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
-    return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
+function getRawSymbolName(symbol) {
+    const rawSymbol = symbol?.groupedSym ?? symbol?.Symbol ?? symbol?.name ?? symbol;
+    return rawSymbol ? String(rawSymbol).trim() : "";
+}
+
+function getBaseSymbolName(symbol) {
+    const rawSymbol = getRawSymbolName(symbol);
+    return rawSymbol ? rawSymbol.split(".")[0].toUpperCase() : "";
 }
 
 function TerminalGraph() {
     const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
     const { token } = useSelector(state => state.auth);
     const { quoteData } = useQuotes();
-    const chartSymbol = useMemo(() => getSymbolName(selectedSymbol), [selectedSymbol]);
+    const chartSymbol = useMemo(() => getBaseSymbolName(selectedSymbol), [selectedSymbol]);
+    const chartRequestSymbol = useMemo(() => {
+        const selectedRawSymbol = getRawSymbolName(selectedSymbol);
+        const liveQuoteSymbol = quoteData?.find(item => getBaseSymbolName(item) === chartSymbol);
+
+        return getRawSymbolName(liveQuoteSymbol) || selectedRawSymbol || chartSymbol;
+    }, [chartSymbol, quoteData, selectedSymbol]);
+    const hasChartSymbol = Boolean(chartSymbol);
 
     const containerRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
     const currentCandleRef = useRef(null);
     const abortRef = useRef(null);
+    const requestIdRef = useRef(0);
     const chartSettingsRef = useRef(chartSettings);
     chartSettingsRef.current = chartSettings;
 
@@ -160,11 +173,11 @@ function TerminalGraph() {
     const [refreshKey, setRefreshKey] = useState(0);
     const [chartReady, setChartReady] = useState(false);
 
-    // Create the chart once the real chart container is rendered.
-    // On first terminal load, selectedSymbol is often populated asynchronously;
-    // the initial placeholder render has no container, so this must rerun then.
+    // Create one stable chart instance once the real chart container is rendered.
+    // Symbol changes only replace the series data; recreating the chart can race
+    // against the next history request and leave the new pair with an empty plot.
     useEffect(() => {
-        if (!chartSymbol || !containerRef.current || chartRef.current) return;
+        if (!hasChartSymbol || !containerRef.current || chartRef.current) return;
         setChartReady(false);
         setError(null);
         const initialSettings = chartSettingsRef.current;
@@ -261,10 +274,10 @@ function TerminalGraph() {
             seriesRef.current = null;
             setChartReady(false);
         };
-    }, [chartSymbol]);
+    }, [hasChartSymbol]);
 
     useEffect(() => {
-        if (!chartSymbol || chartReady || error) return;
+        if (!hasChartSymbol || chartReady || error) return;
 
         const timeoutId = setTimeout(() => {
             if (!chartRef.current) {
@@ -273,7 +286,7 @@ function TerminalGraph() {
         }, 8000);
 
         return () => clearTimeout(timeoutId);
-    }, [chartReady, chartSymbol, error]);
+    }, [chartReady, hasChartSymbol, error]);
 
     // Apply settings changes dynamically in real time
     useEffect(() => {
@@ -347,21 +360,24 @@ function TerminalGraph() {
 
     // Fetch OHLC history whenever symbol or timeframe changes
     useEffect(() => {
-        if (!chartSymbol || !token || !chartReady || !seriesRef.current) return;
+        if (!chartSymbol || !chartRequestSymbol || !token || !chartReady || !seriesRef.current) return;
 
         // Cancel any in-flight request
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
+        const requestId = requestIdRef.current + 1;
+        requestIdRef.current = requestId;
 
         setLoading(true);
         setError(null);
         currentCandleRef.current = null;
+        seriesRef.current.setData([]);
 
         const to = Math.floor(Date.now() / 1000);
         const from = to - activeTimeframe.range;
         const url = `${import.meta.env.VITE_BASE_URL}/user/analytics/chart`
-            + `?symbol=${encodeURIComponent(chartSymbol)}&from=${from}&to=${to}&period=${activeTimeframe.period}`;
+            + `?symbol=${encodeURIComponent(chartRequestSymbol)}&from=${from}&to=${to}&period=${activeTimeframe.period}`;
 
         fetch(url, {
             headers: { Authorization: token },
@@ -372,15 +388,14 @@ function TerminalGraph() {
                 return r.json();
             })
             .then(res => {
+                if (requestId !== requestIdRef.current) return;
                 if (!res.status) throw new Error(res.message || 'Chart data unavailable');
-                console.log('[Chart] raw sample:', Array.isArray(res.data) ? res.data.slice(0, 2) : res.data);
                 
                 // Normalize, sort ascending, and deduplicate by time to prevent lightweight-charts sorting errors
                 let candles = normalizeCandles(res.data);
                 candles.sort((a, b) => a.time - b.time);
                 candles = candles.filter((item, idx, arr) => idx === 0 || item.time !== arr[idx - 1].time);
                 
-                console.log('[Chart] candles after sorting/dedup:', candles.length);
                 if (seriesRef.current) {
                     seriesRef.current.setData(candles);
                     if (candles.length > 0) {
@@ -392,22 +407,26 @@ function TerminalGraph() {
                 if (candles.length === 0) setError(`No chart data for ${chartSymbol} in this period`);
             })
             .catch(err => {
-                if (err.name !== 'AbortError') {
+                if (err.name !== 'AbortError' && requestId === requestIdRef.current) {
                     setError(err.message || 'Failed to load chart data');
                     setLoading(false);
                 }
             });
 
-        return () => controller.abort();
-    }, [chartSymbol, activeTimeframe, token, refreshKey, chartReady]);
+        return () => {
+            controller.abort();
+            if (abortRef.current === controller) {
+                abortRef.current = null;
+            }
+        };
+    }, [chartSymbol, chartRequestSymbol, activeTimeframe, token, refreshKey, chartReady]);
 
     // Real-time last-candle updates from the quotes socket
     useEffect(() => {
         if (!quoteData?.length || !seriesRef.current || !chartSymbol || !currentCandleRef.current) return;
 
-        const normalize = (s) => s?.split('.')[0]?.toUpperCase() || "";
-        const selectedNorm = normalize(chartSymbol);
-        const tick = quoteData.find(q => normalize(q.Symbol) === selectedNorm);
+        const selectedNorm = getBaseSymbolName(chartSymbol);
+        const tick = quoteData.find(q => getBaseSymbolName(q) === selectedNorm);
         if (!tick) return;
 
         const price = (parseFloat(tick.Bid) + parseFloat(tick.Ask)) / 2;
