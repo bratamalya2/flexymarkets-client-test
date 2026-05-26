@@ -11,6 +11,8 @@ import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import SettingsIcon from "@mui/icons-material/Settings";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 function CenterPanel() {
   const dispatch = useDispatch();
@@ -18,6 +20,7 @@ function CenterPanel() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isChartCollapsed, setIsChartCollapsed] = useState(false);
 
   const handleQuoteData = (data) => {
     if (!data || !Array.isArray(data) || !selectedSymbol) return;
@@ -100,6 +103,14 @@ function CenterPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    const resizeTimer = setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 320);
+
+    return () => clearTimeout(resizeTimer);
+  }, [isChartCollapsed]);
+
   // Refresh chart
   const handleRefreshChart = () => {
     const event = new CustomEvent('refreshChart', {
@@ -150,10 +161,13 @@ function CenterPanel() {
       }} />
 
       <Box sx={{
-        flex: 1,
+        flex: isChartCollapsed ? "0 0 auto" : "1 1 0",
+        minHeight: isChartCollapsed ? "86px" : { xs: "260px", md: "360px" },
         display: "flex",
         flexDirection: "column",
-        // position: "relative"
+        transition: "flex-basis 0.35s ease, min-height 0.35s ease",
+        overflow: "hidden",
+        position: "relative"
       }}>
         {/* Chart Header */}
         <Box sx={{
@@ -351,17 +365,21 @@ function CenterPanel() {
 
         {/* Chart Container */}
         <Box sx={{
-          flex: 1,
+          flex: isChartCollapsed ? "0 0 0px" : "1 1 0",
+          minHeight: isChartCollapsed ? 0 : { xs: "160px", md: "240px" },
           background: "#ffffff",
           position: "relative",
-          overflow: "hidden"
+          overflow: "hidden",
+          opacity: isChartCollapsed ? 0 : 1,
+          pointerEvents: isChartCollapsed ? "none" : "auto",
+          transition: "flex-basis 0.35s ease, min-height 0.35s ease, opacity 0.2s ease"
         }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}>
             <TradingViewWidget />
           </Box>
 
           {/* Chart corners decoration */}
-          <Box sx={{
+          {!isChartCollapsed && <Box sx={{
             position: "absolute",
             top: 0,
             left: 0,
@@ -371,8 +389,8 @@ function CenterPanel() {
             borderLeft: "2px solid #cbd8e7",
             borderTopLeftRadius: "6px",
             zIndex: 4
-          }} />
-          <Box sx={{
+          }} />}
+          {!isChartCollapsed && <Box sx={{
             position: "absolute",
             top: 0,
             right: 0,
@@ -382,8 +400,8 @@ function CenterPanel() {
             borderRight: "2px solid #cbd8e7",
             borderTopRightRadius: "6px",
             zIndex: 4
-          }} />
-          <Box sx={{
+          }} />}
+          {!isChartCollapsed && <Box sx={{
             position: "absolute",
             bottom: 0,
             left: 0,
@@ -393,8 +411,8 @@ function CenterPanel() {
             borderLeft: "2px solid #cbd8e7",
             borderBottomLeftRadius: "6px",
             zIndex: 4
-          }} />
-          <Box sx={{
+          }} />}
+          {!isChartCollapsed && <Box sx={{
             position: "absolute",
             bottom: 0,
             right: 0,
@@ -404,13 +422,69 @@ function CenterPanel() {
             borderRight: "2px solid #cbd8e7",
             borderBottomRightRadius: "6px",
             zIndex: 4
-          }} />
+          }} />}
+        </Box>
+
+        <Box
+          sx={{
+            height: "30px",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: isChartCollapsed
+              ? "linear-gradient(180deg, #ffffff, #f4f7fb)"
+              : "linear-gradient(180deg, #ffffff, #eef5ff)",
+            borderTop: "1px solid #e0e9f5",
+            borderBottom: "1px solid #d6e3f2",
+            boxShadow: isChartCollapsed ? "0 8px 18px rgba(18, 32, 54, 0.08)" : "none",
+            position: "relative",
+            zIndex: 12
+          }}
+        >
+          <Tooltip title={isChartCollapsed ? "Expand chart" : "Collapse chart"}>
+            <Button
+              onClick={() => setIsChartCollapsed((value) => !value)}
+              size="small"
+              startIcon={isChartCollapsed ? <KeyboardArrowDownIcon /> : <KeyboardArrowUpIcon />}
+              sx={{
+                minWidth: "142px",
+                height: "24px",
+                px: "12px",
+                borderRadius: "999px",
+                color: "#144a8f",
+                fontSize: "10px",
+                fontWeight: 800,
+                letterSpacing: "0.7px",
+                textTransform: "uppercase",
+                background: "linear-gradient(135deg, rgba(31, 122, 224, 0.12), rgba(22, 160, 133, 0.12))",
+                border: "1px solid rgba(31, 122, 224, 0.22)",
+                boxShadow: "0 5px 16px rgba(31, 122, 224, 0.12)",
+                backdropFilter: "blur(10px)",
+                "& .MuiButton-startIcon": {
+                  mr: "4px",
+                  "& svg": {
+                    fontSize: "16px"
+                  }
+                },
+                "&:hover": {
+                  background: "linear-gradient(135deg, rgba(31, 122, 224, 0.18), rgba(22, 160, 133, 0.18))",
+                  borderColor: "rgba(31, 122, 224, 0.38)",
+                  transform: "translateY(-1px)"
+                }
+              }}
+            >
+              {isChartCollapsed ? "Expand Chart" : "Collapse Chart"}
+            </Button>
+          </Tooltip>
         </Box>
       </Box>
 
       {/* Orders Table */}
       <Box sx={{
-        height: "280px",
+        flex: isChartCollapsed ? "1 1 0" : "0 0 280px",
+        height: isChartCollapsed ? "auto" : "280px",
+        minHeight: isChartCollapsed ? "220px" : "280px",
         background: "#ffffff",
         borderTop: "1px solid #e6edf5",
         display: "flex",
@@ -418,7 +492,9 @@ function CenterPanel() {
         backdropFilter: "blur(5px)",
         position: "relative",
         zIndex: 10,
-        boxShadow: "0 -10px 24px rgba(18, 32, 54, 0.06)"
+        boxShadow: "0 -10px 24px rgba(18, 32, 54, 0.06)",
+        transition: "flex-basis 0.35s ease, min-height 0.35s ease, height 0.35s ease",
+        overflow: "hidden"
       }}>
         <OrdersTable />
       </Box>
