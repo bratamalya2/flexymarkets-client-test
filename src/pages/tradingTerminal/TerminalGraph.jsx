@@ -57,30 +57,35 @@ function TerminalGraph() {
     const seriesRef = useRef(null);
     const currentCandleRef = useRef(null);
     const abortRef = useRef(null);
+    const chartSettingsRef = useRef(chartSettings);
+    chartSettingsRef.current = chartSettings;
 
     const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[1]); // 5M default
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    // Create chart once on mount
+    // Create the chart once the real chart container is rendered.
+    // On first terminal load, selectedSymbol is often populated asynchronously;
+    // the initial placeholder render has no container, so this must rerun then.
     useEffect(() => {
-        if (!containerRef.current) return;
+        if (!selectedSymbol || !containerRef.current || chartRef.current) return;
+        const initialSettings = chartSettingsRef.current;
 
         const chart = createChart(containerRef.current, {
             autoSize: true,
             layout: {
-                background: { color: chartSettings?.backgroundColor || '#0F0F0F' },
-                textColor: chartSettings?.textColor || '#9ca3af',
+                background: { color: initialSettings?.backgroundColor || '#0F0F0F' },
+                textColor: initialSettings?.textColor || '#9ca3af',
             },
             grid: {
                 vertLines: {
-                    visible: chartSettings?.showVertLines ?? true,
-                    color: chartSettings?.showVertLines ? (chartSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                    visible: initialSettings?.showVertLines ?? true,
+                    color: initialSettings?.showVertLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
                 },
                 horzLines: {
-                    visible: chartSettings?.showHorzLines ?? true,
-                    color: chartSettings?.showHorzLines ? (chartSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                    visible: initialSettings?.showHorzLines ?? true,
+                    color: initialSettings?.showHorzLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
                 },
             },
             crosshair: { mode: 1 },
@@ -93,12 +98,12 @@ function TerminalGraph() {
         });
 
         const series = chart.addSeries(CandlestickSeries, {
-            upColor: chartSettings?.upColor || '#4CAF50',
-            downColor: chartSettings?.downColor || '#f44336',
-            borderUpColor: chartSettings?.upColor || '#4CAF50',
-            borderDownColor: chartSettings?.downColor || '#f44336',
-            wickUpColor: chartSettings?.upColor || '#4CAF50',
-            wickDownColor: chartSettings?.downColor || '#f44336',
+            upColor: initialSettings?.upColor || '#4CAF50',
+            downColor: initialSettings?.downColor || '#f44336',
+            borderUpColor: initialSettings?.upColor || '#4CAF50',
+            borderDownColor: initialSettings?.downColor || '#f44336',
+            wickUpColor: initialSettings?.upColor || '#4CAF50',
+            wickDownColor: initialSettings?.downColor || '#f44336',
         });
 
         chartRef.current = chart;
@@ -109,7 +114,7 @@ function TerminalGraph() {
             chartRef.current = null;
             seriesRef.current = null;
         };
-    }, []);
+    }, [selectedSymbol]);
 
     // Apply settings changes dynamically in real time
     useEffect(() => {
