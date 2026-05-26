@@ -166,7 +166,39 @@ function RightPanel() {
     handleSubmit((data) => onSubmit({ ...data, type: typeValue }))();
   };
 
+  const notifyInvalidPendingPrice = (message) => {
+    dispatch(
+      setNotification({
+        open: true,
+        message,
+        severity: "error",
+      })
+    );
+  };
+
+  const isPendingPriceValid = (tradeType) => {
+    const orderPrice = Number(watch("priceOrder"));
+    const ask = Number(currentSymbolPrice?.Ask);
+    const bid = Number(currentSymbolPrice?.Bid);
+
+    if (!Number.isFinite(orderPrice)) return true;
+
+    if (tradeType === "BUY" && Number.isFinite(ask) && orderPrice >= ask) {
+      notifyInvalidPendingPrice("Buy Limit price must be below the current Ask. Use Market to buy immediately.");
+      return false;
+    }
+
+    if (tradeType === "SELL" && Number.isFinite(bid) && orderPrice <= bid) {
+      notifyInvalidPendingPrice("Sell Limit price must be above the current Bid. Use Market to sell immediately.");
+      return false;
+    }
+
+    return true;
+  };
+
   const handlePendingSubmit = (tradeType) => {
+    if (!isPendingPriceValid(tradeType)) return;
+
     // 2 = Buy Limit, 3 = Sell Limit
     const typeValue = tradeType === "BUY" ? "2" : "3";
     setValue("type", typeValue, { shouldValidate: true, shouldDirty: true });
