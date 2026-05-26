@@ -12,7 +12,7 @@ export const tradeStateApis = createApi({
             return headers;
         }
     }),
-    tagTypes: [],
+    tagTypes: ["watchList", "closedOrderList", "openOrderList"],
     endpoints: (builder) => ({
         placeOrder: builder.mutation({
             query: (data) => ({
@@ -36,6 +36,10 @@ export const tradeStateApis = createApi({
                 method: "POST",
                 body: data
             }),
+            invalidatesTags: (_result, _error, data) => [
+                { type: "closedOrderList", id: data?.login || "PARTIAL-LIST" },
+                { type: "openOrderList", id: data?.login || "PARTIAL-LIST" },
+            ],
         }),
         closeLimitOrder: builder.mutation({
             query: (data) => ({
@@ -43,6 +47,9 @@ export const tradeStateApis = createApi({
                 method: "POST",
                 body: data
             }),
+            invalidatesTags: (_result, _error, data) => [
+                { type: "openOrderList", id: data?.login || "PARTIAL-LIST" },
+            ],
         }),
         closedOrderList: builder.query({
             query: ({ login }) => {
@@ -61,6 +68,11 @@ export const tradeStateApis = createApi({
                     // totalRecords: response?.data?.totalRecords ?? 0
                 }
             },
+            keepUnusedDataFor: 5,
+            refetchOnMountOrArgChange: true,
+            providesTags: (_result, _error, { login }) => [
+                { type: "closedOrderList", id: login || "PARTIAL-LIST" },
+            ],
         }),
         allBotList: builder.query({
             query: ({ page = 1, sizePerPage = 10, status }) => {
@@ -108,6 +120,9 @@ export const tradeStateApis = createApi({
             }),
             keepUnusedDataFor: 30,
             refetchOnMountOrArgChange: true,
+            providesTags: (_result, _error, { login }) => [
+                { type: "openOrderList", id: login || "PARTIAL-LIST" },
+            ],
         }),
     })
 })
