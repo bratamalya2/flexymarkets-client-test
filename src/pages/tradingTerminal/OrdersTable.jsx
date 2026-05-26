@@ -10,6 +10,7 @@ import {
     TableRow,
     Button,
     IconButton,
+    TableSortLabel,
     Tooltip,
     Chip,
     Skeleton
@@ -34,6 +35,7 @@ function OrdersTable() {
     const [currentTime, setCurrentTime] = useState('');
     const [timeAnimation, setTimeAnimation] = useState('none');
     const [lastUpdate, setLastUpdate] = useState(Date.now());
+    const [historySort, setHistorySort] = useState({ key: null, direction: "asc" });
 
     const { quoteData } = useQuotes();
 
@@ -72,6 +74,75 @@ function OrdersTable() {
 
     const [closeOrder, { isLoading: closeOrderLoading }] = useCloseOrderMutation()
     const [closeLimitOrder, { isLoading: closeLimitOrderLoading }] = useCloseLimitOrderMutation()
+
+    const historyHeaderCellSx = {
+        color: "#4CAF50",
+        fontWeight: 800,
+        fontSize: "11px",
+        borderBottom: "none",
+        padding: "12px 8px"
+    };
+
+    const getSortableNumber = (value) => {
+        const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const getHistorySortValue = (trade, key) => {
+        if (key === "volume") {
+            return getSortableNumber(trade?.Volume ?? trade?.VolumeInitial);
+        }
+
+        if (key === "profit") {
+            return getSortableNumber(trade?.Profit);
+        }
+
+        if (key === "time") {
+            return getSortableNumber(trade?.Time);
+        }
+
+        return 0;
+    };
+
+    const handleHistorySort = (key) => {
+        setHistorySort((currentSort) => ({
+            key,
+            direction: currentSort.key === key && currentSort.direction === "asc" ? "desc" : "asc"
+        }));
+    };
+
+    const getSortedHistoryData = () => {
+        if (!Array.isArray(listData)) return [];
+        if (!historySort.key) return [...listData];
+
+        return [...listData].sort((firstTrade, secondTrade) => {
+            const firstValue = getHistorySortValue(firstTrade, historySort.key);
+            const secondValue = getHistorySortValue(secondTrade, historySort.key);
+            const sortMultiplier = historySort.direction === "asc" ? 1 : -1;
+
+            return (firstValue - secondValue) * sortMultiplier;
+        });
+    };
+
+    const renderHistorySortLabel = (label, key) => (
+        <TableSortLabel
+            active={historySort.key === key}
+            direction={historySort.key === key ? historySort.direction : "asc"}
+            onClick={() => handleHistorySort(key)}
+            sx={{
+                color: "#4CAF50 !important",
+                fontWeight: 800,
+                fontSize: "11px",
+                letterSpacing: "0.4px",
+                "& .MuiTableSortLabel-icon": {
+                    color: "#4CAF50 !important",
+                    opacity: historySort.key === key ? 1 : 0.45
+                }
+            }}
+        >
+            {label}
+        </TableSortLabel>
+    );
 
 
     useEffect(() => {
@@ -485,147 +556,151 @@ function OrdersTable() {
         </Table>
     );
 
-    const renderHistoryTable = () => (
-        <Table size="small" sx={{
-            borderCollapse: 'separate',
-            borderSpacing: '0 4px'
-        }}>
-            <TableHead>
-                <TableRow sx={{
-                    background: "linear-gradient(135deg, rgba(26, 31, 46, 0.9), rgba(14, 18, 28, 0.9))",
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(76, 175, 80, 0.2)",
-                    borderRadius: "8px"
-                }}>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Trade</TableCell>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Type</TableCell>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Volume</TableCell>
-                    {/* <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Entry/Exit</TableCell> */}
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>P/L</TableCell>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Time</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {(listData?.length == 0 || !listData) ? (
-                    <TableRow>
-                        <TableCell colSpan={6} sx={{
-                            textAlign: "center",
-                            padding: "40px",
-                            color: "#9ca3af",
-                            fontSize: "14px",
-                            fontStyle: "italic",
-                            animation: "fadeInUp 0.5s ease"
-                        }}>
-                            <Box sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                gap: "12px"
-                            }}>
-                                <HistoryIcon sx={{
-                                    fontSize: "48px",
-                                    color: "rgba(76, 175, 80, 0.3)"
-                                }} />
-                                No trade history
-                                <Typography sx={{
-                                    fontSize: "12px",
-                                    color: "#6b7280"
-                                }}>
-                                    Start trading to see your history
-                                </Typography>
-                            </Box>
-                        </TableCell>
-                    </TableRow>
-                ) : (
-                    listData?.map((trade, index) => {
+    const renderHistoryTable = () => {
+        const sortedHistoryData = getSortedHistoryData();
 
-                        return (
-                            <TableRow
-                                key={trade.id}
-                                sx={{
-                                    background: "rgba(14, 18, 28, 0.7)",
-                                    backdropFilter: "blur(5px)",
-                                    border: "1px solid rgba(76, 175, 80, 0.1)",
-                                    borderRadius: "8px",
-                                    marginBottom: "8px",
-                                    animation: `fadeInUp 0.5s ease ${index * 0.05}s both`,
-                                    opacity: 0.8,
-                                    "&:hover": {
-                                        opacity: 1,
-                                        background: "rgba(14, 18, 28, 0.9)"
-                                    }
-                                }}
-                            >
-                                <TableCell sx={{
-                                    color: "white",
-                                    fontSize: "13px",
-                                    fontWeight: 700,
-                                    borderBottom: "none",
-                                    padding: "12px 8px"
+        return (
+            <Table size="small" sx={{
+                borderCollapse: 'separate',
+                borderSpacing: '0 4px'
+            }}>
+                <TableHead>
+                    <TableRow sx={{
+                        background: "linear-gradient(135deg, rgba(26, 31, 46, 0.9), rgba(14, 18, 28, 0.9))",
+                        backdropFilter: "blur(10px)",
+                        border: "1px solid rgba(76, 175, 80, 0.2)",
+                        borderRadius: "8px"
+                    }}>
+                        <TableCell sx={historyHeaderCellSx}>Trade</TableCell>
+                        <TableCell sx={historyHeaderCellSx}>Type</TableCell>
+                        <TableCell sx={historyHeaderCellSx}>{renderHistorySortLabel("Volume", "volume")}</TableCell>
+                        {/* <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Entry/Exit</TableCell> */}
+                        <TableCell sx={historyHeaderCellSx}>{renderHistorySortLabel("P/L", "profit")}</TableCell>
+                        <TableCell sx={historyHeaderCellSx}>{renderHistorySortLabel("Time", "time")}</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {(!listData || listData.length === 0) ? (
+                        <TableRow>
+                            <TableCell colSpan={6} sx={{
+                                textAlign: "center",
+                                padding: "40px",
+                                color: "#9ca3af",
+                                fontSize: "14px",
+                                fontStyle: "italic",
+                                animation: "fadeInUp 0.5s ease"
+                            }}>
+                                <Box sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: "12px"
                                 }}>
-                                    {trade.Symbol}
-                                </TableCell>
-                                <TableCell sx={{
-                                    color: trade.Action == 1 ? "#4CAF50" : "#f44336",
-                                    fontSize: "12px",
-                                    fontWeight: 700,
-                                    borderBottom: "none",
-                                    padding: "12px 8px"
-                                }}>
-                                    {trade?.Action == 1 ? "Buy" : "Sell"}
-                                </TableCell>
-                                <TableCell sx={{
-                                    color: "white",
-                                    fontSize: "13px",
-                                    borderBottom: "none",
-                                    padding: "12px 8px"
-                                }}>
-                                    {trade.Volume}
-                                </TableCell>
-                                {/* <TableCell sx={{
-                                    fontSize: "13px",
-                                    fontWeight: 800,
-                                    borderBottom: "none",
-                                    padding: "12px 8px",
-                                    color: (trade?.Profit)?.includes("-") ? "red" : "green"
-                                }}>
-                                    {trade.Profit}
-                                </TableCell> */}
-                                <TableCell sx={{
-                                    fontSize: "13px",
-                                    fontWeight: 800,
-                                    borderBottom: "none",
-                                    padding: "12px 8px",
-                                    color: (trade?.Profit)?.includes("-") ? "red" : "green"
-                                }}>
-                                    {trade.Profit}
-                                </TableCell>
-                                <TableCell sx={{
-                                    color: "#9ca3af",
-                                    fontSize: "12px",
-                                    borderBottom: "none",
-                                    padding: "12px 8px"
-                                }}>
-                                    {/* {trade.time} */}
-                                    {
-                                        new Date(trade?.Time * 1000).toLocaleString('en-CA', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit',
-                                            hour12: false,
-                                        }).replace(',', '')
-                                    }
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })
-                )}
-            </TableBody>
-        </Table>
-    );
+                                    <HistoryIcon sx={{
+                                        fontSize: "48px",
+                                        color: "rgba(76, 175, 80, 0.3)"
+                                    }} />
+                                    No trade history
+                                    <Typography sx={{
+                                        fontSize: "12px",
+                                        color: "#6b7280"
+                                    }}>
+                                        Start trading to see your history
+                                    </Typography>
+                                </Box>
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        sortedHistoryData.map((trade, index) => {
+
+                            return (
+                                <TableRow
+                                    key={trade.id}
+                                    sx={{
+                                        background: "rgba(14, 18, 28, 0.7)",
+                                        backdropFilter: "blur(5px)",
+                                        border: "1px solid rgba(76, 175, 80, 0.1)",
+                                        borderRadius: "8px",
+                                        marginBottom: "8px",
+                                        animation: `fadeInUp 0.5s ease ${index * 0.05}s both`,
+                                        opacity: 0.8,
+                                        "&:hover": {
+                                            opacity: 1,
+                                            background: "rgba(14, 18, 28, 0.9)"
+                                        }
+                                    }}
+                                >
+                                    <TableCell sx={{
+                                        color: "white",
+                                        fontSize: "13px",
+                                        fontWeight: 700,
+                                        borderBottom: "none",
+                                        padding: "12px 8px"
+                                    }}>
+                                        {trade.Symbol}
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: trade.Action == 1 ? "#4CAF50" : "#f44336",
+                                        fontSize: "12px",
+                                        fontWeight: 700,
+                                        borderBottom: "none",
+                                        padding: "12px 8px"
+                                    }}>
+                                        {trade?.Action == 1 ? "Buy" : "Sell"}
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: "white",
+                                        fontSize: "13px",
+                                        borderBottom: "none",
+                                        padding: "12px 8px"
+                                    }}>
+                                        {trade.Volume}
+                                    </TableCell>
+                                    {/* <TableCell sx={{
+                                        fontSize: "13px",
+                                        fontWeight: 800,
+                                        borderBottom: "none",
+                                        padding: "12px 8px",
+                                        color: (trade?.Profit)?.includes("-") ? "red" : "green"
+                                    }}>
+                                        {trade.Profit}
+                                    </TableCell> */}
+                                    <TableCell sx={{
+                                        fontSize: "13px",
+                                        fontWeight: 800,
+                                        borderBottom: "none",
+                                        padding: "12px 8px",
+                                        color: (trade?.Profit)?.includes("-") ? "red" : "green"
+                                    }}>
+                                        {trade.Profit}
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: "#9ca3af",
+                                        fontSize: "12px",
+                                        borderBottom: "none",
+                                        padding: "12px 8px"
+                                    }}>
+                                        {/* {trade.time} */}
+                                        {
+                                            new Date(trade?.Time * 1000).toLocaleString('en-CA', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit',
+                                                hour12: false,
+                                            }).replace(',', '')
+                                        }
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })
+                    )}
+                </TableBody>
+            </Table>
+        );
+    };
 
     const renderPendingTable = () => (
         <Table size="small" sx={{ borderCollapse: 'separate', borderSpacing: '0 4px' }}>
