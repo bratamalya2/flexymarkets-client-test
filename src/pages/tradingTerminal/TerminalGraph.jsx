@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo } from 'react';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useSelector } from 'react-redux';
 import { createChart, CandlestickSeries } from 'lightweight-charts';
 import { Box, Typography, CircularProgress } from '@mui/material';
@@ -47,10 +47,16 @@ function normalizeCandles(raw) {
         .filter(c => c.time > 0 && !isNaN(c.open));
 }
 
+function getSymbolName(symbol) {
+    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
+    return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
+}
+
 function TerminalGraph() {
     const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
     const { token } = useSelector(state => state.auth);
     const { quoteData } = useQuotes();
+    const chartSymbol = useMemo(() => getSymbolName(selectedSymbol), [selectedSymbol]);
 
     const containerRef = useRef(null);
     const chartRef = useRef(null);
@@ -64,57 +70,110 @@ function TerminalGraph() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [chartReady, setChartReady] = useState(false);
 
     // Create the chart once the real chart container is rendered.
     // On first terminal load, selectedSymbol is often populated asynchronously;
     // the initial placeholder render has no container, so this must rerun then.
     useEffect(() => {
-        if (!selectedSymbol || !containerRef.current || chartRef.current) return;
+        if (!chartSymbol || !containerRef.current || chartRef.current) return;
+        setChartReady(false);
+        setError(null);
         const initialSettings = chartSettingsRef.current;
+        let animationFrameId;
+        let resizeObserver;
+        let removeResizeListener = null;
+        let chart;
 
-        const chart = createChart(containerRef.current, {
-            autoSize: true,
-            layout: {
-                background: { color: initialSettings?.backgroundColor || '#0F0F0F' },
-                textColor: initialSettings?.textColor || '#9ca3af',
-            },
-            grid: {
-                vertLines: {
-                    visible: initialSettings?.showVertLines ?? true,
-                    color: initialSettings?.showVertLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
-                },
-                horzLines: {
-                    visible: initialSettings?.showHorzLines ?? true,
-                    color: initialSettings?.showHorzLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
-                },
-            },
-            crosshair: { mode: 1 },
-            rightPriceScale: { borderColor: 'rgba(76,175,80,0.2)' },
-            timeScale: {
-                borderColor: 'rgba(76,175,80,0.2)',
-                timeVisible: true,
-                secondsVisible: false,
-            },
-        });
+        const createChartWhenSized = () => {
+            const container = containerRef.current;
+            if (!container || chartRef.current) return;
 
-        const series = chart.addSeries(CandlestickSeries, {
-            upColor: initialSettings?.upColor || '#4CAF50',
-            downColor: initialSettings?.downColor || '#f44336',
-            borderUpColor: initialSettings?.upColor || '#4CAF50',
-            borderDownColor: initialSettings?.downColor || '#f44336',
-            wickUpColor: initialSettings?.upColor || '#4CAF50',
-            wickDownColor: initialSettings?.downColor || '#f44336',
-        });
+            const { width, height } = container.getBoundingClientRect();
+            if (width < 10 || height < 10) {
+                animationFrameId = requestAnimationFrame(createChartWhenSized);
+                return;
+            }
 
-        chartRef.current = chart;
-        seriesRef.current = series;
+            try {
+                chart = createChart(container, {
+                    autoSize: true,
+                    layout: {
+                        background: { color: initialSettings?.backgroundColor || '#0F0F0F' },
+                        textColor: initialSettings?.textColor || '#9ca3af',
+                    },
+                    grid: {
+                        vertLines: {
+                            visible: initialSettings?.showVertLines ?? true,
+                            color: initialSettings?.showVertLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                        },
+                        horzLines: {
+                            visible: initialSettings?.showHorzLines ?? true,
+                            color: initialSettings?.showHorzLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                        },
+                    },
+                    crosshair: { mode: 1 },
+                    rightPriceScale: { borderColor: 'rgba(76,175,80,0.2)' },
+                    timeScale: {
+                        borderColor: 'rgba(76,175,80,0.2)',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                });
+
+                const resizeChart = (nextWidth, nextHeight) => {
+                    if (nextWidth > 0 && nextHeight > 0) {
+                        chart.resize(nextWidth, nextHeight);
+                    }
+                };
+
+                resizeChart(Math.floor(width), Math.floor(height));
+
+                const series = chart.addSeries(CandlestickSeries, {
+                    upColor: initialSettings?.upColor || '#4CAF50',
+                    downColor: initialSettings?.downColor || '#f44336',
+                    borderUpColor: initialSettings?.upColor || '#4CAF50',
+                    borderDownColor: initialSettings?.downColor || '#f44336',
+                    wickUpColor: initialSettings?.upColor || '#4CAF50',
+                    wickDownColor: initialSettings?.downColor || '#f44336',
+                });
+
+                chartRef.current = chart;
+                seriesRef.current = series;
+
+                if (typeof ResizeObserver !== "undefined") {
+                    resizeObserver = new ResizeObserver(([entry]) => {
+                        resizeChart(Math.floor(entry.contentRect.width), Math.floor(entry.contentRect.height));
+                    });
+                    resizeObserver.observe(container);
+                } else {
+                    const handleWindowResize = () => {
+                        const nextRect = container.getBoundingClientRect();
+                        resizeChart(Math.floor(nextRect.width), Math.floor(nextRect.height));
+                    };
+                    window.addEventListener("resize", handleWindowResize);
+                    removeResizeListener = () => window.removeEventListener("resize", handleWindowResize);
+                }
+
+                setChartReady(true);
+            } catch (err) {
+                setError(err?.message || "Failed to initialize chart");
+                setChartReady(false);
+            }
+        };
+
+        animationFrameId = requestAnimationFrame(createChartWhenSized);
 
         return () => {
-            chart.remove();
+            cancelAnimationFrame(animationFrameId);
+            resizeObserver?.disconnect();
+            removeResizeListener?.();
+            chart?.remove();
             chartRef.current = null;
             seriesRef.current = null;
+            setChartReady(false);
         };
-    }, [selectedSymbol]);
+    }, [chartSymbol]);
 
     // Apply settings changes dynamically in real time
     useEffect(() => {
@@ -188,7 +247,7 @@ function TerminalGraph() {
 
     // Fetch OHLC history whenever symbol or timeframe changes
     useEffect(() => {
-        if (!selectedSymbol || !token) return;
+        if (!chartSymbol || !token || !chartReady || !seriesRef.current) return;
 
         // Cancel any in-flight request
         abortRef.current?.abort();
@@ -202,7 +261,7 @@ function TerminalGraph() {
         const to = Math.floor(Date.now() / 1000);
         const from = to - activeTimeframe.range;
         const url = `${import.meta.env.VITE_BASE_URL}/user/analytics/chart`
-            + `?symbol=${selectedSymbol}&from=${from}&to=${to}&period=${activeTimeframe.period}`;
+            + `?symbol=${encodeURIComponent(chartSymbol)}&from=${from}&to=${to}&period=${activeTimeframe.period}`;
 
         fetch(url, {
             headers: { Authorization: token },
@@ -238,14 +297,14 @@ function TerminalGraph() {
             });
 
         return () => controller.abort();
-    }, [selectedSymbol, activeTimeframe, token, refreshKey]);
+    }, [chartSymbol, activeTimeframe, token, refreshKey, chartReady]);
 
     // Real-time last-candle updates from the quotes socket
     useEffect(() => {
-        if (!quoteData?.length || !seriesRef.current || !selectedSymbol || !currentCandleRef.current) return;
+        if (!quoteData?.length || !seriesRef.current || !chartSymbol || !currentCandleRef.current) return;
 
         const normalize = (s) => s?.split('.')[0]?.toUpperCase() || "";
-        const selectedNorm = normalize(selectedSymbol);
+        const selectedNorm = normalize(chartSymbol);
         const tick = quoteData.find(q => normalize(q.Symbol) === selectedNorm);
         if (!tick) return;
 
@@ -288,9 +347,9 @@ function TerminalGraph() {
             currentCandleRef.current = newCandle;
             seriesRef.current.update(newCandle);
         }
-    }, [quoteData, selectedSymbol, activeTimeframe.candleSec]);
+    }, [quoteData, chartSymbol, activeTimeframe.candleSec]);
 
-    if (!selectedSymbol) {
+    if (!chartSymbol) {
         return (
             <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
                 <Typography sx={{ color: '#9ca3af', fontSize: '14px' }}>Select a symbol to view the chart</Typography>
@@ -307,7 +366,7 @@ function TerminalGraph() {
                 flexShrink: 0, background: 'rgba(10,14,23,0.95)',
             }}>
                 <Typography sx={{ color: '#4CAF50', fontWeight: 700, fontSize: '14px', mr: 1 }}>
-                    {selectedSymbol}
+                    {chartSymbol}
                 </Typography>
                 {TIMEFRAMES.map(tf => (
                     <Box

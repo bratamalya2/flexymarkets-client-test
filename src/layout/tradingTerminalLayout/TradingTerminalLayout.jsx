@@ -17,7 +17,8 @@ import { allSymbol } from "../../utils/allSymbol";
 const PRIORITY_SYMBOLS = ["XAUUSD", "XAGUSD"];
 
 function getSymbolName(symbol) {
-    return (symbol?.Symbol || symbol?.name || symbol || "").split(".")[0].toUpperCase();
+    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
+    return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
 }
 
 function getFirstTerminalSymbol(quoteData) {
@@ -39,14 +40,15 @@ function TradingTerminalLayout() {
     const dispatch = useDispatch();
     const channel = useBroadcast();
 
-    const { selectedSymbol } = useSelector(state => state.terminal);
     const { token } = useSelector(state => state.auth);
     const { activeMT5AccountLogin } = useSelector(state => state.mt5);
     const { quoteData } = useQuotes();
 
     const socketRef = useRef(null);
+    const startupSymbolSourceRef = useRef(null);
     const theme = useMemo(() => getCustomTheme("dark"), []);
     const defaultSymbol = useMemo(() => getFirstTerminalSymbol(quoteData), [quoteData]);
+    const hasLiveQuotes = Boolean(quoteData?.length);
 
     useEffect(() => {
         dispatch(setThemeMode("dark"));
@@ -92,10 +94,14 @@ function TradingTerminalLayout() {
 
     // Set the first visible terminal symbol as the initial chart symbol.
     useEffect(() => {
-        if (!selectedSymbol && defaultSymbol) {
-            dispatch(setSelectedSymbol(defaultSymbol));
-        }
-    }, [defaultSymbol, dispatch, selectedSymbol]);
+        if (!defaultSymbol || startupSymbolSourceRef.current === "live") return;
+
+        const nextSource = hasLiveQuotes ? "live" : "fallback";
+        if (startupSymbolSourceRef.current === nextSource) return;
+
+        startupSymbolSourceRef.current = nextSource;
+        dispatch(setSelectedSymbol(defaultSymbol));
+    }, [defaultSymbol, dispatch, hasLiveQuotes]);
 
     // Set default MT5 account when account data loads for the first time.
     const { data: userData } = useGetUserDataQuery();
