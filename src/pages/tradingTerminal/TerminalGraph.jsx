@@ -156,6 +156,17 @@ function TerminalGraph() {
 
         return getRawSymbolName(liveQuoteSymbol) || selectedRawSymbol || chartSymbol;
     }, [chartSymbol, quoteData, selectedSymbol]);
+    const visualChartSettings = useMemo(() => {
+        const settings = chartSettings || {};
+        return {
+            ...settings,
+            backgroundColor: !settings.backgroundColor || settings.backgroundColor === '#0F0F0F' ? '#ffffff' : settings.backgroundColor,
+            textColor: !settings.textColor || settings.textColor === '#9ca3af' ? '#344054' : settings.textColor,
+            gridColor: !settings.gridColor || settings.gridColor === 'rgba(255,255,255,0.04)' ? 'rgba(15,23,42,0.08)' : settings.gridColor,
+            upColor: !settings.upColor || settings.upColor === '#4CAF50' ? '#16a085' : settings.upColor,
+            downColor: !settings.downColor || settings.downColor === '#f44336' ? '#ef334e' : settings.downColor,
+        };
+    }, [chartSettings]);
     const hasChartSymbol = Boolean(chartSymbol);
 
     const containerRef = useRef(null);
@@ -164,8 +175,8 @@ function TerminalGraph() {
     const currentCandleRef = useRef(null);
     const abortRef = useRef(null);
     const requestIdRef = useRef(0);
-    const chartSettingsRef = useRef(chartSettings);
-    chartSettingsRef.current = chartSettings;
+    const chartSettingsRef = useRef(visualChartSettings);
+    chartSettingsRef.current = visualChartSettings;
 
     const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[1]); // 5M default
     const [loading, setLoading] = useState(false);
@@ -200,23 +211,23 @@ function TerminalGraph() {
                 chart = createChart(container, {
                     autoSize: true,
                     layout: {
-                        background: { color: initialSettings?.backgroundColor || '#0F0F0F' },
-                        textColor: initialSettings?.textColor || '#9ca3af',
+                        background: { color: initialSettings?.backgroundColor || '#ffffff' },
+                        textColor: initialSettings?.textColor || '#344054',
                     },
                     grid: {
                         vertLines: {
                             visible: initialSettings?.showVertLines ?? true,
-                            color: initialSettings?.showVertLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                            color: initialSettings?.showVertLines ? (initialSettings?.gridColor || 'rgba(15,23,42,0.08)') : 'transparent'
                         },
                         horzLines: {
                             visible: initialSettings?.showHorzLines ?? true,
-                            color: initialSettings?.showHorzLines ? (initialSettings?.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                            color: initialSettings?.showHorzLines ? (initialSettings?.gridColor || 'rgba(15,23,42,0.08)') : 'transparent'
                         },
                     },
                     crosshair: { mode: 1 },
-                    rightPriceScale: { borderColor: 'rgba(76,175,80,0.2)' },
+                    rightPriceScale: { borderColor: 'rgba(15,23,42,0.14)' },
                     timeScale: {
-                        borderColor: 'rgba(76,175,80,0.2)',
+                        borderColor: 'rgba(15,23,42,0.14)',
                         timeVisible: true,
                         secondsVisible: false,
                     },
@@ -231,12 +242,12 @@ function TerminalGraph() {
                 resizeChart(Math.floor(width), Math.floor(height));
 
                 const series = chart.addSeries(CandlestickSeries, {
-                    upColor: initialSettings?.upColor || '#4CAF50',
-                    downColor: initialSettings?.downColor || '#f44336',
-                    borderUpColor: initialSettings?.upColor || '#4CAF50',
-                    borderDownColor: initialSettings?.downColor || '#f44336',
-                    wickUpColor: initialSettings?.upColor || '#4CAF50',
-                    wickDownColor: initialSettings?.downColor || '#f44336',
+                    upColor: initialSettings?.upColor || '#16a085',
+                    downColor: initialSettings?.downColor || '#ef334e',
+                    borderUpColor: initialSettings?.upColor || '#16a085',
+                    borderDownColor: initialSettings?.downColor || '#ef334e',
+                    wickUpColor: initialSettings?.upColor || '#16a085',
+                    wickDownColor: initialSettings?.downColor || '#ef334e',
                 });
 
                 chartRef.current = chart;
@@ -290,37 +301,37 @@ function TerminalGraph() {
 
     // Apply settings changes dynamically in real time
     useEffect(() => {
-        if (!chartRef.current || !seriesRef.current || !chartSettings) return;
+        if (!chartRef.current || !seriesRef.current || !visualChartSettings) return;
 
         const chart = chartRef.current;
         const series = seriesRef.current;
 
         chart.applyOptions({
             layout: {
-                background: { color: chartSettings.backgroundColor || '#0F0F0F' },
-                textColor: chartSettings.textColor || '#9ca3af',
+                background: { color: visualChartSettings.backgroundColor || '#ffffff' },
+                textColor: visualChartSettings.textColor || '#344054',
             },
             grid: {
                 vertLines: {
-                    visible: chartSettings.showVertLines ?? true,
-                    color: chartSettings.showVertLines ? (chartSettings.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                    visible: visualChartSettings.showVertLines ?? true,
+                    color: visualChartSettings.showVertLines ? (visualChartSettings.gridColor || 'rgba(15,23,42,0.08)') : 'transparent'
                 },
                 horzLines: {
-                    visible: chartSettings.showHorzLines ?? true,
-                    color: chartSettings.showHorzLines ? (chartSettings.gridColor || 'rgba(255,255,255,0.04)') : 'transparent'
+                    visible: visualChartSettings.showHorzLines ?? true,
+                    color: visualChartSettings.showHorzLines ? (visualChartSettings.gridColor || 'rgba(15,23,42,0.08)') : 'transparent'
                 },
             }
         });
 
         series.applyOptions({
-            upColor: chartSettings.upColor || '#4CAF50',
-            downColor: chartSettings.downColor || '#f44336',
-            borderUpColor: chartSettings.upColor || '#4CAF50',
-            borderDownColor: chartSettings.downColor || '#f44336',
-            wickUpColor: chartSettings.upColor || '#4CAF50',
-            wickDownColor: chartSettings.downColor || '#f44336',
+            upColor: visualChartSettings.upColor || '#16a085',
+            downColor: visualChartSettings.downColor || '#ef334e',
+            borderUpColor: visualChartSettings.upColor || '#16a085',
+            borderDownColor: visualChartSettings.downColor || '#ef334e',
+            wickUpColor: visualChartSettings.upColor || '#16a085',
+            wickDownColor: visualChartSettings.downColor || '#ef334e',
         });
-    }, [chartSettings]);
+    }, [visualChartSettings]);
 
     // Listen to zoom and refresh events from the toolbar
     useEffect(() => {
@@ -472,8 +483,8 @@ function TerminalGraph() {
 
     if (!chartSymbol) {
         return (
-            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
-                <Typography sx={{ color: '#9ca3af', fontSize: '14px' }}>Select a symbol to view the chart</Typography>
+            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: visualChartSettings.backgroundColor || '#ffffff' }}>
+                <Typography sx={{ color: '#667085', fontSize: '14px' }}>Select a symbol to view the chart</Typography>
             </Box>
         );
     }
@@ -481,14 +492,14 @@ function TerminalGraph() {
     const isInitializing = !chartReady && !error;
 
     return (
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: visualChartSettings.backgroundColor || '#ffffff' }}>
             {/* Toolbar */}
             <Box sx={{
                 display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap',
-                padding: '6px 10px', borderBottom: '1px solid rgba(76,175,80,0.15)',
-                flexShrink: 0, background: 'rgba(10,14,23,0.95)',
+                padding: '7px 12px', borderBottom: '1px solid #e6edf5',
+                flexShrink: 0, background: '#ffffff',
             }}>
-                <Typography sx={{ color: '#4CAF50', fontWeight: 700, fontSize: '14px', mr: 1 }}>
+                <Typography sx={{ color: '#172033', fontWeight: 800, fontSize: '14px', mr: 1 }}>
                     {chartSymbol}
                 </Typography>
                 {TIMEFRAMES.map(tf => (
@@ -498,13 +509,19 @@ function TerminalGraph() {
                         sx={{
                             padding: '3px 9px', borderRadius: '4px', cursor: 'pointer',
                             fontSize: '11px', fontWeight: 600, userSelect: 'none',
-                            color: activeTimeframe.label === tf.label ? '#fff' : '#9ca3af',
+                            color: activeTimeframe.label === tf.label ? '#fff' : '#667085',
                             background: activeTimeframe.label === tf.label
-                                ? 'linear-gradient(135deg, #4CAF50, #2E7D32)'
+                                ? 'linear-gradient(135deg, #1f7ae0, #2563eb)'
                                 : 'transparent',
-                            border: `1px solid ${activeTimeframe.label === tf.label ? '#4CAF50' : 'rgba(255,255,255,0.08)'}`,
+                            border: `1px solid ${activeTimeframe.label === tf.label ? '#1f7ae0' : '#dfe7f1'}`,
                             transition: 'all 0.15s',
-                            '&:hover': { color: '#fff', borderColor: '#4CAF50' },
+                            '&:hover': {
+                                color: activeTimeframe.label === tf.label ? '#fff' : '#1f7ae0',
+                                borderColor: '#1f7ae0',
+                                background: activeTimeframe.label === tf.label
+                                    ? 'linear-gradient(135deg, #1f7ae0, #2563eb)'
+                                    : 'rgba(31,122,224,0.06)'
+                            },
                         }}
                     >
                         {tf.label}
@@ -520,9 +537,9 @@ function TerminalGraph() {
                     <Box sx={{
                         position: 'absolute', inset: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'rgba(10,14,23,0.55)', pointerEvents: 'none',
+                        background: 'rgba(248,251,255,0.72)', pointerEvents: 'none',
                     }}>
-                        <CircularProgress size={28} sx={{ color: '#4CAF50' }} />
+                        <CircularProgress size={28} sx={{ color: '#1f7ae0' }} />
                     </Box>
                 )}
 

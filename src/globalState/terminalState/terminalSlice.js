@@ -1,13 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const defaultSettings = {
-    upColor: '#4CAF50',
-    downColor: '#f44336',
+    upColor: '#16a085',
+    downColor: '#ef334e',
     showVertLines: true,
     showHorzLines: true,
-    gridColor: 'rgba(255,255,255,0.04)',
-    backgroundColor: '#0F0F0F',
-    textColor: '#9ca3af'
+    gridColor: 'rgba(15,23,42,0.08)',
+    backgroundColor: '#ffffff',
+    textColor: '#344054'
 };
 
 const safeJsonParse = (key, fallback) => {
@@ -15,7 +15,7 @@ const safeJsonParse = (key, fallback) => {
         const item = localStorage.getItem(key);
         if (!item) return fallback;
         return JSON.parse(item);
-    } catch (e) {
+    } catch {
         const item = localStorage.getItem(key);
         return item || fallback;
     }

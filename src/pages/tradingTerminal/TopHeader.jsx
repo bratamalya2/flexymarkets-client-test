@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
 import { Box, Typography, Tooltip, Stack, useMediaQuery, useTheme } from '@mui/material';
 import { useSelector } from 'react-redux';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TerminalAccountDetailsMenu from '../../layout/header/TerminalAccountDetailsMenu';
 import ModalComponent from "../../components/ModalComponent";
 import MetaDeposit from "../../pages/myAccount/liveAccount/accountDetailsAccordian/MetaDeposit";
@@ -109,17 +107,18 @@ function TopHeader() {
     return (
         <Box
             sx={{
-                background: "linear-gradient(135deg, #0a0e17 0%, #1a1f2e 100%)",
-                height: "55px",
+                background: "#f8fbff",
+                color: "#152033",
+                height: "68px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "0 20px",
-                borderBottom: "1px solid rgba(76, 175, 80, 0.2)",
+                padding: { xs: "0 12px", md: "0 24px" },
+                borderBottom: "1px solid #dfe7f1",
                 flexShrink: 0,
                 position: "relative",
                 overflow: "hidden",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                boxShadow: "0 12px 32px rgba(18, 32, 54, 0.08)",
                 zIndex: 1000,
                 animation: "headerSlideDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
             }}>
@@ -130,18 +129,12 @@ function TopHeader() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: `
-                    linear-gradient(90deg, 
-                        transparent 0%, 
-                        rgba(76, 175, 80, 0.03) 50%, 
-                        transparent 100%
-                    )
-                `,
+                display: "none",
                 animation: "headerScan 10s infinite linear",
                 pointerEvents: "none"
             }} />
 
-            <Stack sx={{ flexDirection: "row", gap: "5rem" }}>
+            <Stack sx={{ flexDirection: "row", gap: { md: "3rem", xl: "5rem" }, minWidth: 0 }}>
 
                 <Box sx={{
                     display: "flex",
@@ -156,14 +149,14 @@ function TopHeader() {
                         gap: "10px"
                     }}>
                         <Box sx={{
-                            background: "linear-gradient(135deg, #4CAF50, #2E7D32)",
+                            background: "linear-gradient(135deg, #ef334e, #b7142d)",
                             width: "36px",
                             height: "36px",
-                            borderRadius: "10px",
+                            borderRadius: "12px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            boxShadow: "0 4px 12px rgba(76, 175, 80, 0.4)",
+                            boxShadow: "0 10px 22px rgba(239, 51, 78, 0.28)",
                             animation: "logoFloat 3s infinite ease-in-out"
                         }}>
                             <TrendingUpIcon sx={{
@@ -176,7 +169,7 @@ function TopHeader() {
                             <Typography sx={{
                                 fontSize: "16px",
                                 fontWeight: "900",
-                                background: "linear-gradient(135deg, #4CAF50, #8BC34A)",
+                                background: "linear-gradient(135deg, #111827, #334155)",
                                 WebkitBackgroundClip: "text",
                                 WebkitTextFillColor: "transparent",
                                 letterSpacing: "0.5px",
@@ -186,7 +179,7 @@ function TopHeader() {
                             </Typography>
                             <Typography sx={{
                                 fontSize: "11px",
-                                color: "#9ca3af",
+                                color: "#667085",
                                 fontWeight: 600,
                                 letterSpacing: "0.5px",
                                 textTransform: "uppercase"
@@ -215,7 +208,7 @@ function TopHeader() {
                             }}>
                                 <Typography sx={{
                                     fontSize: "10px",
-                                    color: "#9ca3af",
+                                    color: "#667085",
                                     fontWeight: 600,
                                     textTransform: "uppercase",
                                     letterSpacing: "0.5px",
@@ -241,7 +234,7 @@ function TopHeader() {
                             }}>
                                 <Typography sx={{
                                     fontSize: "10px",
-                                    color: "#9ca3af",
+                                    color: "#667085",
                                     fontWeight: 600,
                                     textTransform: "uppercase",
                                     letterSpacing: "0.5px",
@@ -252,7 +245,7 @@ function TopHeader() {
                                 <Typography sx={{
                                     fontSize: "14px",
                                     fontWeight: "700",
-                                    background: "linear-gradient(135deg, #4CAF50, #8BC34A)",
+                                    background: "linear-gradient(135deg, #16a085, #0e7f6c)",
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent"
                                 }}>
@@ -275,7 +268,7 @@ function TopHeader() {
                                 }}>
                                     <Typography sx={{
                                         fontSize: "10px",
-                                        color: "#FF9800",
+                                    color: "#ef8a00",
                                         fontWeight: 600,
                                         textTransform: "uppercase",
                                         letterSpacing: "0.5px"
@@ -285,7 +278,7 @@ function TopHeader() {
                                     <Typography sx={{
                                         fontSize: "14px",
                                         fontWeight: "700",
-                                        color: "#FF9800"
+                                    color: "#ef8a00"
                                     }}>
                                         {formatCurrency(activeMT5AccountDetails?.Margin || 0)}
                                     </Typography>
@@ -294,7 +287,7 @@ function TopHeader() {
                                 <Box sx={{
                                     width: "1px",
                                     height: "30px",
-                                    background: "rgba(255, 152, 0, 0.3)"
+                                    background: "#dfe7f1"
                                 }} />
 
                                 <Box sx={{
@@ -304,7 +297,7 @@ function TopHeader() {
                                 }}>
                                     <Typography sx={{
                                         fontSize: "10px",
-                                        color: "#2196F3",
+                                        color: "#2563eb",
                                         fontWeight: 600,
                                         textTransform: "uppercase",
                                         letterSpacing: "0.5px"
@@ -314,7 +307,7 @@ function TopHeader() {
                                     <Typography sx={{
                                         fontSize: "14px",
                                         fontWeight: "700",
-                                        color: "#2196F3"
+                                        color: "#2563eb"
                                     }}>
                                         {formatCurrency(activeMT5AccountDetails?.MarginFree || 0)}
                                     </Typography>
@@ -388,10 +381,12 @@ function TopHeader() {
                                     }}
                                     modalWidth={modalWidth ? "95%" : 500}
                                     btnSx={{
-                                        bgcolor: theme.palette.custom.activeNavigation,
+                                        bgcolor: "#1f7ae0",
                                         color: "white",
                                         px: "4rem",
-                                        py: ".5rem"
+                                        py: ".5rem",
+                                        borderRadius: "10px",
+                                        boxShadow: "0 10px 24px rgba(31, 122, 224, 0.22)"
                                     }}
                                 />
                                 :
@@ -399,11 +394,12 @@ function TopHeader() {
                                     btnName={"Deposit"}
                                     Content={TerminalDepositModal}
                                     btnSx={{
-                                        bgcolor: theme.palette.custom.activeNavigation,
+                                        bgcolor: "#1f7ae0",
                                         color: "white",
                                         px: "4rem",
                                         py: ".5rem",
-                                        boxShadow: "none,"
+                                        borderRadius: "10px",
+                                        boxShadow: "0 10px 24px rgba(31, 122, 224, 0.22)"
                                     }}
                                     modalWidth={modalWidth ? "95%" : 500}
                                 />

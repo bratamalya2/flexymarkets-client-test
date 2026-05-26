@@ -205,15 +205,16 @@ function LeftPanel() {
     return (
         <Box
             sx={{
-                width: "280px",
-                background: "linear-gradient(180deg, #0a0e17 0%, #0f131e 100%)",
-                borderRight: "1px solid rgba(76, 175, 80, 0.1)",
+                width: "270px",
+                background: "linear-gradient(180deg, #111827 0%, #0d1422 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+                borderRadius: "20px",
                 display: "flex",
                 flexDirection: "column",
-                color: "#d1d4dc",
+                color: "#eef4ff",
                 fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
                 overflow: "hidden",
-                boxShadow: "inset 0 0 30px rgba(0,0,0,0.4), 0 0 30px rgba(76, 175, 80, 0.1)",
+                boxShadow: "0 18px 42px rgba(17, 24, 39, 0.22)",
                 position: "relative",
                 animation: "panelSlideInLeft 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
             }}
@@ -225,7 +226,7 @@ function LeftPanel() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: "radial-gradient(circle at 80% 50%, rgba(76, 175, 80, 0.05) 0%, transparent 50%)",
+                background: "radial-gradient(circle at 80% 10%, rgba(37, 99, 235, 0.16) 0%, transparent 45%)",
                 pointerEvents: "none",
                 animation: "particlesFloat 20s infinite linear reverse"
             }} />
@@ -233,10 +234,10 @@ function LeftPanel() {
             {/* Header with Search */}
             <Box sx={{
                 p: "15px",
-                borderBottom: "1px solid rgba(76, 175, 80, 0.2)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                 flexShrink: 0,
                 position: "relative",
-                background: "rgba(26, 31, 46, 0.7)",
+                background: "rgba(15, 23, 42, 0.55)",
                 backdropFilter: "blur(5px)"
             }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: "10px", mb: "10px" }}>
@@ -244,7 +245,7 @@ function LeftPanel() {
                     <Typography sx={{
                         fontSize: "18px",
                         fontWeight: "800",
-                        background: "linear-gradient(135deg, #4CAF50, #8BC34A)",
+                        background: "linear-gradient(135deg, #ffffff, #a9b8cf)",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
                         letterSpacing: "0.5px"
@@ -263,26 +264,26 @@ function LeftPanel() {
                         startAdornment: (
                             <InputAdornment position="start">
                                 <SearchIcon sx={{
-                                    color: "#4CAF50",
+                                    color: "#60a5fa",
                                     fontSize: "16px",
                                     animation: "searchIconFloat 2s infinite ease-in-out"
                                 }} />
                             </InputAdornment>
                         ),
                         sx: {
-                            background: "rgba(14, 18, 28, 0.8)",
-                            border: "1px solid rgba(76, 175, 80, 0.2)",
-                            borderRadius: "8px",
+                            background: "rgba(255, 255, 255, 0.08)",
+                            border: "1px solid rgba(255, 255, 255, 0.12)",
+                            borderRadius: "12px",
                             color: "white",
                             fontSize: "13px",
                             "& fieldset": { border: "none" },
                             "&:hover": {
-                                borderColor: "#4CAF50",
-                                boxShadow: "0 0 15px rgba(76, 175, 80, 0.2)"
+                                borderColor: "#60a5fa",
+                                boxShadow: "0 0 0 3px rgba(96, 165, 250, 0.12)"
                             },
                             "&.Mui-focused": {
-                                borderColor: "#4CAF50",
-                                boxShadow: "0 0 20px rgba(76, 175, 80, 0.3)"
+                                borderColor: "#60a5fa",
+                                boxShadow: "0 0 0 3px rgba(96, 165, 250, 0.16)"
                             }
                         }
                     }}
@@ -292,8 +293,8 @@ function LeftPanel() {
             {/* Tabs */}
             <Box sx={{
                 display: "flex",
-                background: "rgba(26, 31, 46, 0.8)",
-                borderBottom: "1px solid rgba(76, 175, 80, 0.2)",
+                background: "rgba(15, 23, 42, 0.8)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                 flexShrink: 0,
                 position: "relative",
                 backdropFilter: "blur(5px)"
@@ -312,9 +313,9 @@ function LeftPanel() {
                             cursor: "pointer",
                             fontSize: "13px",
                             fontWeight: "600",
-                            color: activeTab === tab.id ? "white" : "#9ca3af",
+                            color: activeTab === tab.id ? "white" : "#9aa8bd",
                             background: activeTab === tab.id
-                                ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
+                                ? "linear-gradient(135deg, #2563eb, #1d4ed8)"
                                 : "transparent",
                             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                             position: "relative",
@@ -329,7 +330,7 @@ function LeftPanel() {
                                 color: "white",
                                 background: activeTab === tab.id
                                     ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
-                                    : "rgba(76, 175, 80, 0.1)",
+                                    : "rgba(37, 99, 235, 0.14)",
                             },
                             "&::after": {
                                 content: '""',
@@ -339,7 +340,7 @@ function LeftPanel() {
                                 transform: "translateX(-50%)",
                                 width: activeTab === tab.id ? "60%" : "0%",
                                 height: "2px",
-                                background: "#4CAF50",
+                                background: "#60a5fa",
                                 transition: "width 0.3s ease",
                                 borderRadius: "1px"
                             }
@@ -353,7 +354,7 @@ function LeftPanel() {
                                 badgeContent={watchlist.length}
                                 sx={{
                                     "& .MuiBadge-badge": {
-                                        background: "#4CAF50",
+                                        background: "#2563eb",
                                         color: "white",
                                         fontSize: "9px",
                                         fontWeight: "bold",
@@ -380,17 +381,17 @@ function LeftPanel() {
                     borderRadius: "2px",
                 },
                 "&::-webkit-scrollbar-thumb": {
-                    background: "linear-gradient(180deg, #4CAF50, #2E7D32)",
+                    background: "linear-gradient(180deg, #60a5fa, #2563eb)",
                     borderRadius: "2px",
                     "&:hover": {
-                        background: "#2E7D32",
+                        background: "#1d4ed8",
                     }
                 },
                 scrollBehavior: "smooth"
             }}>
                 <Typography sx={{
                     fontSize: "13px",
-                    color: "#4CAF50",
+                    color: "#8fb2e8",
                     mb: "15px",
                     textTransform: "uppercase",
                     fontWeight: "700",
@@ -402,7 +403,7 @@ function LeftPanel() {
                     <Box sx={{
                         width: "8px",
                         height: "8px",
-                        background: "#4CAF50",
+                        background: "#60a5fa",
                         borderRadius: "50%",
                         animation: "blink 1s infinite"
                     }} />
@@ -420,7 +421,7 @@ function LeftPanel() {
                     }}>
                         <SearchIcon sx={{
                             fontSize: "48px",
-                            color: "rgba(76, 175, 80, 0.3)",
+                            color: "rgba(96, 165, 250, 0.32)",
                             mb: 2
                         }} />
                         <Typography sx={{
@@ -452,17 +453,17 @@ function LeftPanel() {
                                         cursor: "pointer",
                                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                                         background: isActive
-                                            ? "linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(46, 125, 50, 0.1))"
+                                            ? "linear-gradient(135deg, rgba(37, 99, 235, 0.26), rgba(29, 78, 216, 0.12))"
                                             : isHovered
-                                                ? "rgba(76, 175, 80, 0.1)"
+                                                ? "rgba(37, 99, 235, 0.14)"
                                                 : "transparent",
                                         border: isActive
-                                            ? "1px solid rgba(76, 175, 80, 0.4)"
+                                            ? "1px solid rgba(96, 165, 250, 0.42)"
                                             : "1px solid transparent",
                                         boxShadow: isActive
-                                            ? "0 4px 20px rgba(76, 175, 80, 0.3)"
+                                            ? "0 10px 24px rgba(15, 23, 42, 0.28)"
                                             : isHovered
-                                                ? "0 2px 10px rgba(76, 175, 80, 0.2)"
+                                                ? "0 8px 18px rgba(15, 23, 42, 0.2)"
                                                 : "none",
                                         marginBottom: "8px",
                                         transform: isHovered ? "translateX(5px)" : "translateX(0)",

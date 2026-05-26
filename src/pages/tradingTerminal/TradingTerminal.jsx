@@ -9,13 +9,21 @@ function TradingTerminal() {
     const showRightPanel = useMediaQuery("(min-width:768px)");
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", background: "#0a0e17" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", background: "#eef3f8" }}>
             <TopHeader />
-            <Box sx={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+            <Box sx={{
+                flex: 1,
+                display: "flex",
+                overflow: "hidden",
+                minHeight: 0,
+                gap: { xs: 0, md: "14px" },
+                p: { xs: 0, md: "14px" },
+                background: "linear-gradient(135deg, #eef3f8 0%, #f8fbff 100%)"
+            }}>
                 {showLeftPanel && <LeftPanel />}
                 <CenterPanel />
                 {showRightPanel && (
-                    <Box sx={{ width: "300px", flexShrink: 0 }}>
+                    <Box sx={{ width: { md: "330px", xl: "380px" }, flexShrink: 0 }}>
                         <RightPanel />
                     </Box>
                 )}

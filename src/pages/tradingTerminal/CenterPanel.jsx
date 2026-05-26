@@ -6,21 +6,15 @@ import TradingViewWidget from "./TerminalGraph";
 import OrdersTable from "./OrdersTable";
 // import { useQuotesSocket } from "../../socketENV/quotesSocketENV";
 import { useQuotes } from "../../context/QuotesContext";
-import { formatPrice, formatPercentage } from "./formatters";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import SettingsIcon from "@mui/icons-material/Settings";
-import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 function CenterPanel() {
   const dispatch = useDispatch();
-  const [chartData, setChartData] = useState({ price: 0, changePercent: 0 });
-  const [priceAnimation, setPriceAnimation] = useState("none");
+  const [chartData, setChartData] = useState({ price: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -33,20 +27,9 @@ function CenterPanel() {
       const currentPrice = symbolData.Ask || symbolData.Bid || 0;
       const priceNum = Number(currentPrice) || 0;
 
-      setChartData(prev => {
-        const prevPriceNum = Number(prev.price) || priceNum;
-        const change = priceNum - prevPriceNum;
-        const changePercent = prevPriceNum !== 0 ? (change / prevPriceNum) * 100 : 0;
-
-        // Trigger price animation
-        if (prev.price !== 0 && prev.price !== priceNum) {
-          setPriceAnimation(change >= 0 ? "priceUp 0.5s ease" : "priceDown 0.5s ease");
-          setTimeout(() => setPriceAnimation("none"), 500);
-        }
-
+      setChartData(() => {
         return {
           price: priceNum,
-          changePercent: changePercent
         };
       });
 
@@ -141,9 +124,12 @@ function CenterPanel() {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        background: "linear-gradient(180deg, #0a0e17 0%, #0f131e 100%)",
+        background: "#ffffff",
+        border: "1px solid #dfe7f1",
+        borderRadius: { xs: 0, md: "18px" },
         position: "relative",
         overflow: "hidden",
+        boxShadow: "0 18px 42px rgba(18, 32, 54, 0.08)",
         animation: "centerPanelSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
       }}
     >
@@ -155,9 +141,9 @@ function CenterPanel() {
         right: 0,
         bottom: 0,
         background: `
-          radial-gradient(circle at 50% 30%, rgba(76, 175, 80, 0.03) 0%, transparent 70%),
-          radial-gradient(circle at 70% 70%, rgba(33, 150, 243, 0.02) 0%, transparent 50%),
-          radial-gradient(circle at 30% 70%, rgba(255, 152, 0, 0.02) 0%, transparent 50%)
+          radial-gradient(circle at 50% 30%, rgba(31, 122, 224, 0.04) 0%, transparent 70%),
+          radial-gradient(circle at 70% 70%, rgba(22, 160, 133, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 30% 70%, rgba(239, 51, 78, 0.03) 0%, transparent 50%)
         `,
         pointerEvents: "none",
         animation: "centerParticlesFloat 25s infinite linear"
@@ -171,9 +157,9 @@ function CenterPanel() {
       }}>
         {/* Chart Header */}
         <Box sx={{
-          background: "rgba(26, 31, 46, 0.8)",
+          background: "#ffffff",
           padding: "12px 20px",
-          borderBottom: "1px solid rgba(76, 175, 80, 0.2)",
+          borderBottom: "1px solid #e6edf5",
           display: "flex",
           gap: "10px",
           justifyContent: "space-between",
@@ -195,7 +181,7 @@ function CenterPanel() {
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <Typography sx={{
                 fontWeight: "800",
-                color: "white",
+                color: "#172033",
                 fontSize: "18px",
                 letterSpacing: "0.5px",
                 lineHeight: 1.2
@@ -208,9 +194,9 @@ function CenterPanel() {
                     height: "16px",
                     fontSize: "9px",
                     fontWeight: "bold",
-                    background: "rgba(76, 175, 80, 0.2)",
-                    color: "#4CAF50",
-                    border: "1px solid rgba(76, 175, 80, 0.3)",
+                    background: "rgba(22, 160, 133, 0.12)",
+                    color: "#16a085",
+                    border: "1px solid rgba(22, 160, 133, 0.25)",
                     marginLeft: "8px",
                     animation: "blink 1.5s infinite"
                   }}
@@ -274,19 +260,19 @@ function CenterPanel() {
               gap: "6px",
               marginRight: "15px",
               padding: "6px",
-              background: "rgba(14, 18, 28, 0.7)",
-              borderRadius: "8px",
-              border: "1px solid rgba(76, 175, 80, 0.1)"
+              background: "#f4f7fb",
+              borderRadius: "12px",
+              border: "1px solid #e1e8f2"
             }}>
               <Tooltip title="Zoom In">
                 <IconButton
                   onClick={() => window.dispatchEvent(new CustomEvent('chartZoomIn'))}
                   sx={{
                     padding: "4px",
-                    color: "#9ca3af",
+                    color: "#667085",
                     "&:hover": {
-                      color: "#4CAF50",
-                      background: "rgba(76, 175, 80, 0.1)"
+                      color: "#1f7ae0",
+                      background: "rgba(31, 122, 224, 0.08)"
                     }
                   }}
                 >
@@ -299,10 +285,10 @@ function CenterPanel() {
                   onClick={() => window.dispatchEvent(new CustomEvent('chartZoomOut'))}
                   sx={{
                     padding: "4px",
-                    color: "#9ca3af",
+                    color: "#667085",
                     "&:hover": {
-                      color: "#4CAF50",
-                      background: "rgba(76, 175, 80, 0.1)"
+                      color: "#1f7ae0",
+                      background: "rgba(31, 122, 224, 0.08)"
                     }
                   }}
                 >
@@ -332,10 +318,10 @@ function CenterPanel() {
                   onClick={toggleFullscreen}
                   sx={{
                     padding: "4px",
-                    color: isFullscreen ? "#4CAF50" : "#9ca3af",
+                    color: isFullscreen ? "#1f7ae0" : "#667085",
                     "&:hover": {
-                      color: "#4CAF50",
-                      background: "rgba(76, 175, 80, 0.1)"
+                      color: "#1f7ae0",
+                      background: "rgba(31, 122, 224, 0.08)"
                     }
                   }}
                 >
@@ -348,7 +334,7 @@ function CenterPanel() {
                   onClick={() => setSettingsOpen(true)}
                   sx={{
                     padding: "4px",
-                    color: "#9ca3af",
+                    color: "#667085",
                     "&:hover": {
                       color: "#FF9800",
                       background: "rgba(255, 152, 0, 0.1)"
@@ -366,7 +352,7 @@ function CenterPanel() {
         {/* Chart Container */}
         <Box sx={{
           flex: 1,
-          background: "#0a0e17",
+          background: "#ffffff",
           position: "relative",
           overflow: "hidden"
         }}>
@@ -381,8 +367,8 @@ function CenterPanel() {
             left: 0,
             width: "20px",
             height: "20px",
-            borderTop: "2px solid #4CAF50",
-            borderLeft: "2px solid #4CAF50",
+            borderTop: "2px solid #cbd8e7",
+            borderLeft: "2px solid #cbd8e7",
             borderTopLeftRadius: "6px",
             zIndex: 4
           }} />
@@ -392,8 +378,8 @@ function CenterPanel() {
             right: 0,
             width: "20px",
             height: "20px",
-            borderTop: "2px solid #4CAF50",
-            borderRight: "2px solid #4CAF50",
+            borderTop: "2px solid #cbd8e7",
+            borderRight: "2px solid #cbd8e7",
             borderTopRightRadius: "6px",
             zIndex: 4
           }} />
@@ -403,8 +389,8 @@ function CenterPanel() {
             left: 0,
             width: "20px",
             height: "20px",
-            borderBottom: "2px solid #4CAF50",
-            borderLeft: "2px solid #4CAF50",
+            borderBottom: "2px solid #cbd8e7",
+            borderLeft: "2px solid #cbd8e7",
             borderBottomLeftRadius: "6px",
             zIndex: 4
           }} />
@@ -414,8 +400,8 @@ function CenterPanel() {
             right: 0,
             width: "20px",
             height: "20px",
-            borderBottom: "2px solid #4CAF50",
-            borderRight: "2px solid #4CAF50",
+            borderBottom: "2px solid #cbd8e7",
+            borderRight: "2px solid #cbd8e7",
             borderBottomRightRadius: "6px",
             zIndex: 4
           }} />
@@ -425,14 +411,14 @@ function CenterPanel() {
       {/* Orders Table */}
       <Box sx={{
         height: "280px",
-        background: "rgba(26, 31, 46, 0.8)",
-        borderTop: "1px solid rgba(76, 175, 80, 0.2)",
+        background: "#ffffff",
+        borderTop: "1px solid #e6edf5",
         display: "flex",
         flexDirection: "column",
         backdropFilter: "blur(5px)",
         position: "relative",
         zIndex: 10,
-        boxShadow: "0 -5px 20px rgba(0,0,0,0.2)"
+        boxShadow: "0 -10px 24px rgba(18, 32, 54, 0.06)"
       }}>
         <OrdersTable />
       </Box>

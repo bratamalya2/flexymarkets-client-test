@@ -14,7 +14,6 @@ import { useQuotes } from "../../context/QuotesContext";
 function RightPanel() {
 
   const [activeTab, setActiveTab] = useState("Market");
-  const [isBuyOrder, setIsBuyOrder] = useState(true);
   const [priceAnimation, setPriceAnimation] = useState("none");
   const [isPriceManuallySet, setIsPriceManuallySet] = useState(false);
 
@@ -48,22 +47,14 @@ function RightPanel() {
     setValue,
     watch,
     control,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(tradeSchema),
     defaultValues,
     mode: "onChange",
   });
 
-  const currentPrice = selectedSymbol?.ask || 0; // Using ask as current price reference, or we could split bid/ask
   const currentSymbol = selectedSymbol || "Select Symbol";
-
-  // Watch values for controlled inputs
-  const volume = watch("volume");
-  const pendingPrice = watch("priceOrder");
-  const pendingTakeProfit = watch("priceTp");
-  const pendingStopLoss = watch("priceSl");
-  const currentType = String(watch("type"));
 
   useEffect(() => {
     if (selectedSymbol && activeMT5AccountLogin) {
@@ -109,10 +100,6 @@ function RightPanel() {
         activeTabEl.style.transform = 'scale(1.05)';
       }
     }, 10);
-  };
-
-  const handleTradeTypeSelect = (type) => {
-    setIsBuyOrder(type === "buy");
   };
 
   // Helper to adjust form values
@@ -195,11 +182,6 @@ function RightPanel() {
     });
   };
 
-  const calculateSpread = () => {
-    if (!selectedSymbol) return "0";
-    return "2.0";
-  };
-
   // CSS for animations
   const styles = `
       @keyframes panelSlideIn {
@@ -264,13 +246,14 @@ function RightPanel() {
     <Box
       sx={{
         // width: "300px",
-        background: "linear-gradient(180deg, #0a0e17 0%, #0f131e 100%)",
-        borderLeft: "1px solid rgba(76, 175, 80, 0.1)",
+        background: "#ffffff",
+        border: "1px solid #dfe7f1",
+        borderRadius: { xs: 0, md: "18px" },
         display: "flex",
         flexDirection: "column",
-        color: "#d1d4dc",
+        color: "#172033",
         overflow: "hidden",
-        boxShadow: "inset 0 0 30px rgba(0,0,0,0.4), 0 0 30px rgba(76, 175, 80, 0.1)",
+        boxShadow: "0 18px 42px rgba(18, 32, 54, 0.08)",
         position: "relative",
         animation: "panelSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
       }}
@@ -282,14 +265,14 @@ function RightPanel() {
         left: 0,
         right: 0,
         bottom: 0,
-        background: "radial-gradient(circle at 20% 50%, rgba(76, 175, 80, 0.05) 0%, transparent 50%)",
+        background: "radial-gradient(circle at 20% 0%, rgba(31, 122, 224, 0.08) 0%, transparent 45%)",
         pointerEvents: "none",
         animation: "particlesFloat 20s infinite linear"
       }} />
 
       <Box
         sx={{
-          p: "15px",
+          p: "16px",
           flex: 1,
           display: "flex",
           flexDirection: "column",
@@ -306,10 +289,10 @@ function RightPanel() {
         <Box
           sx={{
             display: "flex",
-            background: "rgba(26, 31, 46, 0.8)",
-            borderRadius: "6px",
+            background: "#f3f6fb",
+            borderRadius: "12px",
             overflow: "hidden",
-            border: "1px solid rgba(76, 175, 80, 0.2)",
+            border: "1px solid #dfe7f1",
             marginBottom: "15px",
             position: "relative",
             boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
@@ -327,9 +310,9 @@ function RightPanel() {
                 cursor: "pointer",
                 fontSize: "12px",
                 fontWeight: "600",
-                color: activeTab === tab ? "white" : "#9ca3af",
+                color: activeTab === tab ? "white" : "#667085",
                 background: activeTab === tab
-                  ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
+                  ? "linear-gradient(135deg, #1f7ae0, #2563eb)"
                   : "transparent",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 position: "relative",
@@ -339,8 +322,8 @@ function RightPanel() {
                 "&:hover": {
                   color: "white",
                   background: activeTab === tab
-                    ? "linear-gradient(135deg, #4CAF50, #2E7D32)"
-                    : "rgba(76, 175, 80, 0.1)",
+                    ? "linear-gradient(135deg, #1f7ae0, #2563eb)"
+                    : "rgba(31, 122, 224, 0.08)",
                 },
               }}
               onClick={() => handleTabChange(tab)}
@@ -352,12 +335,12 @@ function RightPanel() {
 
         <Box
           sx={{
-            background: "rgba(26, 31, 46, 0.7)",
-            borderRadius: "8px",
-            p: "15px",
+            background: "#ffffff",
+            borderRadius: "16px",
+            p: "16px",
             flex: 1,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-            border: "1px solid rgba(76, 175, 80, 0.1)",
+            boxShadow: "0 12px 28px rgba(18, 32, 54, 0.06)",
+            border: "1px solid #e6edf5",
             position: "relative",
             overflow: "hidden",
             backdropFilter: "blur(5px)",
@@ -369,20 +352,20 @@ function RightPanel() {
               textAlign: "center",
               mb: "15px",
               pb: "10px",
-              borderBottom: "1px solid rgba(76, 175, 80, 0.2)",
+              borderBottom: "1px solid #e6edf5",
             }}
           >
-            <Typography sx={{ fontSize: "18px", fontWeight: "700", color: "white", mb: "3px" }}>
+            <Typography sx={{ fontSize: "18px", fontWeight: "800", color: "#172033", mb: "3px" }}>
               {currentSymbol}
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
               <Stack sx={{ flexDirection: "row", alignItems: "center", gap: "10px" }}>
-                <Typography>Buy</Typography>
+                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Long</Typography>
                 <Typography
                   sx={{
                     fontSize: "24px",
                     fontWeight: "800",
-                    background: "linear-gradient(135deg, #4CAF50, #8BC34A)",
+                    background: "linear-gradient(135deg, #16a085, #0e7f6c)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     animation: priceAnimation
@@ -392,12 +375,12 @@ function RightPanel() {
                 </Typography>
               </Stack>
               <Stack sx={{ flexDirection: "row", alignItems: "center", gap: "10px" }}>
-                <Typography>Sell</Typography>
+                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Short</Typography>
                 <Typography
                   sx={{
                     fontSize: "24px",
                     fontWeight: "800",
-                    background: "linear-gradient(135deg, #f44336, #E53935)",
+                    background: "linear-gradient(135deg, #ef334e, #bd1731)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     animation: priceAnimation
@@ -419,8 +402,8 @@ function RightPanel() {
             {/* Open Price (Only for Pending) */}
             {activeTab === "Limit" && (
               <Box>
-                <Typography sx={{ fontSize: "11px", color: "#9ca3af", mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Box sx={{ width: "4px", height: "4px", background: "#2196F3", borderRadius: "50%" }} />
+                <Typography sx={{ fontSize: "11px", color: "#667085", mb: "4px", display: "flex", alignItems: "center", gap: "4px", fontWeight: 700 }}>
+                  <Box sx={{ width: "4px", height: "4px", background: "#1f7ae0", borderRadius: "50%" }} />
                   Open Price
                 </Typography>
                 <Controller
@@ -429,10 +412,10 @@ function RightPanel() {
                   render={({ field }) => (
                     <Box sx={{
                       display: "flex", alignItems: "center",
-                      background: "rgba(14, 18, 28, 0.8)",
-                      border: "1px solid rgba(33, 150, 243, 0.2)",
-                      borderRadius: "6px", overflow: "hidden",
-                      "&:hover": { borderColor: "#2196F3" }
+                      background: "#f8fbff",
+                      border: "1px solid #dfe7f1",
+                      borderRadius: "10px", overflow: "hidden",
+                      "&:hover": { borderColor: "#1f7ae0" }
                     }}>
                       <TextField
                         {...field}
@@ -445,11 +428,11 @@ function RightPanel() {
                         step="0.001"
                         placeholder={formatPrice(currentSymbolPrice?.Ask) || "0.000"}
                         // inputProps={{ style: { color: "white", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
-                        sx={{ flex: 1, "& fieldset": { border: "none" } }}
+                        sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                       />
                       <Box>
-                        <IconButton onClick={() => handleStep("priceOrder", "inc", 0.01)} size="small" sx={{ color: "#2196F3", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                        <IconButton onClick={() => handleStep("priceOrder", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                        <IconButton onClick={() => handleStep("priceOrder", "inc", 0.01)} size="small" sx={{ color: "#1f7ae0", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                        <IconButton onClick={() => handleStep("priceOrder", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                       </Box>
                     </Box>
                   )}
@@ -460,8 +443,8 @@ function RightPanel() {
 
             {/* Volume Input (Common) */}
             <Box>
-              <Typography sx={{ fontSize: "11px", color: "#9ca3af", mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                <Box sx={{ width: "4px", height: "4px", background: "#2196F3", borderRadius: "50%" }} />
+              <Typography sx={{ fontSize: "11px", color: "#667085", mb: "4px", display: "flex", alignItems: "center", gap: "4px", fontWeight: 700 }}>
+                <Box sx={{ width: "4px", height: "4px", background: "#1f7ae0", borderRadius: "50%" }} />
                 Volume (Lots)
               </Typography>
               <Controller
@@ -470,10 +453,10 @@ function RightPanel() {
                 render={({ field }) => (
                   <Box sx={{
                     display: "flex", alignItems: "center",
-                    background: "rgba(14, 18, 28, 0.8)",
-                    border: "1px solid rgba(33, 150, 243, 0.2)",
-                    borderRadius: "6px", overflow: "hidden",
-                    "&:hover": { borderColor: "#2196F3" }
+                    background: "#f8fbff",
+                    border: "1px solid #dfe7f1",
+                    borderRadius: "10px", overflow: "hidden",
+                    "&:hover": { borderColor: "#1f7ae0" }
                   }}>
                     <TextField
                       {...field}
@@ -481,11 +464,11 @@ function RightPanel() {
                       type="number"
                       step="0.01"
                       // inputProps={{ style: { color: "white", textAlign: "center", fontSize: "13px", fontWeight: "600", height: "20px" } }}
-                      sx={{ flex: 1, "& fieldset": { border: "none" } }}
+                      sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("volume", "inc", 0.01)} size="small" sx={{ color: "#2196F3", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("volume", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("volume", "inc", 0.01)} size="small" sx={{ color: "#1f7ae0", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("volume", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}
@@ -495,8 +478,8 @@ function RightPanel() {
 
             {/* Take Profit */}
             <Box>
-              <Typography sx={{ fontSize: "11px", color: "#4CAF50", fontWeight: 600, mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                <Box sx={{ width: "4px", height: "4px", background: "#4CAF50", borderRadius: "50%", animation: "glowGreen 1s infinite alternate" }} />
+              <Typography sx={{ fontSize: "11px", color: "#16a085", fontWeight: 700, mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Box sx={{ width: "4px", height: "4px", background: "#16a085", borderRadius: "50%", animation: "glowGreen 1s infinite alternate" }} />
                 Take Profit
               </Typography>
               <Controller
@@ -505,10 +488,10 @@ function RightPanel() {
                 render={({ field }) => (
                   <Box sx={{
                     display: "flex", alignItems: "center",
-                    background: "rgba(14, 18, 28, 0.8)",
-                    border: "1px solid rgba(76, 175, 80, 0.2)",
-                    borderRadius: "6px", overflow: "hidden",
-                    "&:hover": { borderColor: "#4CAF50" }
+                    background: "#f8fbff",
+                    border: "1px solid #dfe7f1",
+                    borderRadius: "10px", overflow: "hidden",
+                    "&:hover": { borderColor: "#16a085" }
                   }}>
                     <TextField
                       {...field}
@@ -517,11 +500,11 @@ function RightPanel() {
                       step="0.001"
                       placeholder="Not set"
                       // inputProps={{ style: { color: field.value ? "#4CAF50" : "#9ca3af", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
-                      sx={{ flex: 1, "& fieldset": { border: "none" } }}
+                      sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("priceTp", "inc", 0.01)} size="small" sx={{ color: "#4CAF50", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("priceTp", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "inc", 0.01)} size="small" sx={{ color: "#16a085", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}
@@ -530,8 +513,8 @@ function RightPanel() {
 
             {/* Stop Loss */}
             <Box>
-              <Typography sx={{ fontSize: "11px", color: "#FF9800", fontWeight: 600, mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                <Box sx={{ width: "4px", height: "4px", background: "#FF9800", borderRadius: "50%", animation: "glowOrange 1s infinite alternate" }} />
+              <Typography sx={{ fontSize: "11px", color: "#ef8a00", fontWeight: 700, mb: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                <Box sx={{ width: "4px", height: "4px", background: "#ef8a00", borderRadius: "50%", animation: "glowOrange 1s infinite alternate" }} />
                 Stop Loss
               </Typography>
               <Controller
@@ -540,10 +523,10 @@ function RightPanel() {
                 render={({ field }) => (
                   <Box sx={{
                     display: "flex", alignItems: "center",
-                    background: "rgba(14, 18, 28, 0.8)",
-                    border: "1px solid rgba(255, 152, 0, 0.2)",
-                    borderRadius: "6px", overflow: "hidden",
-                    "&:hover": { borderColor: "#FF9800" }
+                    background: "#f8fbff",
+                    border: "1px solid #dfe7f1",
+                    borderRadius: "10px", overflow: "hidden",
+                    "&:hover": { borderColor: "#ef8a00" }
                   }}>
                     <TextField
                       {...field}
@@ -552,11 +535,11 @@ function RightPanel() {
                       step="0.001"
                       placeholder="Not set"
                       // inputProps={{ style: { color: field.value ? "#FF9800" : "#9ca3af", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
-                      sx={{ flex: 1, "& fieldset": { border: "none" } }}
+                      sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("priceSl", "inc", 0.01)} size="small" sx={{ color: "#FF9800", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("priceSl", "dec", 0.01)} size="small" sx={{ color: "#f44336", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "inc", 0.01)} size="small" sx={{ color: "#ef8a00", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}
@@ -570,16 +553,16 @@ function RightPanel() {
                 disabled={placeOrderLoading || limitTradeRequestLoading}
                 sx={{
                   padding: "10px 8px",
-                  borderRadius: "6px",
+                  borderRadius: "10px",
                   fontWeight: "700",
                   fontSize: "12px",
-                  background: "linear-gradient(135deg, #4CAF50, #2E7D32)",
+                  background: "linear-gradient(135deg, #16a085, #0e7f6c)",
                   color: "white",
-                  boxShadow: "0 2px 8px rgba(76, 175, 80, 0.3)",
+                  boxShadow: "0 10px 20px rgba(22, 160, 133, 0.2)",
                   "&:hover": {
-                    background: "linear-gradient(135deg, #2E7D32, #4CAF50)",
+                    background: "linear-gradient(135deg, #0e7f6c, #16a085)",
                     transform: "translateY(-2px)",
-                    boxShadow: "0 4px 12px rgba(76, 175, 80, 0.4)"
+                    boxShadow: "0 12px 24px rgba(22, 160, 133, 0.28)"
                   }
                 }}
               >
@@ -590,16 +573,16 @@ function RightPanel() {
                 disabled={placeOrderLoading || limitTradeRequestLoading}
                 sx={{
                   padding: "10px 8px",
-                  borderRadius: "6px",
+                  borderRadius: "10px",
                   fontWeight: "700",
                   fontSize: "12px",
-                  background: "linear-gradient(135deg, #f44336, #c62828)",
+                  background: "linear-gradient(135deg, #ef334e, #bd1731)",
                   color: "white",
-                  boxShadow: "0 2px 8px rgba(244, 67, 54, 0.3)",
+                  boxShadow: "0 10px 20px rgba(239, 51, 78, 0.22)",
                   "&:hover": {
-                    background: "linear-gradient(135deg, #c62828, #f44336)",
+                    background: "linear-gradient(135deg, #bd1731, #ef334e)",
                     transform: "translateY(-2px)",
-                    boxShadow: "0 4px 12px rgba(244, 67, 54, 0.4)"
+                    boxShadow: "0 12px 24px rgba(239, 51, 78, 0.3)"
                   }
                 }}
               >
@@ -617,15 +600,15 @@ function RightPanel() {
               })}
               fullWidth
               sx={{
-                background: "rgba(55, 65, 81, 0.5)",
-                color: "white",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "#f3f6fb",
+                color: "#172033",
+                border: "1px solid #dfe7f1",
                 padding: "8px",
-                borderRadius: "6px",
+                borderRadius: "10px",
                 fontSize: "12px",
                 fontWeight: "600",
                 "&:hover": {
-                  background: "rgba(76, 175, 80, 0.2)",
+                  background: "rgba(31, 122, 224, 0.08)",
                 }
               }}
             >
