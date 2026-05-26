@@ -11,6 +11,29 @@ import { setActiveMT5AccountLogin } from "../../globalState/mt5State/mt5StateSli
 import { useBroadcast } from "../../hooks/useBroadcast";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useGetUserDataQuery } from "../../globalState/userState/userStateApis";
+import { useQuotes } from "../../context/QuotesContext";
+import { allSymbol } from "../../utils/allSymbol";
+
+const PRIORITY_SYMBOLS = ["XAUUSD", "XAGUSD"];
+
+function getSymbolName(symbol) {
+    return (symbol?.Symbol || symbol?.name || symbol || "").split(".")[0].toUpperCase();
+}
+
+function getFirstTerminalSymbol(quoteData) {
+    const symbols = quoteData?.length ? quoteData : allSymbol;
+
+    return [...symbols]
+        .sort((a, b) => {
+            const aPriority = PRIORITY_SYMBOLS.includes(getSymbolName(a));
+            const bPriority = PRIORITY_SYMBOLS.includes(getSymbolName(b));
+            if (aPriority && !bPriority) return -1;
+            if (!aPriority && bPriority) return 1;
+            return 0;
+        })
+        .map(getSymbolName)
+        .find(Boolean) || "XAUUSD";
+}
 
 function TradingTerminalLayout() {
     const dispatch = useDispatch();
@@ -19,9 +42,11 @@ function TradingTerminalLayout() {
     const { selectedSymbol } = useSelector(state => state.terminal);
     const { token } = useSelector(state => state.auth);
     const { activeMT5AccountLogin } = useSelector(state => state.mt5);
+    const { quoteData } = useQuotes();
 
     const socketRef = useRef(null);
     const theme = useMemo(() => getCustomTheme("dark"), []);
+    const defaultSymbol = useMemo(() => getFirstTerminalSymbol(quoteData), [quoteData]);
 
     useEffect(() => {
         dispatch(setThemeMode("dark"));
@@ -65,15 +90,22 @@ function TradingTerminalLayout() {
         return () => window.removeEventListener("storage", onStorage);
     }, [dispatch]);
 
-    // Set default symbol when account loads for the first time
+    // Set the first visible terminal symbol as the initial chart symbol.
+    useEffect(() => {
+        if (!selectedSymbol && defaultSymbol) {
+            dispatch(setSelectedSymbol(defaultSymbol));
+        }
+    }, [defaultSymbol, dispatch, selectedSymbol]);
+
+    // Set default MT5 account when account data loads for the first time.
     const { data: userData } = useGetUserDataQuery();
     const mt5AccountList = userData?.data?.mt5AccountList;
 
     useEffect(() => {
-        if (!mt5AccountList?.length || selectedSymbol) return;
+        if (!mt5AccountList?.length) return;
 
         // Use the active account, or fall back to the first available account
-        const login = activeMT5AccountLogin ?? String(mt5AccountList[0].Login);
+        const login = activeMT5AccountLogin || String(mt5AccountList[0].Login);
         const account = mt5AccountList.find(acc => acc.Login == login) ?? mt5AccountList[0];
 
         // Persist the account selection so sockets pick it up
@@ -81,10 +113,7 @@ function TradingTerminalLayout() {
             localStorage.setItem("mt5-active-account", String(account.Login));
             dispatch(setActiveMT5AccountLogin(String(account.Login)));
         }
-
-        const sym = account.accountType === "DEMO" ? "BTCUSD" : "XAUUSD";
-        dispatch(setSelectedSymbol(sym));
-    }, [activeMT5AccountLogin, mt5AccountList, selectedSymbol, dispatch]);
+    }, [activeMT5AccountLogin, mt5AccountList, dispatch]);
 
     // Account details socket — keeps Balance/Equity/Margin in Redux via MT5AccountDetailsSocketENV
     useEffect(() => {
