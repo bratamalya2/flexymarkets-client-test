@@ -15,7 +15,6 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
-import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useQuotes } from "../../context/QuotesContext";
@@ -24,6 +23,16 @@ import { allSymbol } from "../../utils/allSymbol";
 
 
 const PRIORITY_SYMBOLS = ['XAUUSD', 'XAGUSD'];
+
+function getSymbolName(symbol) {
+    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
+    return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
+}
+
+function getPriorityRank(symbol) {
+    const index = PRIORITY_SYMBOLS.indexOf(getSymbolName(symbol));
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
 
 function LeftPanel() {
 
@@ -122,13 +131,7 @@ function LeftPanel() {
             symbol?.Symbol?.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-        return filtered?.sort((a, b) => {
-            const aPriority = PRIORITY_SYMBOLS.includes(a.Symbol);
-            const bPriority = PRIORITY_SYMBOLS.includes(b.Symbol);
-            if (aPriority && !bPriority) return -1;
-            if (!aPriority && bPriority) return 1;
-            return 0;
-        });
+        return filtered?.sort((a, b) => getPriorityRank(a) - getPriorityRank(b));
     }, [activeTab, searchTerm, watchlist, quoteData]);
 
     const formatPrice = (price) => {
@@ -141,7 +144,7 @@ function LeftPanel() {
             const numPrice = parseFloat(price);
 
             return numPrice;
-        } catch (error) {
+        } catch {
             return "0.00";
         }
     };

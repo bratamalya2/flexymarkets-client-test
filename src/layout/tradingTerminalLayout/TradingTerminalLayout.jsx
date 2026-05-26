@@ -21,16 +21,18 @@ function getSymbolName(symbol) {
     return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
 }
 
+function getPriorityRank(symbol) {
+    const index = PRIORITY_SYMBOLS.indexOf(getSymbolName(symbol));
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
 function getFirstTerminalSymbol(quoteData) {
     const symbols = quoteData?.length ? quoteData : allSymbol;
 
     return [...symbols]
         .sort((a, b) => {
-            const aPriority = PRIORITY_SYMBOLS.includes(getSymbolName(a));
-            const bPriority = PRIORITY_SYMBOLS.includes(getSymbolName(b));
-            if (aPriority && !bPriority) return -1;
-            if (!aPriority && bPriority) return 1;
-            return 0;
+            const rankDiff = getPriorityRank(a) - getPriorityRank(b);
+            return rankDiff || 0;
         })
         .map(getSymbolName)
         .find(Boolean) || "XAUUSD";

@@ -15,36 +15,124 @@ const TIMEFRAMES = [
 ];
 
 function normalizeCandles(raw) {
-    if (!Array.isArray(raw) || raw.length === 0) return [];
-    
-    const ensureSeconds = (t) => {
-        const val = Number(t);
-        // If the timestamp is greater than 10 digits (9,999,999,999), it is in milliseconds.
-        // We divide by 1000 to convert to standard UNIX seconds required by lightweight-charts.
-        return val > 9999999999 ? Math.floor(val / 1000) : val;
+    const rows = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.answer)
+            ? raw.answer
+            : Array.isArray(raw?.data)
+                ? raw.data
+                : [];
+
+    if (rows.length === 0) return [];
+
+    const parseNumber = (value) => {
+        const number = Number(String(value ?? "").replace(/,/g, ""));
+        return Number.isFinite(number) ? number : NaN;
     };
 
-    const first = raw[0];
-    if (Array.isArray(first)) {
-        return raw
-            .map(c => ({
-                time: ensureSeconds(c[0]),
-                open: Number(c[1]),
-                high: Number(c[2]),
-                low: Number(c[3]),
-                close: Number(c[4])
+    const parseTime = (value) => {
+        if (value === undefined || value === null || value === "") return 0;
+
+        const numericTime = Number(value);
+        if (Number.isFinite(numericTime)) {
+            return numericTime > 9999999999 ? Math.floor(numericTime / 1000) : numericTime;
+        }
+
+        const rawTime = String(value).trim();
+        const mt5Date = rawTime.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+        if (mt5Date) {
+            const [, year, month, day, hour = "0", minute = "0", second = "0"] = mt5Date;
+            return Math.floor(Date.UTC(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                Number(hour),
+                Number(minute),
+                Number(second)
+            ) / 1000);
+        }
+
+        const parsed = Date.parse(rawTime);
+        return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : 0;
+    };
+
+    const getValue = (row, keys) => {
+        const key = keys.find(candidate => row?.[candidate] !== undefined);
+        return key !== undefined ? row[key] : undefined;
+    };
+
+    const finalizeCandle = ({ time, open, high, low, close }) => ({
+        time,
+        open,
+        high: Math.max(high, open, close),
+        low: Math.min(low, open, close),
+        close,
+    });
+
+    const first = rows[0];
+    if (typeof first === "string" && first.includes(",")) {
+        return rows
+            .map(row => String(row).split(","))
+            .map(c => finalizeCandle({
+                time: parseTime(c[0]),
+                open: parseNumber(c[1]),
+                high: parseNumber(c[2]),
+                low: parseNumber(c[3]),
+                close: parseNumber(c[4]),
             }))
-            .filter(c => c.time > 0 && c.open > 0);
+            .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
     }
-    return raw
-        .map(c => ({
-            time: ensureSeconds(c.time ?? c.Time ?? c.date ?? c.timestamp ?? 0),
-            open: Number(c.open ?? c.Open),
-            high: Number(c.high ?? c.High),
-            low: Number(c.low ?? c.Low),
-            close: Number(c.close ?? c.Close),
+
+    if (!Array.isArray(first) && typeof first !== "object" && rows.length >= 5) {
+        const chunkedRows = [];
+        for (let index = 0; index <= rows.length - 5; index += 5) {
+            chunkedRows.push(rows.slice(index, index + 5));
+        }
+
+        return chunkedRows
+            .map(c => finalizeCandle({
+                time: parseTime(c[0]),
+                open: parseNumber(c[1]),
+                high: parseNumber(c[2]),
+                low: parseNumber(c[3]),
+                close: parseNumber(c[4]),
+            }))
+            .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
+    }
+
+    if (Array.isArray(first)) {
+        return rows
+            .map(c => {
+                const time = parseTime(c[0]);
+                const open = parseNumber(c[1]);
+                const high = parseNumber(c[2]);
+                const low = parseNumber(c[3]);
+                const close = parseNumber(c[4]);
+
+                if (high < low) {
+                    return finalizeCandle({
+                        time,
+                        high: parseNumber(c[1]),
+                        low: parseNumber(c[2]),
+                        open: parseNumber(c[3]),
+                        close,
+                    });
+                }
+
+                return finalizeCandle({ time, open, high, low, close });
+            })
+            .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
+    }
+
+    return rows
+        .map(c => finalizeCandle({
+            time: parseTime(getValue(c, ["time", "Time", "TIME", "date", "Date", "DATE", "datetime", "DateTime", "DATETIME", "timestamp", "Timestamp", "TIMESTAMP"])),
+            open: parseNumber(getValue(c, ["open", "Open", "OPEN", "o", "O"])),
+            high: parseNumber(getValue(c, ["high", "High", "HIGH", "h", "H"])),
+            low: parseNumber(getValue(c, ["low", "Low", "LOW", "l", "L"])),
+            close: parseNumber(getValue(c, ["close", "Close", "CLOSE", "c", "C"])),
         }))
-        .filter(c => c.time > 0 && !isNaN(c.open));
+        .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
 }
 
 function getSymbolName(symbol) {
@@ -175,6 +263,18 @@ function TerminalGraph() {
         };
     }, [chartSymbol]);
 
+    useEffect(() => {
+        if (!chartSymbol || chartReady || error) return;
+
+        const timeoutId = setTimeout(() => {
+            if (!chartRef.current) {
+                setError("Chart did not initialize. Please refresh the terminal.");
+            }
+        }, 8000);
+
+        return () => clearTimeout(timeoutId);
+    }, [chartReady, chartSymbol, error]);
+
     // Apply settings changes dynamically in real time
     useEffect(() => {
         if (!chartRef.current || !seriesRef.current || !chartSettings) return;
@@ -283,11 +383,13 @@ function TerminalGraph() {
                 console.log('[Chart] candles after sorting/dedup:', candles.length);
                 if (seriesRef.current) {
                     seriesRef.current.setData(candles);
-                    if (candles.length > 0) chartRef.current?.timeScale().fitContent();
+                    if (candles.length > 0) {
+                        requestAnimationFrame(() => chartRef.current?.timeScale().fitContent());
+                    }
                 }
                 currentCandleRef.current = candles.length > 0 ? candles[candles.length - 1] : null;
                 setLoading(false);
-                if (candles.length === 0) setError('No chart data for this period');
+                if (candles.length === 0) setError(`No chart data for ${chartSymbol} in this period`);
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
@@ -357,6 +459,8 @@ function TerminalGraph() {
         );
     }
 
+    const isInitializing = !chartReady && !error;
+
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: chartSettings?.backgroundColor || '#0F0F0F' }}>
             {/* Toolbar */}
@@ -393,7 +497,7 @@ function TerminalGraph() {
             <Box sx={{ flex: 1, position: 'relative', minHeight: 0, width: '100%', height: '100%' }}>
                 <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }} />
 
-                {loading && (
+                {(loading || isInitializing) && (
                     <Box sx={{
                         position: 'absolute', inset: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
