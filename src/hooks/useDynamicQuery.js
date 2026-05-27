@@ -8,7 +8,11 @@ const useDynamicQuery = (active, activeMT5AccountPositionsDetails, token, login)
 
     const queryArgs = { login };
 
-    const closedOrderQuery = useClosedOrderListQuery(queryArgs, { skip: !login || active !== "history" });
+    const closedOrderQuery = useClosedOrderListQuery(queryArgs, {
+        skip: !login || active !== "history",
+        pollingInterval: active === "history" ? 5000 : 0,
+        refetchOnMountOrArgChange: true,
+    });
     const openOrderQuery = useOpenOrderListQuery(queryArgs, { skip: !login || active !== "pending" });
 
     useEffect(() => {
