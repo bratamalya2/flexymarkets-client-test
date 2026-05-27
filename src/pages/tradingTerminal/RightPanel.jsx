@@ -19,7 +19,7 @@ function RightPanel() {
 
   // Redux state
   const { selectedSymbol } = useSelector((state) => state.terminal);
-  const { activeMT5AccountLogin } = useSelector((state) => state.mt5);
+  const { activeMT5AccountLogin, activeMT5AccountDetails } = useSelector((state) => state.mt5);
   const dispatch = useDispatch();
 
   // API Mutations
@@ -55,6 +55,88 @@ function RightPanel() {
   });
 
   const currentSymbol = selectedSymbol || "Select Symbol";
+
+  const parseNumber = (value) => {
+    const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getRawSymbol = () => {
+    const rawSymbol = currentSymbolPrice?.Symbol || selectedSymbol || "";
+    return String(rawSymbol).split(".")[0].toUpperCase();
+  };
+
+  const getSymbolCurrencies = () => {
+    const rawSymbol = getRawSymbol();
+    const quoteCurrencies = ["USD", "EUR", "JPY", "GBP", "AUD", "NZD", "CAD", "CHF", "CNH", "HKD", "NOK", "SEK", "SGD", "TRY", "MXN", "ZAR", "PLN", "DKK"];
+    const quoteCurrency = quoteCurrencies.find((currency) => rawSymbol.endsWith(currency));
+
+    if (!rawSymbol) {
+      return { baseCurrency: "-", quoteCurrency: "-" };
+    }
+
+    if (!quoteCurrency || rawSymbol.length <= quoteCurrency.length) {
+      return { baseCurrency: rawSymbol, quoteCurrency: "-" };
+    }
+
+    return {
+      baseCurrency: rawSymbol.slice(0, -quoteCurrency.length),
+      quoteCurrency,
+    };
+  };
+
+  const getQuoteDigits = () => {
+    const digits = parseNumber(currentSymbolPrice?.Digits ?? currentSymbolPrice?.digits ?? 5);
+    return digits > 0 ? digits : 5;
+  };
+
+  const getPipSize = () => {
+    const digits = getQuoteDigits();
+    const pipDigits = digits === 3 || digits === 5 ? digits - 1 : digits;
+    return Math.pow(10, -pipDigits);
+  };
+
+  const formatPipSize = () => {
+    const pipSize = getPipSize();
+    return pipSize.toFixed(Math.max(0, Math.ceil(-Math.log10(pipSize))));
+  };
+
+  const calculateSpread = () => {
+    const ask = parseNumber(currentSymbolPrice?.Ask);
+    const bid = parseNumber(currentSymbolPrice?.Bid);
+    const pipSize = getPipSize();
+
+    if (!ask || !bid || !pipSize) return "-";
+    return ((ask - bid) / pipSize).toFixed(1);
+  };
+
+  const formatLeverage = () => {
+    const leverage = activeMT5AccountDetails?.MarginLeverage || activeMT5AccountDetails?.Leverage;
+    if (!leverage) return "-";
+    if (String(leverage).includes(":")) return String(leverage);
+    const numericLeverage = parseNumber(leverage);
+    return numericLeverage ? `1:${numericLeverage}` : String(leverage);
+  };
+
+  const calculateDrawdown = () => {
+    const balance = parseNumber(activeMT5AccountDetails?.Balance);
+    const equity = parseNumber(activeMT5AccountDetails?.Equity);
+
+    if (!balance) return "0.00%";
+    return `${Math.max(((balance - equity) / balance) * 100, 0).toFixed(2)}%`;
+  };
+
+  const { baseCurrency, quoteCurrency } = getSymbolCurrencies();
+  const spreadInPips = calculateSpread();
+
+  const tradingDetailItems = [
+    { label: "Base Currency", value: baseCurrency },
+    { label: "Quote Currency", value: quoteCurrency },
+    { label: "Pip", value: formatPipSize() },
+    { label: "Spread", value: spreadInPips === "-" ? "-" : `${spreadInPips} pips` },
+    { label: "Leverage", value: formatLeverage() },
+    { label: "Drawdown", value: calculateDrawdown() },
+  ];
 
   useEffect(() => {
     if (selectedSymbol && activeMT5AccountLogin) {
@@ -425,6 +507,58 @@ function RightPanel() {
             {/* <Typography sx={{ fontSize: "11px", color: "#9ca3af", mt: "3px" }}>
               Spread: {calculateSpread()} pips
             </Typography> */}
+          </Box>
+
+          <Box
+            sx={{
+              mb: "15px",
+              p: "12px",
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #f8fbff, #eef6ff)",
+              border: "1px solid #dfe7f1",
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: "10px",
+            }}
+          >
+            {tradingDetailItems.map((item) => (
+              <Box
+                key={item.label}
+                sx={{
+                  minWidth: 0,
+                  p: "8px",
+                  borderRadius: "10px",
+                  background: "#ffffff",
+                  border: "1px solid rgba(223, 231, 241, 0.9)",
+                  boxShadow: "0 8px 18px rgba(18, 32, 54, 0.04)",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "9px",
+                    color: "#667085",
+                    fontWeight: 800,
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    mb: "3px",
+                  }}
+                >
+                  {item.label}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    color: "#172033",
+                    fontWeight: 900,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+            ))}
           </Box>
 
           <Box
