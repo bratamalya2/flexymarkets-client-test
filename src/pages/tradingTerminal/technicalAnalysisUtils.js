@@ -4,8 +4,6 @@ export const ANALYSIS_TIMEFRAMES = [
     { label: "15M", period: 15, range: 15 * 24 * 60 * 60 },
     { label: "30M", period: 30, range: 30 * 24 * 60 * 60 },
     { label: "1H", period: 60, range: 90 * 24 * 60 * 60 },
-    { label: "4H", period: 240, range: 365 * 24 * 60 * 60 },
-    { label: "1D", period: 1440, range: 10 * 365 * 24 * 60 * 60 },
 ];
 
 const round = (value, digits = 5) => {
