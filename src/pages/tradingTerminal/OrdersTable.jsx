@@ -261,7 +261,7 @@ function OrdersTable() {
             const priceSl = parseProtectionPrice(getProtectionInputValue(position, "priceSl"), "SL");
 
             const payload = {
-                login: buildNumericPayloadValue(position?.Login ?? login),
+                login: String(position?.Login ?? login),
                 position: buildNumericPayloadValue(positionTicket),
                 priceTp,
                 priceSl
