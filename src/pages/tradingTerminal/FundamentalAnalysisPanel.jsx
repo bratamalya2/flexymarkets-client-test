@@ -336,7 +336,7 @@ function FundamentalAnalysisPanel() {
 
     const overallPalette = getTonePalette(analysis?.overall?.tone);
     const articles = analysis?.news?.articles || [];
-    const indicators = analysis?.macro?.indicators || [];
+    const indicators = (analysis?.macro?.indicators || []).filter((indicator) => indicator.status === "ok");
     const drivers = analysis?.drivers || [];
     const errorMessage = error?.data?.message || error?.error || "Failed to load fundamental analysis.";
 
@@ -488,7 +488,7 @@ function FundamentalAnalysisPanel() {
                                     Macro Data
                                 </Typography>
                                 <Typography sx={{ color: "white", fontSize: "22px", fontWeight: 950, mt: "8px" }}>
-                                    {indicators.filter((indicator) => indicator.status === "ok").length} Signals
+                                    {indicators.length} Signals
                                 </Typography>
                                 <Typography sx={{ color: "#9fb0c8", fontSize: "12px", mt: "8px" }}>
                                     FRED status: {analysis.macro?.status || "-"}
