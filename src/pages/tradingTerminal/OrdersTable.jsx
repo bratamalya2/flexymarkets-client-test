@@ -9,23 +9,21 @@ import {
     TableHead,
     TableRow,
     Button,
-    IconButton,
     TableSortLabel,
     Tooltip,
-    Chip,
     Skeleton
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import DownloadIcon from "@mui/icons-material/Download";
+import AutoGraphIcon from "@mui/icons-material/AutoGraph";
 import { useQuotes } from "../../context/QuotesContext";
 import useDynamicQuery from "../../hooks/useDynamicQuery";
 import { useDispatch, useSelector } from "react-redux";
 import { useCloseOrderMutation, useCloseLimitOrderMutation } from "../../globalState/trade/tradeApis";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import TechnicalAnalysisPanel from "./TechnicalAnalysisPanel";
 
 
 function OrdersTable() {
@@ -34,7 +32,6 @@ function OrdersTable() {
     const [hoveredRow, setHoveredRow] = useState(null);
     const [currentTime, setCurrentTime] = useState('');
     const [timeAnimation, setTimeAnimation] = useState('none');
-    const [lastUpdate, setLastUpdate] = useState(Date.now());
     const [historySort, setHistorySort] = useState({ key: null, direction: "asc" });
 
     const { quoteData } = useQuotes();
@@ -53,22 +50,10 @@ function OrdersTable() {
         }, 10);
     };
 
-
-    const handleRefresh = () => {
-        setLastUpdate(Date.now());
-        const refreshBtn = document.querySelector('.refresh-btn');
-        if (refreshBtn) {
-            refreshBtn.style.animation = 'spin 0.5s ease';
-            setTimeout(() => {
-                refreshBtn.style.animation = '';
-            }, 500);
-        }
-    };
-
     const { token } = useSelector((state) => state.auth);
     const { activeMT5AccountLogin: login, activeMT5AccountPositionsDetails } = useSelector(state => state.mt5)
 
-    const { data, isLoading, isError, error } = useDynamicQuery(activeTab, activeMT5AccountPositionsDetails, token, login);
+    const { data } = useDynamicQuery(activeTab, activeMT5AccountPositionsDetails, token, login);
 
     const listData = data?.data
 
@@ -944,6 +929,7 @@ function OrdersTable() {
             }}>
                 {[
                     { id: "market", label: "Market Data", icon: ShowChartIcon },
+                    { id: "analysis", label: "Analysis", icon: AutoGraphIcon },
                     { id: "positions", label: "Positions", icon: AccountBalanceWalletIcon },
                     { id: "pending", label: "Pending", icon: AccessTimeIcon },
                     { id: "history", label: "History", icon: HistoryIcon }
@@ -1024,6 +1010,7 @@ function OrdersTable() {
                     boxShadow: "none"
                 }}>
                     {activeTab === "market" && renderMarketTable()}
+                    {activeTab === "analysis" && <TechnicalAnalysisPanel />}
                     {activeTab === "positions" && renderPositionsTable()}
                     {activeTab === "pending" && renderPendingTable()}
                     {activeTab === "history" && renderHistoryTable()}
