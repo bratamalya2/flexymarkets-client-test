@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import {
     Box,
     Typography,
@@ -15,6 +15,7 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedSymbol } from "../../globalState/terminalState/terminalSlice";
 import { useQuotes } from "../../context/QuotesContext";
@@ -23,15 +24,69 @@ import { allSymbol } from "../../utils/allSymbol";
 
 
 const PRIORITY_SYMBOLS = ['XAUUSD', 'XAGUSD'];
+const SYMBOL_ORDER_STORAGE_KEY = "terminalSymbolOrder";
+
+function getSymbolKey(symbol) {
+    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
+    return rawSymbol ? String(rawSymbol).trim().toUpperCase() : "";
+}
 
 function getSymbolName(symbol) {
-    const rawSymbol = symbol?.Symbol ?? symbol?.name ?? symbol;
+    const rawSymbol = getSymbolKey(symbol);
     return rawSymbol ? String(rawSymbol).split(".")[0].toUpperCase() : "";
 }
 
 function getPriorityRank(symbol) {
     const index = PRIORITY_SYMBOLS.indexOf(getSymbolName(symbol));
     return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+}
+
+function readStoredSymbolOrder() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(SYMBOL_ORDER_STORAGE_KEY) || "{}");
+        return {
+            forex: Array.isArray(stored?.forex) ? stored.forex : [],
+            watchlist: Array.isArray(stored?.watchlist) ? stored.watchlist : [],
+        };
+    } catch {
+        return { forex: [], watchlist: [] };
+    }
+}
+
+function orderSymbols(symbols = [], orderKeys = []) {
+    const orderMap = new Map(orderKeys.map((symbol, index) => [symbol, index]));
+    const hasCustomOrder = orderKeys.length > 0;
+
+    return [...symbols].sort((a, b) => {
+        const aKey = getSymbolKey(a);
+        const bKey = getSymbolKey(b);
+        const aOrder = orderMap.get(aKey);
+        const bOrder = orderMap.get(bKey);
+
+        if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
+        if (aOrder !== undefined) return -1;
+        if (bOrder !== undefined) return 1;
+
+        if (!hasCustomOrder) {
+            const priorityDiff = getPriorityRank(a) - getPriorityRank(b);
+            if (priorityDiff !== 0) return priorityDiff;
+        }
+
+        return 0;
+    });
+}
+
+function reorderItem(list, sourceItem, targetItem) {
+    if (!sourceItem || !targetItem || sourceItem === targetItem) return list;
+
+    const nextList = [...list];
+    const sourceIndex = nextList.indexOf(sourceItem);
+    const targetIndex = nextList.indexOf(targetItem);
+    if (sourceIndex === -1 || targetIndex === -1) return list;
+
+    const [removed] = nextList.splice(sourceIndex, 1);
+    nextList.splice(targetIndex, 0, removed);
+    return nextList;
 }
 
 function LeftPanel() {
@@ -45,7 +100,11 @@ function LeftPanel() {
     const [activeTab, setActiveTab] = useState("forex");
     const [searchTerm, setSearchTerm] = useState("");
     const [symbolData, setSymbolData] = useState({});
+    const symbolDataRef = useRef({});
     const [watchlist, setWatchlist] = useState(() => (allFavSymbols || []).map(s => s?.split('.')[0]?.toUpperCase()));
+    const [symbolOrder, setSymbolOrder] = useState(readStoredSymbolOrder);
+    const [draggedSymbol, setDraggedSymbol] = useState(null);
+    const [dragOverSymbol, setDragOverSymbol] = useState(null);
 
     useEffect(() => {
         if (allFavSymbols) {
@@ -58,17 +117,18 @@ function LeftPanel() {
 
     const { selectedSymbol } = useSelector(state => state.terminal);
 
-    const handleQuoteData = (data) => {
+    const handleQuoteData = useCallback((data) => {
         if (!data || !Array.isArray(data)) return;
 
-        const newSymbolData = { ...symbolData };
-        const newPriceAnimations = { ...priceAnimations };
+        const previousSymbolData = symbolDataRef.current;
+        const newSymbolData = { ...previousSymbolData };
+        const newPriceAnimations = {};
 
         data.forEach(item => {
             if (item.Symbol) {
                 const symbol = item.Symbol;
                 const currentPrice = item.Ask || item.Bid || 0;
-                const previousData = symbolData[symbol] || {};
+                const previousData = previousSymbolData[symbol] || {};
 
                 const previousPrice = previousData.price || currentPrice;
                 const change = currentPrice - previousPrice;
@@ -102,37 +162,49 @@ function LeftPanel() {
             }
         });
 
+        symbolDataRef.current = newSymbolData;
         setSymbolData(newSymbolData);
-        setPriceAnimations(newPriceAnimations);
-    };
+        if (Object.keys(newPriceAnimations).length > 0) {
+            setPriceAnimations(prev => ({
+                ...prev,
+                ...newPriceAnimations
+            }));
+        }
+    }, []);
 
     const { quoteData } = useQuotes();
 
     useEffect(() => {
         handleQuoteData(quoteData)
-    }, [quoteData])
+    }, [handleQuoteData, quoteData])
 
-    const filteredSymbols = useMemo(() => {
+    useEffect(() => {
+        localStorage.setItem(SYMBOL_ORDER_STORAGE_KEY, JSON.stringify(symbolOrder));
+    }, [symbolOrder]);
+
+    const tabSymbols = useMemo(() => {
         const hasLiveQuotes = quoteData?.length > 0;
 
-        let symbols;
         if (activeTab === "watchlist") {
-            symbols = hasLiveQuotes
+            return hasLiveQuotes
                 ? quoteData.filter(q => watchlist?.includes(q?.Symbol?.split('.')[0]?.toUpperCase()))
                 : watchlist.map(name => ({ Symbol: name, Ask: null, Bid: null }));
-        } else {
-            // FOREX tab: live quotes when available, static list as fallback
-            symbols = hasLiveQuotes
-                ? quoteData
-                : allSymbol.map(s => ({ Symbol: s.name, Ask: null, Bid: null }));
         }
 
-        const filtered = symbols?.filter(symbol =>
-            symbol?.Symbol?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        return hasLiveQuotes
+            ? quoteData
+            : allSymbol.map(s => ({ Symbol: s.name, Ask: null, Bid: null }));
+    }, [activeTab, watchlist, quoteData]);
 
-        return filtered?.sort((a, b) => getPriorityRank(a) - getPriorityRank(b));
-    }, [activeTab, searchTerm, watchlist, quoteData]);
+    const orderedSymbols = useMemo(() => (
+        orderSymbols(tabSymbols, symbolOrder[activeTab] || [])
+    ), [activeTab, symbolOrder, tabSymbols]);
+
+    const filteredSymbols = useMemo(() => (
+        orderedSymbols?.filter(symbol =>
+            symbol?.Symbol?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) || []
+    ), [orderedSymbols, searchTerm]);
 
     const formatPrice = (price) => {
 
@@ -187,6 +259,52 @@ function LeftPanel() {
             }
         }
     };
+
+    const handleSymbolDragStart = useCallback((symbol, event) => {
+        const symbolKey = getSymbolKey(symbol);
+        if (!symbolKey) return;
+
+        setDraggedSymbol(symbolKey);
+        setDragOverSymbol(null);
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", symbolKey);
+    }, []);
+
+    const handleSymbolDragOver = useCallback((symbol, event) => {
+        const symbolKey = getSymbolKey(symbol);
+        if (!symbolKey || !draggedSymbol || symbolKey === draggedSymbol) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDragOverSymbol(symbolKey);
+    }, [draggedSymbol]);
+
+    const handleSymbolDrop = useCallback((symbol, event) => {
+        event.preventDefault();
+
+        const sourceSymbol = draggedSymbol || event.dataTransfer.getData("text/plain");
+        const targetSymbol = getSymbolKey(symbol);
+        if (!sourceSymbol || !targetSymbol || sourceSymbol === targetSymbol) {
+            setDraggedSymbol(null);
+            setDragOverSymbol(null);
+            return;
+        }
+
+        const currentTabSymbols = orderedSymbols.map(getSymbolKey).filter(Boolean);
+        const nextTabOrder = reorderItem(currentTabSymbols, sourceSymbol, targetSymbol);
+
+        setSymbolOrder((current) => ({
+            ...current,
+            [activeTab]: nextTabOrder,
+        }));
+        setDraggedSymbol(null);
+        setDragOverSymbol(null);
+    }, [activeTab, draggedSymbol, orderedSymbols]);
+
+    const handleSymbolDragEnd = useCallback(() => {
+        setDraggedSymbol(null);
+        setDragOverSymbol(null);
+    }, []);
 
     // Handle tab change with animation
     const handleTabChange = (tab) => {
@@ -436,40 +554,61 @@ function LeftPanel() {
                     <List sx={{ p: 0 }}>
                         {filteredSymbols.map((symbolItem, index) => {
                             const symbol = symbolItem?.Symbol;
+                            const symbolKey = getSymbolKey(symbol);
                             const data = symbolData[symbol] || {};
                             const isActive = selectedSymbol == symbol;
                             const isHovered = hoveredSymbol == symbol;
+                            const isDragging = draggedSymbol === symbolKey;
+                            const isDropTarget = dragOverSymbol === symbolKey;
+                            const priceAnimation = priceAnimations[symbol];
 
                             return (
                                 <ListItem
                                     key={symbol}
                                     data-symbol={symbol}
+                                    draggable
+                                    onDragStart={(event) => handleSymbolDragStart(symbol, event)}
+                                    onDragOver={(event) => handleSymbolDragOver(symbol, event)}
+                                    onDragEnter={(event) => handleSymbolDragOver(symbol, event)}
+                                    onDrop={(event) => handleSymbolDrop(symbol, event)}
+                                    onDragEnd={handleSymbolDragEnd}
                                     onMouseEnter={() => setHoveredSymbol(symbol)}
                                     onMouseLeave={() => setHoveredSymbol(null)}
                                     onClick={() => handleSymbolSelect(symbol)}
                                     sx={{
                                         padding: "12px",
                                         borderRadius: "8px",
-                                        cursor: "pointer",
+                                        cursor: isDragging ? "grabbing" : "grab",
                                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                                         background: isActive
                                             ? "linear-gradient(135deg, rgba(37, 99, 235, 0.26), rgba(29, 78, 216, 0.12))"
-                                            : isHovered
+                                            : isDropTarget
+                                                ? "rgba(96, 165, 250, 0.2)"
+                                                : isHovered
                                                 ? "rgba(37, 99, 235, 0.14)"
                                                 : "transparent",
-                                        border: isActive
+                                        border: isDropTarget
+                                            ? "1px dashed rgba(147, 197, 253, 0.85)"
+                                            : isActive
                                             ? "1px solid rgba(96, 165, 250, 0.42)"
                                             : "1px solid transparent",
                                         boxShadow: isActive
                                             ? "0 10px 24px rgba(15, 23, 42, 0.28)"
-                                            : isHovered
+                                            : isDropTarget
+                                                ? "0 0 0 3px rgba(96, 165, 250, 0.14), 0 10px 24px rgba(15, 23, 42, 0.22)"
+                                                : isHovered
                                                 ? "0 8px 18px rgba(15, 23, 42, 0.2)"
                                                 : "none",
                                         marginBottom: "8px",
-                                        transform: isHovered ? "translateX(5px)" : "translateX(0)",
+                                        transform: isDragging
+                                            ? "scale(0.98)"
+                                            : isHovered
+                                                ? "translateX(5px)"
+                                                : "translateX(0)",
                                         animation: `${index % 2 === 0 ? "fadeInLeft" : "fadeInRight"} 0.5s ease ${index * 0.05}s both`,
                                         position: "relative",
                                         overflow: "hidden",
+                                        opacity: isDragging ? 0.55 : 1,
                                         "&::before": {
                                             content: '""',
                                             position: "absolute",
@@ -486,8 +625,24 @@ function LeftPanel() {
                                         }
                                     }}
                                 >
+                                    <Box sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        mr: "8px",
+                                        color: isDragging ? "#bfdbfe" : "rgba(255,255,255,0.28)",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                            color: "#93c5fd",
+                                        },
+                                    }}>
+                                        <DragIndicatorIcon sx={{ fontSize: "18px" }} />
+                                    </Box>
+
                                     {/* Star button for watchlist */}
                                     <IconButton
+                                        draggable={false}
+                                        onMouseDown={(e) => e.stopPropagation()}
                                         onClick={(e) => toggleWatchlist(symbol, e)}
                                         sx={{
                                             position: "absolute",
@@ -551,7 +706,8 @@ function LeftPanel() {
                                                 <Typography sx={{
                                                     fontWeight: "700",
                                                     color: "green",
-                                                    fontSize: "14px"
+                                                    fontSize: "14px",
+                                                    animation: priceAnimation?.direction === "up" ? "priceUp 0.5s ease" : "none",
                                                 }}>
                                                     {formatPrice(symbolItem?.Ask)}
                                                     <TrendingUpIcon />
@@ -559,7 +715,8 @@ function LeftPanel() {
                                                 <Typography sx={{
                                                     fontWeight: "700",
                                                     color: "red",
-                                                    fontSize: "14px"
+                                                    fontSize: "14px",
+                                                    animation: priceAnimation?.direction === "down" ? "priceDown 0.5s ease" : "none",
                                                 }}>
                                                     {formatPrice(symbolItem?.Bid)}
                                                     <TrendingDownIcon />
