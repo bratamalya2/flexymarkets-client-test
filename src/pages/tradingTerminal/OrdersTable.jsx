@@ -29,7 +29,7 @@ import { useCloseOrderMutation, useCloseLimitOrderMutation, useUpdatePositionPro
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
 import { setActiveMT5AccountPositionsDetails } from "../../globalState/mt5State/mt5StateSlice";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import TechnicalAnalysisPanel from "./TechnicalAnalysisPanel";
+import AnalysisPanel from "./AnalysisPanel";
 
 
 function OrdersTable() {
@@ -1311,7 +1311,7 @@ function OrdersTable() {
                     boxShadow: "none"
                 }}>
                     {activeTab === "market" && renderMarketTable()}
-                    {activeTab === "analysis" && <TechnicalAnalysisPanel />}
+                    {activeTab === "analysis" && <AnalysisPanel />}
                     {activeTab === "positions" && renderPositionsTable()}
                     {activeTab === "pending" && renderPendingTable()}
                     {activeTab === "history" && renderHistoryTable()}
