@@ -51,6 +51,16 @@ export const tradeStateApis = createApi({
                 { type: "openOrderList", id: data?.login || "PARTIAL-LIST" },
             ],
         }),
+        updatePositionProtection: builder.mutation({
+            query: (data) => ({
+                url: `${import.meta.env.VITE_BASE_URL}/user/position/update`,
+                method: "POST",
+                body: data
+            }),
+            invalidatesTags: (_result, _error, data) => [
+                { type: "openOrderList", id: data?.login || "PARTIAL-LIST" },
+            ],
+        }),
         closedOrderList: builder.query({
             query: ({ login }) => {
                 const params = {};
@@ -131,6 +141,7 @@ export const {
     usePlaceOrderMutation,
     useCloseOrderMutation,
     useCloseLimitOrderMutation,
+    useUpdatePositionProtectionMutation,
     useLimitTradeRequestMutation,
     useClosedOrderListQuery,
     useAllBotListQuery,

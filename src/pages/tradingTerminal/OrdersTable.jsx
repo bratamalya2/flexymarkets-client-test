@@ -11,17 +11,23 @@ import {
     Button,
     TableSortLabel,
     Tooltip,
-    Skeleton
+    Skeleton,
+    TextField,
+    CircularProgress
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AutoGraphIcon from "@mui/icons-material/AutoGraph";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 import { useQuotes } from "../../context/QuotesContext";
 import useDynamicQuery from "../../hooks/useDynamicQuery";
 import { useDispatch, useSelector } from "react-redux";
-import { useCloseOrderMutation, useCloseLimitOrderMutation } from "../../globalState/trade/tradeApis";
+import { useCloseOrderMutation, useCloseLimitOrderMutation, useUpdatePositionProtectionMutation } from "../../globalState/trade/tradeApis";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
+import { setActiveMT5AccountPositionsDetails } from "../../globalState/mt5State/mt5StateSlice";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TechnicalAnalysisPanel from "./TechnicalAnalysisPanel";
 
@@ -33,6 +39,7 @@ function OrdersTable() {
     const [currentTime, setCurrentTime] = useState('');
     const [timeAnimation, setTimeAnimation] = useState('none');
     const [historySort, setHistorySort] = useState({ key: null, direction: "asc" });
+    const [editingProtection, setEditingProtection] = useState(null);
 
     const { quoteData } = useQuotes();
 
@@ -59,6 +66,7 @@ function OrdersTable() {
 
     const [closeOrder, { isLoading: closeOrderLoading }] = useCloseOrderMutation()
     const [closeLimitOrder, { isLoading: closeLimitOrderLoading }] = useCloseLimitOrderMutation()
+    const [updatePositionProtection, { isLoading: updatePositionProtectionLoading }] = useUpdatePositionProtectionMutation()
 
     const historyHeaderCellSx = {
         color: "#4CAF50",
@@ -66,6 +74,26 @@ function OrdersTable() {
         fontSize: "11px",
         borderBottom: "none",
         padding: "12px 8px"
+    };
+
+    const protectionInputSx = {
+        width: "118px",
+        "& .MuiInputBase-root": {
+            height: "34px",
+            color: "white",
+            background: "rgba(5, 10, 18, 0.7)",
+            borderRadius: "8px",
+            border: "1px solid rgba(76, 175, 80, 0.25)"
+        },
+        "& input": {
+            color: "white",
+            fontSize: "12px",
+            fontWeight: 700,
+            padding: "7px 8px"
+        },
+        "& fieldset": {
+            border: "none"
+        }
     };
 
     const getSortableNumber = (value) => {
@@ -76,6 +104,94 @@ function OrdersTable() {
     const formatOptionalPrice = (value) => {
         const parsed = Number(String(value ?? "").replace(/,/g, ""));
         return Number.isFinite(parsed) && parsed > 0 ? value : "Not set";
+    };
+
+    const getPositionTicket = (position) => (
+        position?.Position ?? position?.PositionID ?? position?.Ticket
+    );
+
+    const getEditablePriceValue = (value) => {
+        const parsed = Number(String(value ?? "").replace(/,/g, ""));
+        return Number.isFinite(parsed) && parsed > 0 ? String(value) : "";
+    };
+
+    const getPositionPriceStep = (position) => {
+        const digits = Number.parseInt(position?.Digits, 10);
+        if (!Number.isFinite(digits) || digits <= 0) return 0.01;
+        return Number(`0.${"0".repeat(Math.max(digits - 1, 0))}1`);
+    };
+
+    const parseProtectionPrice = (value, label) => {
+        if (value === "" || value === null || value === undefined) return 0;
+
+        const parsed = Number(String(value).replace(/,/g, ""));
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            throw new Error(`${label} must be a valid non-negative number.`);
+        }
+
+        return parsed;
+    };
+
+    const buildNumericPayloadValue = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : value;
+    };
+
+    const handleEditProtection = (position) => {
+        setEditingProtection({
+            position: String(getPositionTicket(position)),
+            priceTp: getEditablePriceValue(position?.PriceTP),
+            priceSl: getEditablePriceValue(position?.PriceSL)
+        });
+    };
+
+    const handleProtectionInputChange = (field, value) => {
+        setEditingProtection((current) => ({
+            ...(current || {}),
+            [field]: value
+        }));
+    };
+
+    const updateLocalPositionProtection = (positionTicket, priceTp, priceSl) => {
+        if (!Array.isArray(activeMT5AccountPositionsDetails)) return;
+
+        const nextPositions = activeMT5AccountPositionsDetails.map((position) => {
+            if (String(getPositionTicket(position)) !== String(positionTicket)) return position;
+
+            return {
+                ...position,
+                PriceTP: String(priceTp),
+                PriceSL: String(priceSl)
+            };
+        });
+
+        dispatch(setActiveMT5AccountPositionsDetails(nextPositions));
+    };
+
+    const handleSaveProtection = async (position) => {
+        const positionTicket = getPositionTicket(position);
+
+        try {
+            const priceTp = parseProtectionPrice(editingProtection?.priceTp, "TP");
+            const priceSl = parseProtectionPrice(editingProtection?.priceSl, "SL");
+
+            const payload = {
+                login: buildNumericPayloadValue(position?.Login ?? login),
+                position: buildNumericPayloadValue(positionTicket),
+                priceTp,
+                priceSl
+            };
+
+            const response = await updatePositionProtection(payload).unwrap();
+            if (response?.status) {
+                updateLocalPositionProtection(positionTicket, priceTp, priceSl);
+                setEditingProtection(null);
+                dispatch(setNotification({ open: true, message: response?.message || "Position TP/SL updated.", severity: "success" }));
+            }
+        } catch (error) {
+            const message = error?.data?.message || error?.message || "Failed to update TP/SL. Please try again later.";
+            dispatch(setNotification({ open: true, message, severity: "error" }));
+        }
     };
 
     const getHistorySortValue = (trade, key) => {
@@ -379,7 +495,8 @@ function OrdersTable() {
                 ) : (
                     activeMT5AccountPositionsDetails?.map((pos, index) => {
 
-                        const isHovered = hoveredRow === pos.Position;
+                        const positionTicket = getPositionTicket(pos);
+                        const isHovered = hoveredRow === positionTicket;
 
                         const handleCloseOrder = async (data) => {
                             const positionAction = data?.Action ?? data?.Type;
@@ -390,7 +507,7 @@ function OrdersTable() {
                                 typeFill: "1",
                                 type: (positionAction === 1 || positionAction === "1") ? "0" : "1",
                                 login: data?.Login,
-                                position: data?.Position,
+                                position: getPositionTicket(data),
                                 priceOrder: data?.PriceCurrent,
                                 digits: data?.Digits || 2
                             }
@@ -411,11 +528,13 @@ function OrdersTable() {
 
                         const positionAction = pos.Action ?? pos.Type;
                         const isSell = positionAction == 1 || positionAction == "1";
+                        const isEditingProtection = editingProtection?.position === String(positionTicket);
+                        const positionPriceStep = getPositionPriceStep(pos);
 
                         return (
                             <TableRow
-                                key={pos.Position}
-                                onMouseEnter={() => setHoveredRow(pos.Position)}
+                                key={positionTicket}
+                                onMouseEnter={() => setHoveredRow(positionTicket)}
                                 onMouseLeave={() => setHoveredRow(null)}
                                 sx={{
                                     background: isHovered
@@ -471,7 +590,19 @@ function OrdersTable() {
                                     borderBottom: "none",
                                     padding: "12px 8px"
                                 }}>
-                                    {formatOptionalPrice(pos.PriceTP)}
+                                    {isEditingProtection ? (
+                                        <TextField
+                                            type="number"
+                                            size="small"
+                                            value={editingProtection?.priceTp ?? ""}
+                                            onChange={(event) => handleProtectionInputChange("priceTp", event.target.value)}
+                                            placeholder="Not set"
+                                            inputProps={{ step: positionPriceStep, min: 0 }}
+                                            sx={protectionInputSx}
+                                        />
+                                    ) : (
+                                        formatOptionalPrice(pos.PriceTP)
+                                    )}
                                 </TableCell>
                                 <TableCell sx={{
                                     color: "#f44336",
@@ -480,7 +611,19 @@ function OrdersTable() {
                                     borderBottom: "none",
                                     padding: "12px 8px"
                                 }}>
-                                    {formatOptionalPrice(pos.PriceSL)}
+                                    {isEditingProtection ? (
+                                        <TextField
+                                            type="number"
+                                            size="small"
+                                            value={editingProtection?.priceSl ?? ""}
+                                            onChange={(event) => handleProtectionInputChange("priceSl", event.target.value)}
+                                            placeholder="Not set"
+                                            inputProps={{ step: positionPriceStep, min: 0 }}
+                                            sx={protectionInputSx}
+                                        />
+                                    ) : (
+                                        formatOptionalPrice(pos.PriceSL)
+                                    )}
                                 </TableCell>
                                 <TableCell sx={{
                                     fontSize: "13px",
@@ -514,29 +657,98 @@ function OrdersTable() {
                                     </Box>
                                 </TableCell>
                                 <TableCell sx={{ borderBottom: "none", padding: "12px 8px" }}>
-                                    <Button
-                                        onClick={() => handleCloseOrder(pos)}
-                                        disabled={closeOrderLoading}
-                                        sx={{
-                                            background: "linear-gradient(135deg, #f44336, #c62828)",
-                                            color: "white",
-                                            padding: "6px 12px",
-                                            fontSize: "11px",
-                                            fontWeight: 700,
-                                            borderRadius: "6px",
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.5px",
-                                            transition: "all 0.3s",
-                                            animation: "pulseRed 2s infinite",
-                                            "&:hover": {
-                                                background: "linear-gradient(135deg, #c62828, #f44336)",
-                                                transform: "scale(1.05)",
-                                                boxShadow: "0 4px 15px rgba(244, 67, 54, 0.4)"
-                                            }
-                                        }}
-                                    >
-                                        Close
-                                    </Button>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                        {isEditingProtection ? (
+                                            <>
+                                                <Button
+                                                    onClick={() => handleSaveProtection(pos)}
+                                                    disabled={updatePositionProtectionLoading}
+                                                    startIcon={updatePositionProtectionLoading ? <CircularProgress size={12} color="inherit" /> : <SaveIcon sx={{ fontSize: 14 }} />}
+                                                    sx={{
+                                                        background: "linear-gradient(135deg, #16a085, #0f7a64)",
+                                                        color: "white",
+                                                        padding: "6px 10px",
+                                                        fontSize: "10px",
+                                                        fontWeight: 800,
+                                                        borderRadius: "6px",
+                                                        textTransform: "uppercase",
+                                                        minWidth: "72px",
+                                                        "&:hover": {
+                                                            background: "linear-gradient(135deg, #0f7a64, #16a085)",
+                                                            boxShadow: "0 4px 15px rgba(22, 160, 133, 0.35)"
+                                                        }
+                                                    }}
+                                                >
+                                                    Save
+                                                </Button>
+                                                <Button
+                                                    onClick={() => setEditingProtection(null)}
+                                                    disabled={updatePositionProtectionLoading}
+                                                    startIcon={<CloseIcon sx={{ fontSize: 14 }} />}
+                                                    sx={{
+                                                        background: "rgba(156, 163, 175, 0.12)",
+                                                        color: "#d1d5db",
+                                                        border: "1px solid rgba(156, 163, 175, 0.25)",
+                                                        padding: "6px 10px",
+                                                        fontSize: "10px",
+                                                        fontWeight: 800,
+                                                        borderRadius: "6px",
+                                                        textTransform: "uppercase",
+                                                        minWidth: "78px",
+                                                        "&:hover": {
+                                                            background: "rgba(156, 163, 175, 0.2)"
+                                                        }
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                onClick={() => handleEditProtection(pos)}
+                                                startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                                                sx={{
+                                                    background: "linear-gradient(135deg, rgba(31, 122, 224, 0.95), rgba(25, 92, 168, 0.95))",
+                                                    color: "white",
+                                                    padding: "6px 10px",
+                                                    fontSize: "10px",
+                                                    fontWeight: 800,
+                                                    borderRadius: "6px",
+                                                    textTransform: "uppercase",
+                                                    minWidth: "92px",
+                                                    "&:hover": {
+                                                        background: "linear-gradient(135deg, rgba(25, 92, 168, 0.95), rgba(31, 122, 224, 0.95))",
+                                                        boxShadow: "0 4px 15px rgba(31, 122, 224, 0.35)"
+                                                    }
+                                                }}
+                                            >
+                                                Set TP/SL
+                                            </Button>
+                                        )}
+                                        <Button
+                                            onClick={() => handleCloseOrder(pos)}
+                                            disabled={closeOrderLoading || updatePositionProtectionLoading}
+                                            sx={{
+                                                background: "linear-gradient(135deg, #f44336, #c62828)",
+                                                color: "white",
+                                                padding: "6px 12px",
+                                                fontSize: "11px",
+                                                fontWeight: 700,
+                                                borderRadius: "6px",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.5px",
+                                                transition: "all 0.3s",
+                                                animation: "pulseRed 2s infinite",
+                                                "&:hover": {
+                                                    background: "linear-gradient(135deg, #c62828, #f44336)",
+                                                    transform: "scale(1.05)",
+                                                    boxShadow: "0 4px 15px rgba(244, 67, 54, 0.4)"
+                                                }
+                                            }}
+                                        >
+                                            Close
+                                        </Button>
+                                    </Box>
                                 </TableCell>
                             </TableRow>
                         );
