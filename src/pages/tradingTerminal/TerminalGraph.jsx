@@ -168,6 +168,7 @@ function getPositionEntryPrice(position) {
 const DRAWING_STORAGE_PREFIX = "terminalChartDrawings";
 const DRAWING_TOOLS = [
     { id: "select", label: "Move" },
+    { id: "pencil", label: "Pencil" },
     { id: "trendline", label: "Line" },
     { id: "horizontal", label: "H-Line" },
     { id: "rectangle", label: "Box" },
@@ -183,6 +184,13 @@ function getPointDistance(start, end) {
     const dx = (end.x ?? 0) - (start.x ?? 0);
     const dy = (end.y ?? 0) - (start.y ?? 0);
     return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getPolylineScreenDistance(points = []) {
+    return points.reduce((total, point, index) => {
+        if (index === 0) return total;
+        return total + getPointDistance(points[index - 1], point);
+    }, 0);
 }
 
 function colorWithAlpha(color, alpha) {
@@ -348,7 +356,7 @@ function TerminalGraph() {
         setDraftDrawing({
             id: createDrawingId(),
             type: activeDrawingTool,
-            points: [point, point],
+            points: activeDrawingTool === "pencil" ? [point] : [point, point],
             color: drawingColor,
         });
     }, [activeDrawingTool, chartReady, drawingColor, getChartPointFromPointer]);
@@ -360,7 +368,12 @@ function TerminalGraph() {
 
         event.preventDefault();
         setDraftDrawing((current) => current
-            ? { ...current, points: [current.points[0], point] }
+            ? {
+                ...current,
+                points: current.type === "pencil"
+                    ? [...current.points, point]
+                    : [current.points[0], point],
+            }
             : current
         );
     }, [draftDrawing, getChartPointFromPointer]);
@@ -369,13 +382,22 @@ function TerminalGraph() {
         if (!draftDrawing) return;
         const endPoint = getChartPointFromPointer(event);
         const nextDrawing = endPoint
-            ? { ...draftDrawing, points: [draftDrawing.points[0], endPoint] }
+            ? {
+                ...draftDrawing,
+                points: draftDrawing.type === "pencil"
+                    ? [...draftDrawing.points, endPoint]
+                    : [draftDrawing.points[0], endPoint],
+            }
             : draftDrawing;
 
         event.preventDefault();
         event.currentTarget.releasePointerCapture?.(event.pointerId);
 
-        if (getPointDistance(nextDrawing.points[0], nextDrawing.points[1]) > 8) {
+        const drawingDistance = nextDrawing.type === "pencil"
+            ? getPolylineScreenDistance(nextDrawing.points)
+            : getPointDistance(nextDrawing.points[0], nextDrawing.points[1]);
+
+        if (drawingDistance > 8) {
             setDrawings((current) => [...current, nextDrawing]);
         }
         setDraftDrawing(null);
@@ -798,6 +820,14 @@ function TerminalGraph() {
                     return { ...base, start, end };
                 }
 
+                if (drawing.type === "pencil") {
+                    const points = (drawing.points || [])
+                        .map((point) => getDrawingPointCoordinates(point))
+                        .filter(Boolean);
+                    if (points.length < 2) return null;
+                    return { ...base, points };
+                }
+
                 return null;
             })
             .filter(Boolean);
@@ -1013,6 +1043,21 @@ function TerminalGraph() {
                                     stroke={stroke}
                                     strokeWidth="2.4"
                                     strokeLinecap="round"
+                                    strokeDasharray={dash}
+                                />
+                            );
+                        }
+
+                        if (drawing.type === "pencil") {
+                            return (
+                                <polyline
+                                    key={drawing.id}
+                                    points={drawing.points.map((point) => `${point.x},${point.y}`).join(" ")}
+                                    fill="none"
+                                    stroke={stroke}
+                                    strokeWidth="2.2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                     strokeDasharray={dash}
                                 />
                             );
