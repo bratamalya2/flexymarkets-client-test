@@ -118,14 +118,6 @@ function RightPanel() {
     return numericLeverage ? `1:${numericLeverage}` : String(leverage);
   };
 
-  const calculateDrawdown = () => {
-    const balance = parseNumber(activeMT5AccountDetails?.Balance);
-    const equity = parseNumber(activeMT5AccountDetails?.Equity);
-
-    if (!balance) return "0.00%";
-    return `${Math.max(((balance - equity) / balance) * 100, 0).toFixed(2)}%`;
-  };
-
   const { baseCurrency, quoteCurrency } = getSymbolCurrencies();
   const spreadInPips = calculateSpread();
 
@@ -135,7 +127,6 @@ function RightPanel() {
     { label: "Pip", value: formatPipSize() },
     { label: "Spread", value: spreadInPips === "-" ? "-" : `${spreadInPips} pips` },
     { label: "Leverage", value: formatLeverage() },
-    { label: "Drawdown", value: calculateDrawdown() },
   ];
 
   useEffect(() => {
