@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useSelector } from 'react-redux';
 import { createChart, CandlestickSeries, LineStyle } from 'lightweight-charts';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { useQuotes } from '../../context/QuotesContext';
 
 const TIMEFRAMES = [
@@ -165,6 +165,36 @@ function getPositionEntryPrice(position) {
     return parseFiniteNumber(position?.PriceOpen ?? position?.PriceOrder ?? position?.PriceCurrent);
 }
 
+const DRAWING_STORAGE_PREFIX = "terminalChartDrawings";
+const DRAWING_TOOLS = [
+    { id: "select", label: "Move" },
+    { id: "trendline", label: "Line" },
+    { id: "horizontal", label: "H-Line" },
+    { id: "rectangle", label: "Box" },
+    { id: "text", label: "Text" },
+];
+
+function createDrawingId() {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getPointDistance(start, end) {
+    if (!start || !end) return 0;
+    const dx = (end.x ?? 0) - (start.x ?? 0);
+    const dy = (end.y ?? 0) - (start.y ?? 0);
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function colorWithAlpha(color, alpha) {
+    const hex = String(color || "").replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(hex)) return `rgba(31, 122, 224, ${alpha})`;
+
+    const red = parseInt(hex.slice(0, 2), 16);
+    const green = parseInt(hex.slice(2, 4), 16);
+    const blue = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 function TerminalGraph() {
     const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
     const { activeMT5AccountPositionsDetails } = useSelector(state => state.mt5);
@@ -191,12 +221,15 @@ function TerminalGraph() {
     const hasChartSymbol = Boolean(chartSymbol);
 
     const containerRef = useRef(null);
+    const drawingOverlayRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
     const entryPriceLinesRef = useRef([]);
     const currentCandleRef = useRef(null);
     const abortRef = useRef(null);
     const requestIdRef = useRef(0);
+    const loadedDrawingKeyRef = useRef(null);
+    const skipNextDrawingPersistRef = useRef(false);
     const chartSettingsRef = useRef(visualChartSettings);
     chartSettingsRef.current = visualChartSettings;
 
@@ -205,6 +238,15 @@ function TerminalGraph() {
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [chartReady, setChartReady] = useState(false);
+    const [activeDrawingTool, setActiveDrawingTool] = useState("select");
+    const [drawingColor, setDrawingColor] = useState("#1f7ae0");
+    const [drawings, setDrawings] = useState([]);
+    const [draftDrawing, setDraftDrawing] = useState(null);
+    const [drawingRenderVersion, setDrawingRenderVersion] = useState(0);
+    const drawingStorageKey = useMemo(
+        () => chartSymbol ? `${DRAWING_STORAGE_PREFIX}:${chartSymbol}` : null,
+        [chartSymbol]
+    );
 
     const removeEntryPriceLines = useCallback((series = seriesRef.current) => {
         if (!series) {
@@ -221,6 +263,123 @@ function TerminalGraph() {
         });
         entryPriceLinesRef.current = [];
     }, []);
+
+    const getChartPointFromPointer = useCallback((event) => {
+        const overlay = drawingOverlayRef.current;
+        const chart = chartRef.current;
+        const series = seriesRef.current;
+        if (!overlay || !chart || !series) return null;
+
+        const rect = overlay.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = series.coordinateToPrice(y);
+
+        if (time === null || time === undefined || price === null || price === undefined || !Number.isFinite(Number(price))) {
+            return null;
+        }
+
+        return { time, price: Number(price), x, y };
+    }, []);
+
+    const getDrawingPointCoordinates = useCallback((point) => {
+        const chart = chartRef.current;
+        const series = seriesRef.current;
+        if (!point || !chart || !series) return null;
+
+        const x = chart.timeScale().timeToCoordinate(point.time);
+        const y = series.priceToCoordinate(point.price);
+        if (x === null || x === undefined || y === null || y === undefined) return null;
+
+        return { x, y };
+    }, []);
+
+    const handleUndoDrawing = useCallback(() => {
+        setDraftDrawing(null);
+        setDrawings((current) => current.slice(0, -1));
+    }, []);
+
+    const handleClearDrawings = useCallback(() => {
+        setDraftDrawing(null);
+        setDrawings([]);
+    }, []);
+
+    const handleDrawingPointerDown = useCallback((event) => {
+        if (activeDrawingTool === "select" || !chartReady) return;
+
+        const point = getChartPointFromPointer(event);
+        if (!point) return;
+
+        event.preventDefault();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+
+        if (activeDrawingTool === "horizontal") {
+            setDrawings((current) => [
+                ...current,
+                {
+                    id: createDrawingId(),
+                    type: "horizontal",
+                    price: point.price,
+                    color: drawingColor,
+                },
+            ]);
+            return;
+        }
+
+        if (activeDrawingTool === "text") {
+            const text = window.prompt("Add chart note");
+            const note = String(text || "").trim();
+            if (!note) return;
+
+            setDrawings((current) => [
+                ...current,
+                {
+                    id: createDrawingId(),
+                    type: "text",
+                    point,
+                    text: note,
+                    color: drawingColor,
+                },
+            ]);
+            return;
+        }
+
+        setDraftDrawing({
+            id: createDrawingId(),
+            type: activeDrawingTool,
+            points: [point, point],
+            color: drawingColor,
+        });
+    }, [activeDrawingTool, chartReady, drawingColor, getChartPointFromPointer]);
+
+    const handleDrawingPointerMove = useCallback((event) => {
+        if (!draftDrawing) return;
+        const point = getChartPointFromPointer(event);
+        if (!point) return;
+
+        event.preventDefault();
+        setDraftDrawing((current) => current
+            ? { ...current, points: [current.points[0], point] }
+            : current
+        );
+    }, [draftDrawing, getChartPointFromPointer]);
+
+    const handleDrawingPointerUp = useCallback((event) => {
+        if (!draftDrawing) return;
+        const endPoint = getChartPointFromPointer(event);
+        const nextDrawing = endPoint
+            ? { ...draftDrawing, points: [draftDrawing.points[0], endPoint] }
+            : draftDrawing;
+
+        event.preventDefault();
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+
+        if (getPointDistance(nextDrawing.points[0], nextDrawing.points[1]) > 8) {
+            setDrawings((current) => [...current, nextDrawing]);
+        }
+        setDraftDrawing(null);
+    }, [draftDrawing, getChartPointFromPointer]);
 
     // Create one stable chart instance once the real chart container is rendered.
     // Symbol changes only replace the series data; recreating the chart can race
@@ -274,6 +433,7 @@ function TerminalGraph() {
                 const resizeChart = (nextWidth, nextHeight) => {
                     if (nextWidth > 0 && nextHeight > 0) {
                         chart.resize(nextWidth, nextHeight);
+                        setDrawingRenderVersion((value) => value + 1);
                     }
                 };
 
@@ -364,6 +524,55 @@ function TerminalGraph() {
             entryPriceLinesRef.current = entryPriceLinesRef.current.filter((priceLine) => !nextLines.includes(priceLine));
         };
     }, [activeMT5AccountPositionsDetails, chartReady, chartSymbol, removeEntryPriceLines]);
+
+    useEffect(() => {
+        if (!drawingStorageKey) {
+            loadedDrawingKeyRef.current = null;
+            skipNextDrawingPersistRef.current = true;
+            setDrawings([]);
+            setDraftDrawing(null);
+            return;
+        }
+
+        let parsedDrawings = [];
+        try {
+            parsedDrawings = JSON.parse(localStorage.getItem(drawingStorageKey) || "[]");
+        } catch {
+            parsedDrawings = [];
+        }
+
+        loadedDrawingKeyRef.current = drawingStorageKey;
+        skipNextDrawingPersistRef.current = true;
+        setDrawings(Array.isArray(parsedDrawings) ? parsedDrawings : []);
+        setDraftDrawing(null);
+    }, [drawingStorageKey]);
+
+    useEffect(() => {
+        if (!drawingStorageKey || loadedDrawingKeyRef.current !== drawingStorageKey) return;
+
+        if (skipNextDrawingPersistRef.current) {
+            skipNextDrawingPersistRef.current = false;
+            return;
+        }
+
+        localStorage.setItem(drawingStorageKey, JSON.stringify(drawings));
+    }, [drawingStorageKey, drawings]);
+
+    useEffect(() => {
+        if (!chartReady || !chartRef.current) return undefined;
+
+        const chart = chartRef.current;
+        const timeScale = chart.timeScale();
+        const redraw = () => setDrawingRenderVersion((value) => value + 1);
+
+        timeScale.subscribeVisibleTimeRangeChange?.(redraw);
+        timeScale.subscribeVisibleLogicalRangeChange?.(redraw);
+
+        return () => {
+            timeScale.unsubscribeVisibleTimeRangeChange?.(redraw);
+            timeScale.unsubscribeVisibleLogicalRangeChange?.(redraw);
+        };
+    }, [chartReady]);
 
     useEffect(() => {
         if (!hasChartSymbol || chartReady || error) return;
@@ -559,6 +768,41 @@ function TerminalGraph() {
         }
     }, [quoteData, chartSymbol, activeTimeframe.candleSec]);
 
+    const renderedDrawings = useMemo(() => {
+        if (!chartReady || drawingRenderVersion < 0) return [];
+
+        const allDrawings = draftDrawing ? [...drawings, draftDrawing] : drawings;
+        return allDrawings
+            .map((drawing) => {
+                const base = {
+                    ...drawing,
+                    isDraft: draftDrawing?.id === drawing.id,
+                };
+
+                if (drawing.type === "horizontal") {
+                    const y = seriesRef.current?.priceToCoordinate(drawing.price);
+                    if (y === null || y === undefined) return null;
+                    return { ...base, y };
+                }
+
+                if (drawing.type === "text") {
+                    const point = getDrawingPointCoordinates(drawing.point);
+                    if (!point) return null;
+                    return { ...base, point };
+                }
+
+                if (drawing.type === "trendline" || drawing.type === "rectangle") {
+                    const start = getDrawingPointCoordinates(drawing.points?.[0]);
+                    const end = getDrawingPointCoordinates(drawing.points?.[1]);
+                    if (!start || !end) return null;
+                    return { ...base, start, end };
+                }
+
+                return null;
+            })
+            .filter(Boolean);
+    }, [chartReady, drawings, draftDrawing, drawingRenderVersion, getDrawingPointCoordinates]);
+
     if (!chartSymbol) {
         return (
             <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: visualChartSettings.backgroundColor || '#ffffff' }}>
@@ -605,11 +849,224 @@ function TerminalGraph() {
                         {tf.label}
                     </Box>
                 ))}
+                <Box sx={{
+                    width: "1px",
+                    height: "20px",
+                    background: "#dfe7f1",
+                    mx: "6px",
+                }} />
+                {DRAWING_TOOLS.map((tool) => (
+                    <Tooltip key={tool.id} title={tool.id === "select" ? "Use chart normally" : `Draw ${tool.label}`}>
+                        <Box
+                            onClick={() => {
+                                setDraftDrawing(null);
+                                setActiveDrawingTool(tool.id);
+                            }}
+                            sx={{
+                                padding: "3px 9px",
+                                borderRadius: "999px",
+                                cursor: "pointer",
+                                fontSize: "11px",
+                                fontWeight: 800,
+                                userSelect: "none",
+                                color: activeDrawingTool === tool.id ? "#fff" : "#44546a",
+                                background: activeDrawingTool === tool.id
+                                    ? "linear-gradient(135deg, #0f766e, #1f7ae0)"
+                                    : "#f4f7fb",
+                                border: `1px solid ${activeDrawingTool === tool.id ? "#0f766e" : "#dfe7f1"}`,
+                                boxShadow: activeDrawingTool === tool.id ? "0 6px 14px rgba(31,122,224,0.18)" : "none",
+                                transition: "all 0.15s",
+                                "&:hover": {
+                                    borderColor: "#1f7ae0",
+                                    color: activeDrawingTool === tool.id ? "#fff" : "#1f7ae0",
+                                },
+                            }}
+                        >
+                            {tool.label}
+                        </Box>
+                    </Tooltip>
+                ))}
+                <Tooltip title="Drawing color">
+                    <Box
+                        component="input"
+                        type="color"
+                        value={drawingColor}
+                        onChange={(event) => setDrawingColor(event.target.value)}
+                        sx={{
+                            width: "24px",
+                            height: "24px",
+                            border: "1px solid #dfe7f1",
+                            borderRadius: "8px",
+                            p: "2px",
+                            cursor: "pointer",
+                            background: "#fff",
+                        }}
+                    />
+                </Tooltip>
+                <Tooltip title="Undo last drawing">
+                    <Box
+                        onClick={handleUndoDrawing}
+                        sx={{
+                            padding: "3px 9px",
+                            borderRadius: "999px",
+                            cursor: drawings.length ? "pointer" : "not-allowed",
+                            fontSize: "11px",
+                            fontWeight: 800,
+                            color: drawings.length ? "#667085" : "#a8b2c1",
+                            background: "#f4f7fb",
+                            border: "1px solid #dfe7f1",
+                            opacity: drawings.length ? 1 : 0.55,
+                            "&:hover": drawings.length ? { color: "#1f7ae0", borderColor: "#1f7ae0" } : {},
+                        }}
+                    >
+                        Undo
+                    </Box>
+                </Tooltip>
+                <Tooltip title="Clear all drawings for this symbol">
+                    <Box
+                        onClick={handleClearDrawings}
+                        sx={{
+                            padding: "3px 9px",
+                            borderRadius: "999px",
+                            cursor: drawings.length ? "pointer" : "not-allowed",
+                            fontSize: "11px",
+                            fontWeight: 800,
+                            color: drawings.length ? "#ef334e" : "#a8b2c1",
+                            background: drawings.length ? "rgba(239,51,78,0.06)" : "#f4f7fb",
+                            border: `1px solid ${drawings.length ? "rgba(239,51,78,0.22)" : "#dfe7f1"}`,
+                            opacity: drawings.length ? 1 : 0.55,
+                            "&:hover": drawings.length ? { background: "rgba(239,51,78,0.1)" } : {},
+                        }}
+                    >
+                        Clear
+                    </Box>
+                </Tooltip>
             </Box>
 
             {/* Chart area */}
             <Box sx={{ flex: 1, position: 'relative', minHeight: 0, width: '100%', height: '100%' }}>
                 <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }} />
+                <Box
+                    ref={drawingOverlayRef}
+                    onPointerDown={handleDrawingPointerDown}
+                    onPointerMove={handleDrawingPointerMove}
+                    onPointerUp={handleDrawingPointerUp}
+                    onPointerCancel={() => setDraftDrawing(null)}
+                    sx={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: 2,
+                        cursor: activeDrawingTool === "select" ? "default" : "crosshair",
+                        pointerEvents: activeDrawingTool === "select" ? "none" : "auto",
+                        touchAction: activeDrawingTool === "select" ? "auto" : "none",
+                    }}
+                />
+                <svg
+                    aria-hidden="true"
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        zIndex: 3,
+                        overflow: "hidden",
+                        pointerEvents: "none",
+                    }}
+                >
+                    {renderedDrawings.map((drawing) => {
+                        const stroke = drawing.color || "#1f7ae0";
+                        const dash = drawing.isDraft ? "7 5" : undefined;
+
+                        if (drawing.type === "horizontal") {
+                            return (
+                                <g key={drawing.id}>
+                                    <line
+                                        x1="0"
+                                        x2="100%"
+                                        y1={drawing.y}
+                                        y2={drawing.y}
+                                        stroke={stroke}
+                                        strokeWidth="2"
+                                        strokeDasharray={dash}
+                                    />
+                                    <text
+                                        x="10"
+                                        y={drawing.y - 6}
+                                        fill={stroke}
+                                        fontSize="11"
+                                        fontWeight="700"
+                                    >
+                                        {Number(drawing.price).toFixed(2)}
+                                    </text>
+                                </g>
+                            );
+                        }
+
+                        if (drawing.type === "trendline") {
+                            return (
+                                <line
+                                    key={drawing.id}
+                                    x1={drawing.start.x}
+                                    y1={drawing.start.y}
+                                    x2={drawing.end.x}
+                                    y2={drawing.end.y}
+                                    stroke={stroke}
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeDasharray={dash}
+                                />
+                            );
+                        }
+
+                        if (drawing.type === "rectangle") {
+                            const x = Math.min(drawing.start.x, drawing.end.x);
+                            const y = Math.min(drawing.start.y, drawing.end.y);
+                            const width = Math.abs(drawing.end.x - drawing.start.x);
+                            const height = Math.abs(drawing.end.y - drawing.start.y);
+                            return (
+                                <rect
+                                    key={drawing.id}
+                                    x={x}
+                                    y={y}
+                                    width={width}
+                                    height={height}
+                                    rx="4"
+                                    fill={colorWithAlpha(stroke, 0.12)}
+                                    stroke={stroke}
+                                    strokeWidth="2"
+                                    strokeDasharray={dash}
+                                />
+                            );
+                        }
+
+                        if (drawing.type === "text") {
+                            return (
+                                <g key={drawing.id}>
+                                    <rect
+                                        x={drawing.point.x - 6}
+                                        y={drawing.point.y - 18}
+                                        width={Math.max(42, String(drawing.text).length * 7 + 14)}
+                                        height="24"
+                                        rx="7"
+                                        fill={colorWithAlpha(stroke, 0.12)}
+                                        stroke={colorWithAlpha(stroke, 0.28)}
+                                    />
+                                    <text
+                                        x={drawing.point.x}
+                                        y={drawing.point.y - 2}
+                                        fill={stroke}
+                                        fontSize="12"
+                                        fontWeight="800"
+                                    >
+                                        {drawing.text}
+                                    </text>
+                                </g>
+                            );
+                        }
+
+                        return null;
+                    })}
+                </svg>
 
                 {(loading || isInitializing) && (
                     <Box sx={{
