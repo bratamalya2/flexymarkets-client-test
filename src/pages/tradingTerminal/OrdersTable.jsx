@@ -110,9 +110,88 @@ function OrdersTable() {
         position?.Position ?? position?.PositionID ?? position?.Ticket
     );
 
-    const getEditablePriceValue = (value) => {
+    const getRawSymbolName = (symbol) => {
+        const rawSymbol = symbol?.groupedSym ?? symbol?.Symbol ?? symbol?.name ?? symbol;
+        return rawSymbol ? String(rawSymbol).trim() : "";
+    };
+
+    const getBaseSymbolName = (symbol) => {
+        const rawSymbol = getRawSymbolName(symbol);
+        return rawSymbol ? rawSymbol.split(".")[0].toUpperCase() : "";
+    };
+
+    const parseFiniteNumber = (value) => {
         const parsed = Number(String(value ?? "").replace(/,/g, ""));
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const getIsSellPosition = (position) => {
+        const positionAction = position?.Action ?? position?.Type;
+        return positionAction == 1 || positionAction == "1";
+    };
+
+    const getEditablePriceValue = (value) => {
+        const parsed = parseFiniteNumber(value);
         return Number.isFinite(parsed) && parsed > 0 ? String(value) : "";
+    };
+
+    const getLiveQuoteForPosition = (position) => {
+        const positionSymbol = getBaseSymbolName(position?.Symbol);
+        if (!positionSymbol || !Array.isArray(quoteData)) return null;
+
+        return quoteData.find((quote) => getBaseSymbolName(quote) === positionSymbol) || null;
+    };
+
+    const getPositionCurrentPrice = (position) => {
+        const positionCurrent = parseFiniteNumber(position?.PriceCurrent);
+        if (positionCurrent && positionCurrent > 0) return positionCurrent;
+
+        const liveQuote = getLiveQuoteForPosition(position);
+        const bid = parseFiniteNumber(liveQuote?.Bid);
+        const ask = parseFiniteNumber(liveQuote?.Ask);
+
+        if (getIsSellPosition(position)) return ask || bid || null;
+        return bid || ask || null;
+    };
+
+    const formatCurrentPriceForInput = (position) => {
+        const currentPrice = getPositionCurrentPrice(position);
+        if (!currentPrice || currentPrice <= 0) return "";
+
+        const digits = Number.parseInt(position?.Digits, 10);
+        if (!Number.isFinite(digits) || digits < 0) return String(currentPrice);
+
+        return currentPrice.toFixed(Math.min(digits, 8));
+    };
+
+    const getProtectionEditValue = (position, field) => {
+        const existingValue = getEditablePriceValue(position?.[field]);
+
+        if (existingValue) {
+            return {
+                value: existingValue,
+                autoFromCurrent: false
+            };
+        }
+
+        return {
+            value: formatCurrentPriceForInput(position),
+            autoFromCurrent: true
+        };
+    };
+
+    const getProtectionAutoKey = (field) => (
+        field === "priceTp" ? "priceTpAutoFromCurrent" : "priceSlAutoFromCurrent"
+    );
+
+    const getProtectionInputValue = (position, field) => {
+        if (!editingProtection) return "";
+
+        if (editingProtection?.[getProtectionAutoKey(field)]) {
+            return formatCurrentPriceForInput(position);
+        }
+
+        return editingProtection?.[field] ?? "";
     };
 
     const getPositionPriceStep = (position) => {
@@ -138,17 +217,23 @@ function OrdersTable() {
     };
 
     const handleEditProtection = (position) => {
+        const takeProfit = getProtectionEditValue(position, "PriceTP");
+        const stopLoss = getProtectionEditValue(position, "PriceSL");
+
         setEditingProtection({
             position: String(getPositionTicket(position)),
-            priceTp: getEditablePriceValue(position?.PriceTP),
-            priceSl: getEditablePriceValue(position?.PriceSL)
+            priceTp: takeProfit.value,
+            priceSl: stopLoss.value,
+            priceTpAutoFromCurrent: takeProfit.autoFromCurrent,
+            priceSlAutoFromCurrent: stopLoss.autoFromCurrent
         });
     };
 
     const handleProtectionInputChange = (field, value) => {
         setEditingProtection((current) => ({
             ...(current || {}),
-            [field]: value
+            [field]: value,
+            [getProtectionAutoKey(field)]: false
         }));
     };
 
@@ -172,8 +257,8 @@ function OrdersTable() {
         const positionTicket = getPositionTicket(position);
 
         try {
-            const priceTp = parseProtectionPrice(editingProtection?.priceTp, "TP");
-            const priceSl = parseProtectionPrice(editingProtection?.priceSl, "SL");
+            const priceTp = parseProtectionPrice(getProtectionInputValue(position, "priceTp"), "TP");
+            const priceSl = parseProtectionPrice(getProtectionInputValue(position, "priceSl"), "SL");
 
             const payload = {
                 login: buildNumericPayloadValue(position?.Login ?? login),
@@ -526,8 +611,7 @@ function OrdersTable() {
 
                         }
 
-                        const positionAction = pos.Action ?? pos.Type;
-                        const isSell = positionAction == 1 || positionAction == "1";
+                        const isSell = getIsSellPosition(pos);
                         const isEditingProtection = editingProtection?.position === String(positionTicket);
                         const positionPriceStep = getPositionPriceStep(pos);
 
@@ -594,7 +678,7 @@ function OrdersTable() {
                                         <TextField
                                             type="number"
                                             size="small"
-                                            value={editingProtection?.priceTp ?? ""}
+                                            value={getProtectionInputValue(pos, "priceTp")}
                                             onChange={(event) => handleProtectionInputChange("priceTp", event.target.value)}
                                             placeholder="Not set"
                                             inputProps={{ step: positionPriceStep, min: 0 }}
@@ -615,7 +699,7 @@ function OrdersTable() {
                                         <TextField
                                             type="number"
                                             size="small"
-                                            value={editingProtection?.priceSl ?? ""}
+                                            value={getProtectionInputValue(pos, "priceSl")}
                                             onChange={(event) => handleProtectionInputChange("priceSl", event.target.value)}
                                             placeholder="Not set"
                                             inputProps={{ step: positionPriceStep, min: 0 }}
