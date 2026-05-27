@@ -118,8 +118,32 @@ function RightPanel() {
     return numericLeverage ? `1:${numericLeverage}` : String(leverage);
   };
 
+  const getCurrentReferencePrice = () => {
+    const ask = parseNumber(currentSymbolPrice?.Ask);
+    const bid = parseNumber(currentSymbolPrice?.Bid);
+
+    if (ask && bid) return (ask + bid) / 2;
+    return ask || bid || 0;
+  };
+
+  const getPriceFieldBaseValue = (field) => {
+    const watchedValue = Number(watch(field));
+    if (Number.isFinite(watchedValue) && watchedValue > 0) return watchedValue;
+
+    if (field === "priceOrder") {
+      return parseNumber(currentSymbolPrice?.Ask) || getCurrentReferencePrice();
+    }
+
+    if (field === "priceTp" || field === "priceSl") {
+      return getCurrentReferencePrice();
+    }
+
+    return 0;
+  };
+
   const { baseCurrency, quoteCurrency } = getSymbolCurrencies();
   const spreadInPips = calculateSpread();
+  const priceStep = getPipSize();
 
   const tradingDetailItems = [
     { label: "Base Currency", value: baseCurrency },
@@ -180,14 +204,15 @@ function RightPanel() {
     if (field === "priceOrder") {
       setIsPriceManuallySet(true);
     }
-    const priceRef = field === "priceOrder" ? (currentSymbolPrice?.Ask || 0) : 0;
-    const currentValue = parseFloat(watch(field) || priceRef);
+    const currentValue = field === "volume"
+      ? parseFloat(watch(field) || 0)
+      : getPriceFieldBaseValue(field);
     let newValue = type === "inc" ? currentValue + step : currentValue - step;
     if (field === "volume") newValue = Math.max(0.01, newValue);
     // For price fields, ensure positive
     if (field !== "volume") newValue = Math.max(0, newValue);
 
-    const digits = field === "volume" ? 2 : (selectedSymbol?.digits || 5);
+    const digits = field === "volume" ? 2 : getQuoteDigits();
     setValue(field, newValue.toFixed(digits), { shouldValidate: true });
   };
 
@@ -582,14 +607,14 @@ function RightPanel() {
                         }}
                         size="small"
                         type="number"
-                        step="0.001"
+                        step={priceStep}
                         placeholder={formatPrice(currentSymbolPrice?.Ask) || "0.000"}
                         // inputProps={{ style: { color: "white", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
                         sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                       />
                       <Box>
-                        <IconButton onClick={() => handleStep("priceOrder", "inc", 0.01)} size="small" sx={{ color: "#1f7ae0", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                        <IconButton onClick={() => handleStep("priceOrder", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                        <IconButton onClick={() => handleStep("priceOrder", "inc", priceStep)} size="small" sx={{ color: "#1f7ae0", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                        <IconButton onClick={() => handleStep("priceOrder", "dec", priceStep)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                       </Box>
                     </Box>
                   )}
@@ -654,14 +679,14 @@ function RightPanel() {
                       {...field}
                       size="small"
                       type="number"
-                      step="0.001"
+                      step={priceStep}
                       placeholder="Not set"
                       // inputProps={{ style: { color: field.value ? "#4CAF50" : "#9ca3af", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
                       sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("priceTp", "inc", 0.01)} size="small" sx={{ color: "#16a085", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("priceTp", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "inc", priceStep)} size="small" sx={{ color: "#16a085", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceTp", "dec", priceStep)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}
@@ -689,14 +714,14 @@ function RightPanel() {
                       {...field}
                       size="small"
                       type="number"
-                      step="0.001"
+                      step={priceStep}
                       placeholder="Not set"
                       // inputProps={{ style: { color: field.value ? "#FF9800" : "#9ca3af", padding: "8px 4px", fontSize: "13px", fontWeight: "600", height: "20px" } }}
                       sx={{ flex: 1, "& fieldset": { border: "none" }, "& input": { color: "#172033", fontWeight: 700 } }}
                     />
                     <Box>
-                      <IconButton onClick={() => handleStep("priceSl", "inc", 0.01)} size="small" sx={{ color: "#ef8a00", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
-                      <IconButton onClick={() => handleStep("priceSl", "dec", 0.01)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "inc", priceStep)} size="small" sx={{ color: "#ef8a00", borderRadius: 0, p: 0.5 }}><AddIcon fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleStep("priceSl", "dec", priceStep)} size="small" sx={{ color: "#ef334e", borderRadius: 0, p: 0.5 }}><RemoveIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 )}

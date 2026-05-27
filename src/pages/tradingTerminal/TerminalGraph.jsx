@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, memo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useSelector } from 'react-redux';
-import { createChart, CandlestickSeries } from 'lightweight-charts';
+import { createChart, CandlestickSeries, LineStyle } from 'lightweight-charts';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { useQuotes } from '../../context/QuotesContext';
 
@@ -145,8 +145,29 @@ function getBaseSymbolName(symbol) {
     return rawSymbol ? rawSymbol.split(".")[0].toUpperCase() : "";
 }
 
+function parseFiniteNumber(value) {
+    const parsed = Number(String(value ?? "").replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getPositionList(positions) {
+    if (Array.isArray(positions)) return positions;
+    if (Array.isArray(positions?.positionList)) return positions.positionList;
+    return [];
+}
+
+function getPositionType(position) {
+    const action = position?.Action ?? position?.Type;
+    return action === 1 || action === "1" ? "Sell" : "Buy";
+}
+
+function getPositionEntryPrice(position) {
+    return parseFiniteNumber(position?.PriceOpen ?? position?.PriceOrder ?? position?.PriceCurrent);
+}
+
 function TerminalGraph() {
     const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
+    const { activeMT5AccountPositionsDetails } = useSelector(state => state.mt5);
     const { token } = useSelector(state => state.auth);
     const { quoteData } = useQuotes();
     const chartSymbol = useMemo(() => getBaseSymbolName(selectedSymbol), [selectedSymbol]);
@@ -172,6 +193,7 @@ function TerminalGraph() {
     const containerRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
+    const entryPriceLinesRef = useRef([]);
     const currentCandleRef = useRef(null);
     const abortRef = useRef(null);
     const requestIdRef = useRef(0);
@@ -183,6 +205,22 @@ function TerminalGraph() {
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [chartReady, setChartReady] = useState(false);
+
+    const removeEntryPriceLines = useCallback((series = seriesRef.current) => {
+        if (!series) {
+            entryPriceLinesRef.current = [];
+            return;
+        }
+
+        entryPriceLinesRef.current.forEach((priceLine) => {
+            try {
+                series.removePriceLine(priceLine);
+            } catch {
+                // The chart may already have been disposed during symbol/account switches.
+            }
+        });
+        entryPriceLinesRef.current = [];
+    }, []);
 
     // Create one stable chart instance once the real chart container is rendered.
     // Symbol changes only replace the series data; recreating the chart can race
@@ -280,12 +318,52 @@ function TerminalGraph() {
             cancelAnimationFrame(animationFrameId);
             resizeObserver?.disconnect();
             removeResizeListener?.();
+            removeEntryPriceLines(seriesRef.current);
             chart?.remove();
             chartRef.current = null;
             seriesRef.current = null;
             setChartReady(false);
         };
-    }, [hasChartSymbol]);
+    }, [hasChartSymbol, removeEntryPriceLines]);
+
+    useEffect(() => {
+        if (!seriesRef.current || !chartReady) return;
+
+        const series = seriesRef.current;
+        removeEntryPriceLines(series);
+
+        const nextLines = getPositionList(activeMT5AccountPositionsDetails)
+            .filter((position) => getBaseSymbolName(position?.Symbol) === chartSymbol)
+            .map((position) => {
+                const price = getPositionEntryPrice(position);
+                if (!price) return null;
+
+                const typeLabel = getPositionType(position);
+                const isSell = typeLabel === "Sell";
+                return series.createPriceLine({
+                    price,
+                    color: isSell ? '#ef334e' : '#16a085',
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: `${typeLabel} Entry ${price}`,
+                });
+            })
+            .filter(Boolean);
+
+        entryPriceLinesRef.current = nextLines;
+
+        return () => {
+            nextLines.forEach((priceLine) => {
+                try {
+                    series.removePriceLine(priceLine);
+                } catch {
+                    // Ignore stale line removal after chart disposal.
+                }
+            });
+            entryPriceLinesRef.current = entryPriceLinesRef.current.filter((priceLine) => !nextLines.includes(priceLine));
+        };
+    }, [activeMT5AccountPositionsDetails, chartReady, chartSymbol, removeEntryPriceLines]);
 
     useEffect(() => {
         if (!hasChartSymbol || chartReady || error) return;

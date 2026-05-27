@@ -73,6 +73,11 @@ function OrdersTable() {
         return Number.isFinite(parsed) ? parsed : 0;
     };
 
+    const formatOptionalPrice = (value) => {
+        const parsed = Number(String(value ?? "").replace(/,/g, ""));
+        return Number.isFinite(parsed) && parsed > 0 ? value : "Not set";
+    };
+
     const getHistorySortValue = (trade, key) => {
         if (key === "volume") {
             return getSortableNumber(trade?.Volume ?? trade?.VolumeInitial);
@@ -331,9 +336,9 @@ function OrdersTable() {
                     borderRadius: "8px"
                 }}>
                     <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Symbol</TableCell>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Position</TableCell>
                     <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Type</TableCell>
-                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Volume</TableCell>
+                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>TP</TableCell>
+                    <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>SL</TableCell>
                     <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Entry</TableCell>
                     <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>Current</TableCell>
                     <TableCell sx={{ color: "#4CAF50", fontWeight: 800, fontSize: "11px", borderBottom: "none", padding: "12px 8px" }}>P/L</TableCell>
@@ -406,7 +411,6 @@ function OrdersTable() {
 
                         const positionAction = pos.Action ?? pos.Type;
                         const isSell = positionAction == 1 || positionAction == "1";
-                        const volumeVal = pos.Volume || pos.VolumeInitial;
 
                         return (
                             <TableRow
@@ -439,15 +443,6 @@ function OrdersTable() {
                                     {pos.Symbol}
                                 </TableCell>
                                 <TableCell sx={{
-                                    color: "white",
-                                    fontSize: "13px",
-                                    fontWeight: 700,
-                                    borderBottom: "none",
-                                    padding: "12px 8px"
-                                }}>
-                                    {pos.Position}
-                                </TableCell>
-                                <TableCell sx={{
                                     color: isSell ? "#f44336" : "#4CAF50",
                                     fontSize: "12px",
                                     fontWeight: 700,
@@ -470,12 +465,22 @@ function OrdersTable() {
                                     </Box>
                                 </TableCell>
                                 <TableCell sx={{
-                                    color: "white",
-                                    fontSize: "13px",
+                                    color: "#4CAF50",
+                                    fontSize: "12px",
+                                    fontWeight: 800,
                                     borderBottom: "none",
                                     padding: "12px 8px"
                                 }}>
-                                    {volumeVal ? volumeVal / 10000 : 0}
+                                    {formatOptionalPrice(pos.PriceTP)}
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: "#f44336",
+                                    fontSize: "12px",
+                                    fontWeight: 800,
+                                    borderBottom: "none",
+                                    padding: "12px 8px"
+                                }}>
+                                    {formatOptionalPrice(pos.PriceSL)}
                                 </TableCell>
                                 <TableCell sx={{
                                     fontSize: "13px",

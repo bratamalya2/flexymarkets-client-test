@@ -23,6 +23,46 @@ import {
     normalizeAnalysisCandles
 } from "./technicalAnalysisUtils";
 
+const MIN_ANALYSIS_CANDLES = 60;
+const DEFAULT_MAX_ANALYSIS_CANDLES = 1000;
+
+const parsePositiveInteger = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const MAX_ANALYSIS_CANDLES = Math.max(
+    MIN_ANALYSIS_CANDLES,
+    parsePositiveInteger(import.meta.env.VITE_TERMINAL_ANALYSIS_MAX_CANDLES, DEFAULT_MAX_ANALYSIS_CANDLES)
+);
+
+const ENABLE_ANALYSIS_TIMING = import.meta.env.DEV
+    || String(import.meta.env.VITE_TERMINAL_ANALYSIS_TIMING ?? "").toLowerCase() === "true";
+
+const getNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
+const roundMs = (value) => Number(value.toFixed(2));
+
+const logAnalysisTiming = (eventName, payload) => {
+    if (!ENABLE_ANALYSIS_TIMING) return;
+    console.info(`[terminal-technical-analysis] ${eventName}`, payload);
+};
+
+const getRawRowCount = (raw) => {
+    if (Array.isArray(raw)) return raw.length;
+    if (Array.isArray(raw?.answer)) return raw.answer.length;
+    if (Array.isArray(raw?.data)) return raw.data.length;
+    return 0;
+};
+
+const emptyAnalysisSource = {
+    symbol: "",
+    timeframe: "",
+    rawCandleCount: 0,
+    usedCandleCount: 0,
+    requestStartedAt: null,
+};
+
 const getRawSymbolName = (symbol) => {
     const rawSymbol = symbol?.groupedSym ?? symbol?.Symbol ?? symbol?.name ?? symbol;
     return rawSymbol ? String(rawSymbol).trim() : "";
@@ -217,6 +257,7 @@ function TechnicalAnalysisPanel() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [lastFetchedAt, setLastFetchedAt] = useState(null);
+    const [analysisSource, setAnalysisSource] = useState(emptyAnalysisSource);
 
     const { selectedSymbol } = useSelector((state) => state.terminal);
     const { token } = useSelector((state) => state.auth);
@@ -229,15 +270,49 @@ function TechnicalAnalysisPanel() {
         return getRawSymbolName(liveQuoteSymbol) || selectedRawSymbol || selectedBaseSymbol;
     }, [quoteData, selectedBaseSymbol, selectedSymbol]);
 
-    const analysis = useMemo(() => computeTechnicalAnalysis(candles), [candles]);
+    const analysis = useMemo(() => {
+        const calculationStartedAt = getNow();
+        const result = computeTechnicalAnalysis(candles);
+        const calculationMs = getNow() - calculationStartedAt;
+
+        if (candles.length) {
+            logAnalysisTiming("calculation", {
+                symbol: analysisSource.symbol,
+                timeframe: analysisSource.timeframe,
+                candleCount: candles.length,
+                indicatorCount: result.ready
+                    ? result.groups.reduce((total, group) => total + group.items.length, 0)
+                    : 0,
+                durationMs: roundMs(calculationMs),
+            });
+        }
+
+        return result;
+    }, [analysisSource.symbol, analysisSource.timeframe, candles]);
+
+    useEffect(() => {
+        if (isLoading || error || !analysisSource.requestStartedAt || !candles.length) return;
+
+        logAnalysisTiming("render-ready", {
+            symbol: analysisSource.symbol,
+            timeframe: analysisSource.timeframe,
+            ready: analysis.ready,
+            rawCandleCount: analysisSource.rawCandleCount,
+            usedCandleCount: analysisSource.usedCandleCount,
+            totalMs: roundMs(getNow() - analysisSource.requestStartedAt),
+        });
+    }, [analysis, analysisSource, candles.length, error, isLoading]);
 
     useEffect(() => {
         if (!selectedBaseSymbol || !chartRequestSymbol || !token) {
             setCandles([]);
+            setAnalysisSource(emptyAnalysisSource);
             return;
         }
 
         const controller = new AbortController();
+        const requestStartedAt = getNow();
+        let httpCompletedAt = null;
         const to = Math.floor(Date.now() / 1000);
         const from = to - activeTimeframe.range;
         const url = `${import.meta.env.VITE_BASE_URL}/user/analytics/chart`
@@ -251,15 +326,43 @@ function TechnicalAnalysisPanel() {
             signal: controller.signal,
         })
             .then((response) => {
+                httpCompletedAt = getNow();
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return response.json();
             })
             .then((response) => {
                 if (!response.status) throw new Error(response.message || "Chart data unavailable");
+                const normalizationStartedAt = getNow();
+                const rawRowCount = getRawRowCount(response.data);
                 const normalized = normalizeAnalysisCandles(response.data)
                     .sort((first, second) => first.time - second.time)
                     .filter((item, index, array) => index === 0 || item.time !== array[index - 1].time);
-                setCandles(normalized);
+                const cappedCandles = normalized.length > MAX_ANALYSIS_CANDLES
+                    ? normalized.slice(-MAX_ANALYSIS_CANDLES)
+                    : normalized;
+                const normalizationCompletedAt = getNow();
+
+                logAnalysisTiming("fetch-normalize", {
+                    symbol: chartRequestSymbol,
+                    timeframe: activeTimeframe.label,
+                    rawRowCount,
+                    normalizedCandleCount: normalized.length,
+                    usedCandleCount: cappedCandles.length,
+                    maxCandleCount: MAX_ANALYSIS_CANDLES,
+                    wasCapped: normalized.length > cappedCandles.length,
+                    httpMs: httpCompletedAt ? roundMs(httpCompletedAt - requestStartedAt) : null,
+                    normalizeMs: roundMs(normalizationCompletedAt - normalizationStartedAt),
+                    totalBeforeStateMs: roundMs(normalizationCompletedAt - requestStartedAt),
+                });
+
+                setAnalysisSource({
+                    symbol: chartRequestSymbol,
+                    timeframe: activeTimeframe.label,
+                    rawCandleCount: normalized.length,
+                    usedCandleCount: cappedCandles.length,
+                    requestStartedAt,
+                });
+                setCandles(cappedCandles);
                 setLastFetchedAt(Date.now());
                 if (!normalized.length) setError(`No candle data available for ${selectedBaseSymbol}.`);
             })
@@ -267,6 +370,7 @@ function TechnicalAnalysisPanel() {
                 if (requestError.name !== "AbortError") {
                     setError(requestError.message || "Failed to load technical analysis.");
                     setCandles([]);
+                    setAnalysisSource(emptyAnalysisSource);
                 }
             })
             .finally(() => {
@@ -323,7 +427,10 @@ function TechnicalAnalysisPanel() {
                             Technical Analysis
                         </Typography>
                         <Typography sx={{ color: "#9fb0c8", fontSize: "12px", mt: "2px" }}>
-                            {selectedBaseSymbol} via {chartRequestSymbol} | {candles.length} OHLC candles
+                            {selectedBaseSymbol} via {chartRequestSymbol} | {" "}
+                            {analysisSource.rawCandleCount > candles.length
+                                ? `latest ${candles.length} of ${analysisSource.rawCandleCount}`
+                                : candles.length} OHLC candles
                             {lastFetchedAt ? ` | Updated ${new Date(lastFetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
                         </Typography>
                     </Box>
