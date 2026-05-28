@@ -190,6 +190,30 @@ function TopHeader() {
                     </Box>
                 </Box>
 
+                {/* Compact balance — tablet only (600–1023px) */}
+                {!showLeftPanel && hideMenuAndDeposit && (
+                    <Box sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        animation: "fadeInUp 0.5s ease 0.1s both"
+                    }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                            <Typography sx={{ fontSize: "9px", color: "#667085", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", mb: "1px" }}>Balance</Typography>
+                            <Typography sx={{ fontSize: "13px", fontWeight: 700 }}>
+                                {formatCurrency(activeMT5AccountDetails?.Balance || 0)}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ width: "1px", height: "28px", background: "#dfe7f1" }} />
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                            <Typography sx={{ fontSize: "9px", color: "#667085", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", mb: "1px" }}>Equity</Typography>
+                            <Typography sx={{ fontSize: "13px", fontWeight: 700, color: "#16a085" }}>
+                                {formatCurrency(activeMT5AccountDetails?.Equity || 0)}
+                            </Typography>
+                        </Box>
+                    </Box>
+                )}
+
                 {
                     showLeftPanel
                     &&

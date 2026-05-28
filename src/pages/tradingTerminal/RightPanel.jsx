@@ -383,6 +383,7 @@ function RightPanel() {
         flexDirection: "column",
         color: "#172033",
         overflow: "hidden",
+        height: "100%",
         boxShadow: "0 18px 42px rgba(18, 32, 54, 0.08)",
         position: "relative",
         animation: "panelSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"

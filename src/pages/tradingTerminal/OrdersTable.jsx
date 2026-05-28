@@ -1240,10 +1240,10 @@ function OrdersTable() {
                         className={`orders-tab ${tab.id}`}
                         sx={{
                             flex: 1,
-                            padding: "12px",
+                            padding: { xs: "10px 4px", md: "12px" },
                             textAlign: "center",
                             cursor: "pointer",
-                            fontSize: "13px",
+                            fontSize: { xs: "10px", md: "13px" },
                             fontWeight: "600",
                             color: activeTab === tab.id ? "white" : "#9ca3af",
                             background: activeTab === tab.id
@@ -1257,7 +1257,7 @@ function OrdersTable() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: "6px",
+                            gap: { xs: "3px", md: "6px" },
                             "&:hover": {
                                 color: "white",
                                 background: activeTab === tab.id
@@ -1280,7 +1280,9 @@ function OrdersTable() {
                         onClick={() => handleTabChange(tab.id)}
                     >
                         <tab.icon sx={{ fontSize: "14px" }} />
-                        {tab.label}
+                        <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                            {tab.label}
+                        </Box>
                     </Box>
                 ))}
             </Box>

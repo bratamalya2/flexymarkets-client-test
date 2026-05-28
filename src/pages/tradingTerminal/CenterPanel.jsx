@@ -172,7 +172,7 @@ function CenterPanel() {
         {/* Chart Header */}
         <Box sx={{
           background: "#ffffff",
-          padding: "12px 20px",
+          padding: { xs: "8px 12px", md: "12px 20px" },
           borderBottom: "1px solid #e6edf5",
           display: "flex",
           gap: "10px",

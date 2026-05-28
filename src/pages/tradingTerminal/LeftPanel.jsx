@@ -323,7 +323,7 @@ function LeftPanel() {
     return (
         <Box
             sx={{
-                width: "270px",
+                width: { xs: "100%", md: "270px" },
                 background: "linear-gradient(180deg, #111827 0%, #0d1422 100%)",
                 border: "1px solid rgba(255, 255, 255, 0.06)",
                 borderRadius: "20px",
