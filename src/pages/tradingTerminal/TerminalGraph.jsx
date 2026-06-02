@@ -27,12 +27,6 @@ const GRAPH_TYPES = [
     { id: 'bars', label: 'Bars' },
     { id: 'candles', label: 'Candles' },
     { id: 'hollow-candles', label: 'Hollow Candles' },
-    {
-        id: 'volume-candles',
-        label: 'Volume Candles',
-        disabled: true,
-        disabledReason: 'Volume candles need volume data and a custom series or overlay.',
-    },
     { id: 'line', label: 'Line' },
     { id: 'line-markers', label: 'Line with Markers' },
     { id: 'step-line', label: 'Step Line' },
@@ -1409,7 +1403,7 @@ function TerminalGraph() {
                         {tf.label}
                     </Box>
                 ))}
-                <Tooltip title="Switch chart style. Volume Candles needs volume data and a custom series or overlay, so it is unavailable in the current feed.">
+                <Tooltip title="Switch chart style.">
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'space-between', sm: 'flex-start' }, gap: '6px', ml: { xs: 0, sm: '4px' }, width: { xs: '100%', sm: 'auto' } }}>
                         <Typography sx={{ color: '#667085', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
                             Style
