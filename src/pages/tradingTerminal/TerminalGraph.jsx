@@ -887,7 +887,7 @@ function TerminalGraph() {
             seriesRef.current = null;
             setChartReady(false);
         };
-    }, [activeGraphType, createMainSeries, hasChartSymbol, removeEntryPriceLines]);
+    }, [createMainSeries, hasChartSymbol, removeEntryPriceLines]);
 
     useEffect(() => {
         if (!chartReady || !chartRef.current || !seriesRef.current) return;
