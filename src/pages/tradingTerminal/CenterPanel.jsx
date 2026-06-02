@@ -16,9 +16,10 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 const ORDERS_PANEL_HEIGHT_STORAGE_KEY = "terminalOrdersPanelHeight";
 const DEFAULT_ORDERS_PANEL_HEIGHT = 280;
-const MIN_ORDERS_PANEL_HEIGHT = 220;
+const MIN_ORDERS_PANEL_HEIGHT_DESKTOP = 220;
+const MIN_ORDERS_PANEL_HEIGHT_MOBILE = 180;
 const MIN_CHART_SECTION_HEIGHT_DESKTOP = 320;
-const MIN_CHART_SECTION_HEIGHT_MOBILE = 260;
+const MIN_CHART_SECTION_HEIGHT_MOBILE = 220;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -44,6 +45,9 @@ function CenterPanel() {
   ));
   const [isResizingOrdersPanel, setIsResizingOrdersPanel] = useState(false);
   const canResizeChartArea = useMediaQuery("(min-width:768px)");
+  const minimumOrdersPanelHeight = canResizeChartArea
+    ? MIN_ORDERS_PANEL_HEIGHT_DESKTOP
+    : MIN_ORDERS_PANEL_HEIGHT_MOBILE;
 
   const centerPanelRef = useRef(null);
   const ordersPanelResizeRef = useRef({
@@ -139,14 +143,14 @@ function CenterPanel() {
       : MIN_CHART_SECTION_HEIGHT_MOBILE;
 
     if (!containerHeight) {
-      return Math.max(MIN_ORDERS_PANEL_HEIGHT, DEFAULT_ORDERS_PANEL_HEIGHT);
+      return Math.max(minimumOrdersPanelHeight, DEFAULT_ORDERS_PANEL_HEIGHT);
     }
 
     return Math.max(
-      MIN_ORDERS_PANEL_HEIGHT,
+      minimumOrdersPanelHeight,
       Math.floor(containerHeight - minimumChartHeight)
     );
-  }, [canResizeChartArea]);
+  }, [canResizeChartArea, minimumOrdersPanelHeight]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -156,7 +160,7 @@ function CenterPanel() {
   useEffect(() => {
     const clampOrdersPanelHeight = () => {
       setOrdersPanelHeight((currentHeight) => (
-        clamp(currentHeight, MIN_ORDERS_PANEL_HEIGHT, getOrdersPanelMaxHeight())
+        clamp(currentHeight, minimumOrdersPanelHeight, getOrdersPanelMaxHeight())
       ));
     };
 
@@ -184,7 +188,7 @@ function CenterPanel() {
       const deltaY = event.clientY - ordersPanelResizeRef.current.startY;
       const nextHeight = ordersPanelResizeRef.current.startHeight - deltaY;
       setOrdersPanelHeight(
-        clamp(nextHeight, MIN_ORDERS_PANEL_HEIGHT, getOrdersPanelMaxHeight())
+        clamp(nextHeight, minimumOrdersPanelHeight, getOrdersPanelMaxHeight())
       );
     };
 
@@ -206,7 +210,7 @@ function CenterPanel() {
       window.removeEventListener("pointerup", stopResizing);
       window.removeEventListener("pointercancel", stopResizing);
     };
-  }, [getOrdersPanelMaxHeight, isResizingOrdersPanel]);
+  }, [getOrdersPanelMaxHeight, isResizingOrdersPanel, minimumOrdersPanelHeight]);
 
   useEffect(() => {
     if (isResizingOrdersPanel) return undefined;
@@ -261,7 +265,7 @@ function CenterPanel() {
         borderRadius: { xs: 0, md: "18px" },
         position: "relative",
         overflow: "hidden",
-        boxShadow: "0 18px 42px rgba(18, 32, 54, 0.08)",
+        boxShadow: { xs: "none", sm: "0 18px 42px rgba(18, 32, 54, 0.08)" },
         animation: "centerPanelSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
       }}
     >
@@ -283,7 +287,7 @@ function CenterPanel() {
 
       <Box sx={{
         flex: isChartCollapsed ? "0 0 auto" : "1 1 0",
-        minHeight: isChartCollapsed ? "86px" : { xs: "260px", md: "320px" },
+        minHeight: isChartCollapsed ? "86px" : { xs: "220px", md: "320px" },
         display: "flex",
         flexDirection: "column",
         transition: isResizingOrdersPanel ? "none" : "flex-basis 0.35s ease, min-height 0.35s ease",
@@ -293,12 +297,12 @@ function CenterPanel() {
         {/* Chart Header */}
         <Box sx={{
           background: "#ffffff",
-          padding: { xs: "8px 12px", md: "12px 20px" },
+          padding: { xs: "8px 10px", sm: "10px 14px", md: "12px 20px" },
           borderBottom: "1px solid #e6edf5",
           display: "flex",
-          gap: "10px",
+          gap: { xs: "8px", sm: "10px" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "flex-start", sm: "center" },
           // height: "60px",
           backdropFilter: "blur(10px)",
           // position: "relative",
@@ -308,16 +312,20 @@ function CenterPanel() {
           {/* Left side: Symbol info */}
           <Box sx={{
             display: "flex",
-            alignItems: "center",
-            gap: "15px",
+            alignItems: { xs: "flex-start", sm: "center" },
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            rowGap: "10px",
+            gap: { xs: "10px", sm: "15px" },
+            width: "100%",
             animation: "fadeInLeft 0.5s ease"
           }}>
 
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: { xs: "flex-start", sm: "center" } }}>
               <Typography sx={{
                 fontWeight: "800",
                 color: "#172033",
-                fontSize: "18px",
+                fontSize: { xs: "16px", sm: "18px" },
                 letterSpacing: "0.5px",
                 lineHeight: 1.2
               }}>
@@ -326,8 +334,8 @@ function CenterPanel() {
                   label="LIVE"
                   size="small"
                   sx={{
-                    height: "16px",
-                    fontSize: "9px",
+                    height: { xs: "15px", sm: "16px" },
+                    fontSize: { xs: "8px", sm: "9px" },
                     fontWeight: "bold",
                     background: "rgba(22, 160, 133, 0.12)",
                     color: "#16a085",
@@ -392,9 +400,10 @@ function CenterPanel() {
             </Box>
             <Box sx={{
               display: "flex",
-              gap: "6px",
-              marginRight: "15px",
-              padding: "6px",
+              flexWrap: "wrap",
+              gap: { xs: "4px", sm: "6px" },
+              marginRight: { xs: 0, sm: "15px" },
+              padding: { xs: "4px", sm: "6px" },
               background: "#f4f7fb",
               borderRadius: "12px",
               border: "1px solid #e1e8f2"
@@ -487,7 +496,7 @@ function CenterPanel() {
         {/* Chart Container */}
         <Box sx={{
           flex: isChartCollapsed ? "0 0 0px" : "1 1 0",
-          minHeight: isChartCollapsed ? 0 : { xs: "150px", md: "210px" },
+          minHeight: isChartCollapsed ? 0 : { xs: "120px", md: "210px" },
           background: "#ffffff",
           position: "relative",
           overflow: "hidden",
@@ -604,12 +613,12 @@ function CenterPanel() {
               size="small"
               startIcon={isChartCollapsed ? <KeyboardArrowDownIcon /> : <KeyboardArrowUpIcon />}
               sx={{
-                minWidth: "142px",
+                minWidth: { xs: "126px", sm: "142px" },
                 height: "24px",
-                px: "12px",
+                px: { xs: "10px", sm: "12px" },
                 borderRadius: "999px",
                 color: "#144a8f",
-                fontSize: "10px",
+                fontSize: { xs: "9px", sm: "10px" },
                 fontWeight: 800,
                 letterSpacing: "0.7px",
                 textTransform: "uppercase",
@@ -640,7 +649,7 @@ function CenterPanel() {
       <Box sx={{
         flex: isChartCollapsed ? "1 1 0" : `0 0 ${ordersPanelHeight}px`,
         height: isChartCollapsed ? "auto" : `${ordersPanelHeight}px`,
-        minHeight: `${MIN_ORDERS_PANEL_HEIGHT}px`,
+        minHeight: `${minimumOrdersPanelHeight}px`,
         background: "#ffffff",
         borderTop: "1px solid #e6edf5",
         display: "flex",

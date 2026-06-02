@@ -32,6 +32,7 @@ function TradingTerminal() {
     const showRightPanel = useMediaQuery("(min-width:768px)");
     const useWideRightPanel = useMediaQuery("(min-width:1536px)");
     const isMobile = useMediaQuery("(max-width:767px)");
+    const rightPanelWidth = useWideRightPanel ? 380 : showLeftPanel ? 320 : 300;
 
     const [activeMobileView, setActiveMobileView] = useState("chart");
     const [leftPanelWidth, setLeftPanelWidth] = useState(() => (
@@ -45,7 +46,7 @@ function TradingTerminal() {
         startWidth: DEFAULT_LEFT_PANEL_WIDTH,
     });
 
-    const getRightPanelWidth = () => (showRightPanel ? (useWideRightPanel ? 380 : 330) : 0);
+    const getRightPanelWidth = () => (showRightPanel ? rightPanelWidth : 0);
     const getLeftPanelMaxWidth = () => {
         const containerWidth = contentRef.current?.getBoundingClientRect().width;
         if (!containerWidth || !showLeftPanel) return MAX_LEFT_PANEL_WIDTH;
@@ -80,7 +81,7 @@ function TradingTerminal() {
         return () => {
             window.removeEventListener("resize", clampLeftPanelWidth);
         };
-    }, [showLeftPanel, showRightPanel, useWideRightPanel]);
+    }, [rightPanelWidth, showLeftPanel, showRightPanel]);
 
     useEffect(() => {
         if (!isResizingLeftPanel) return undefined;
@@ -112,7 +113,7 @@ function TradingTerminal() {
             window.removeEventListener("pointerup", stopResizing);
             window.removeEventListener("pointercancel", stopResizing);
         };
-    }, [isResizingLeftPanel, showLeftPanel, showRightPanel, useWideRightPanel]);
+    }, [isResizingLeftPanel, rightPanelWidth, showLeftPanel, showRightPanel]);
 
     const handleLeftPanelResizeStart = (event) => {
         if (event.button !== 0 || !showLeftPanel) return;
@@ -126,7 +127,7 @@ function TradingTerminal() {
     };
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", background: "#eef3f8" }}>
+        <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", height: "100dvh", overflow: "hidden", background: "#eef3f8" }}>
             <TopHeader />
             <Box
                 ref={contentRef}
@@ -135,8 +136,8 @@ function TradingTerminal() {
                 display: "flex",
                 overflow: "hidden",
                 minHeight: 0,
-                gap: { xs: 0, md: `${LAYOUT_GAP_PX}px` },
-                p: { xs: 0, md: "14px" },
+                gap: { xs: 0, sm: "10px", lg: `${LAYOUT_GAP_PX}px` },
+                p: { xs: 0, sm: "10px", lg: "14px" },
                 background: "linear-gradient(135deg, #eef3f8 0%, #f8fbff 100%)"
             }}>
                 {isMobile ? (
@@ -144,7 +145,7 @@ function TradingTerminal() {
                         {activeMobileView === "markets" && <LeftPanel />}
                         {activeMobileView === "chart" && <CenterPanel />}
                         {activeMobileView === "trade" && (
-                            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
                                 <RightPanel />
                             </Box>
                         )}
@@ -202,7 +203,7 @@ function TradingTerminal() {
                         )}
                         <CenterPanel />
                         {showRightPanel && (
-                            <Box sx={{ width: { md: "330px", xl: "380px" }, flexShrink: 0, minWidth: 0 }}>
+                            <Box sx={{ width: `${rightPanelWidth}px`, flexShrink: 0, minWidth: 0 }}>
                                 <RightPanel />
                             </Box>
                         )}
@@ -218,9 +219,17 @@ function TradingTerminal() {
                         flexShrink: 0,
                         borderTop: "1px solid #dfe7f1",
                         background: "#ffffff",
+                        height: "calc(56px + env(safe-area-inset-bottom))",
+                        pb: "env(safe-area-inset-bottom)",
+                        boxShadow: "0 -10px 24px rgba(18, 32, 54, 0.08)",
                         "& .MuiBottomNavigationAction-root": {
                             color: "#667085",
                             minWidth: 0,
+                            pt: 0.75,
+                            pb: 0.5,
+                            "& .MuiBottomNavigationAction-label": {
+                                fontSize: "11px",
+                            },
                             "&.Mui-selected": { color: "#1f7ae0" }
                         }
                     }}

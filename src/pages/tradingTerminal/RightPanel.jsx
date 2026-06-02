@@ -384,7 +384,7 @@ function RightPanel() {
         color: "#172033",
         overflow: "hidden",
         height: "100%",
-        boxShadow: "0 18px 42px rgba(18, 32, 54, 0.08)",
+        boxShadow: { xs: "none", sm: "0 18px 42px rgba(18, 32, 54, 0.08)" },
         position: "relative",
         animation: "panelSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
       }}
@@ -403,12 +403,13 @@ function RightPanel() {
 
       <Box
         sx={{
-          p: "16px",
+          p: { xs: "12px", sm: "16px" },
           flex: 1,
           display: "flex",
           flexDirection: "column",
           overflowY: "auto",
           position: "relative",
+          WebkitOverflowScrolling: "touch",
           "&::-webkit-scrollbar": { width: "4px" },
           "&::-webkit-scrollbar-track": { background: "transparent" },
           "&::-webkit-scrollbar-thumb": {
@@ -424,7 +425,7 @@ function RightPanel() {
             borderRadius: "12px",
             overflow: "hidden",
             border: "1px solid #dfe7f1",
-            marginBottom: "15px",
+            marginBottom: { xs: "12px", sm: "15px" },
             position: "relative",
             boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
             backdropFilter: "blur(10px)"
@@ -436,10 +437,10 @@ function RightPanel() {
               className={`tab-button ${tab.toLowerCase()}`}
               sx={{
                 flex: 1,
-                padding: "10px",
+                padding: { xs: "9px 8px", sm: "10px" },
                 textAlign: "center",
                 cursor: "pointer",
-                fontSize: "12px",
+                fontSize: { xs: "11px", sm: "12px" },
                 fontWeight: "600",
                 color: activeTab === tab ? "white" : "#667085",
                 background: activeTab === tab
@@ -468,7 +469,7 @@ function RightPanel() {
           sx={{
             background: "#ffffff",
             borderRadius: "16px",
-            p: "16px",
+            p: { xs: "12px", sm: "16px" },
             flex: 1,
             boxShadow: "0 12px 28px rgba(18, 32, 54, 0.06)",
             border: "1px solid #e6edf5",
@@ -481,20 +482,20 @@ function RightPanel() {
           <Box
             sx={{
               textAlign: "center",
-              mb: "15px",
+              mb: { xs: "12px", sm: "15px" },
               pb: "10px",
               borderBottom: "1px solid #e6edf5",
             }}
           >
-            <Typography sx={{ fontSize: "18px", fontWeight: "800", color: "#172033", mb: "3px" }}>
+            <Typography sx={{ fontSize: { xs: "16px", sm: "18px" }, fontWeight: "800", color: "#172033", mb: "3px" }}>
               {currentSymbol}
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-              <Stack sx={{ flexDirection: "row", alignItems: "center", gap: "10px" }}>
-                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Long</Typography>
+              <Stack sx={{ flexDirection: "row", alignItems: "center", gap: { xs: "8px", sm: "10px" }, flexWrap: "wrap", justifyContent: "center" }}>
+                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Ask</Typography>
                 <Typography
                   sx={{
-                    fontSize: "24px",
+                    fontSize: { xs: "20px", sm: "24px" },
                     fontWeight: "800",
                     background: "linear-gradient(135deg, #16a085, #0e7f6c)",
                     WebkitBackgroundClip: "text",
@@ -505,11 +506,11 @@ function RightPanel() {
                   {currentSymbolPrice?.Ask || "0.00"}
                 </Typography>
               </Stack>
-              <Stack sx={{ flexDirection: "row", alignItems: "center", gap: "10px" }}>
-                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Short</Typography>
+              <Stack sx={{ flexDirection: "row", alignItems: "center", gap: { xs: "8px", sm: "10px" }, flexWrap: "wrap", justifyContent: "center" }}>
+                <Typography sx={{ color: "#667085", fontWeight: 600 }}>Bid</Typography>
                 <Typography
                   sx={{
-                    fontSize: "24px",
+                    fontSize: { xs: "20px", sm: "24px" },
                     fontWeight: "800",
                     background: "linear-gradient(135deg, #ef334e, #bd1731)",
                     WebkitBackgroundClip: "text",
@@ -528,13 +529,13 @@ function RightPanel() {
 
           <Box
             sx={{
-              mb: "15px",
-              p: "12px",
+              mb: { xs: "12px", sm: "15px" },
+              p: { xs: "10px", sm: "12px" },
               borderRadius: "14px",
               background: "linear-gradient(135deg, #f8fbff, #eef6ff)",
               border: "1px solid #dfe7f1",
               display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
               gap: "10px",
             }}
           >
@@ -730,12 +731,12 @@ function RightPanel() {
             </Box>
 
             {/* Action Buttons */}
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", mt: "8px" }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: "8px", mt: "8px" }}>
               <Button
                 onClick={() => activeTab === "Market" ? handleMarketSubmit("BUY") : handlePendingSubmit("BUY")}
                 disabled={placeOrderLoading || limitTradeRequestLoading}
                 sx={{
-                  padding: "10px 8px",
+                  padding: { xs: "11px 8px", sm: "10px 8px" },
                   borderRadius: "10px",
                   fontWeight: "700",
                   fontSize: "12px",
@@ -755,7 +756,7 @@ function RightPanel() {
                 onClick={() => activeTab === "Market" ? handleMarketSubmit("SELL") : handlePendingSubmit("SELL")}
                 disabled={placeOrderLoading || limitTradeRequestLoading}
                 sx={{
-                  padding: "10px 8px",
+                  padding: { xs: "11px 8px", sm: "10px 8px" },
                   borderRadius: "10px",
                   fontWeight: "700",
                   fontSize: "12px",

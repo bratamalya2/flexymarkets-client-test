@@ -109,11 +109,13 @@ function TopHeader() {
             sx={{
                 background: "#f8fbff",
                 color: "#152033",
-                height: "68px",
+                minHeight: { xs: "64px", md: "68px" },
                 display: "flex",
-                alignItems: "center",
+                alignItems: { xs: "flex-start", md: "center" },
                 justifyContent: "space-between",
-                padding: { xs: "0 12px", md: "0 24px" },
+                gap: { xs: "10px", md: "16px" },
+                flexWrap: { xs: "wrap", md: "nowrap" },
+                padding: { xs: "10px 12px", sm: "10px 16px", lg: "10px 24px" },
                 borderBottom: "1px solid #dfe7f1",
                 flexShrink: 0,
                 position: "relative",
@@ -134,25 +136,36 @@ function TopHeader() {
                 pointerEvents: "none"
             }} />
 
-            <Stack sx={{ flexDirection: "row", gap: { md: "3rem", xl: "5rem" }, minWidth: 0 }}>
+            <Stack sx={{
+                flexDirection: "row",
+                flexWrap: { xs: "wrap", lg: "nowrap" },
+                columnGap: { xs: "14px", md: "2rem", xl: "4rem" },
+                rowGap: "8px",
+                alignItems: "center",
+                minWidth: 0,
+                flex: 1,
+                width: { xs: "100%", md: "auto" }
+            }}>
 
                 <Box sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "20px",
+                    gap: { xs: "10px", sm: "20px" },
+                    minWidth: 0,
                     animation: "fadeInLeft 0.5s ease"
                 }}>
                     {/* Platform Title */}
                     <Box sx={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "10px"
+                        gap: { xs: "8px", sm: "10px" },
+                        minWidth: 0
                     }}>
                         <Box sx={{
                             background: "linear-gradient(135deg, #ef334e, #b7142d)",
-                            width: "36px",
-                            height: "36px",
-                            borderRadius: "12px",
+                            width: { xs: "32px", sm: "36px" },
+                            height: { xs: "32px", sm: "36px" },
+                            borderRadius: { xs: "10px", sm: "12px" },
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -160,20 +173,23 @@ function TopHeader() {
                             animation: "logoFloat 3s infinite ease-in-out"
                         }}>
                             <TrendingUpIcon sx={{
-                                fontSize: "20px",
+                                fontSize: { xs: "18px", sm: "20px" },
                                 color: "white"
                             }} />
                         </Box>
 
-                        <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                             <Typography sx={{
-                                fontSize: "16px",
+                                fontSize: { xs: "14px", sm: "16px" },
                                 fontWeight: "900",
                                 background: "linear-gradient(135deg, #111827, #334155)",
                                 WebkitBackgroundClip: "text",
                                 WebkitTextFillColor: "transparent",
                                 letterSpacing: "0.5px",
-                                lineHeight: 1.2
+                                lineHeight: 1.2,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis"
                             }}>
                                 {SHORT_BRAND_NAME}
                             </Typography>
@@ -182,7 +198,8 @@ function TopHeader() {
                                 color: "#667085",
                                 fontWeight: 600,
                                 letterSpacing: "0.5px",
-                                textTransform: "uppercase"
+                                textTransform: "uppercase",
+                                display: { xs: "none", sm: "block" }
                             }}>
                                 Professional Trading
                             </Typography>
@@ -195,7 +212,7 @@ function TopHeader() {
                     <Box sx={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "16px",
+                        gap: { xs: "10px", sm: "16px" },
                         animation: "fadeInUp 0.5s ease 0.1s both"
                     }}>
                         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -220,7 +237,8 @@ function TopHeader() {
                     <Box sx={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "20px",
+                        gap: { xs: "12px", lg: "20px" },
+                        flexWrap: "wrap",
                         animation: "fadeInUp 0.5s ease 0.1s both"
                     }}>
                         {/* Balance */}
@@ -283,7 +301,8 @@ function TopHeader() {
                             <Box sx={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "15px"
+                                gap: { xs: "10px", lg: "15px" },
+                                flexWrap: "wrap"
                             }}>
                                 <Box sx={{
                                     display: "flex",
@@ -385,7 +404,11 @@ function TopHeader() {
                     <Box sx={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "15px",
+                        justifyContent: { xs: "space-between", md: "flex-end" },
+                        gap: { xs: "10px", sm: "12px", md: "15px" },
+                        flexWrap: "wrap",
+                        width: { xs: "100%", md: "auto" },
+                        marginLeft: { md: "auto" },
                         animation: "fadeInRight 0.5s ease"
                     }}>
                         <TerminalAccountDetailsMenu />
@@ -407,7 +430,7 @@ function TopHeader() {
                                     btnSx={{
                                         bgcolor: "#1f7ae0",
                                         color: "white",
-                                        px: "4rem",
+                                        px: { xs: "1.5rem", sm: "2rem", lg: "4rem" },
                                         py: ".5rem",
                                         borderRadius: "10px",
                                         boxShadow: "0 10px 24px rgba(31, 122, 224, 0.22)"
@@ -420,7 +443,7 @@ function TopHeader() {
                                     btnSx={{
                                         bgcolor: "#1f7ae0",
                                         color: "white",
-                                        px: "4rem",
+                                        px: { xs: "1.5rem", sm: "2rem", lg: "4rem" },
                                         py: ".5rem",
                                         borderRadius: "10px",
                                         boxShadow: "0 10px 24px rgba(31, 122, 224, 0.22)"

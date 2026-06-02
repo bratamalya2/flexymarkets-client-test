@@ -327,14 +327,14 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                 height: "100%",
                 minWidth: 0,
                 background: "linear-gradient(180deg, #111827 0%, #0d1422 100%)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
-                borderRadius: "20px",
+                border: { xs: "none", sm: "1px solid rgba(255, 255, 255, 0.06)" },
+                borderRadius: { xs: 0, sm: "16px", md: "20px" },
                 display: "flex",
                 flexDirection: "column",
                 color: "#eef4ff",
                 fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
                 overflow: "hidden",
-                boxShadow: "0 18px 42px rgba(17, 24, 39, 0.22)",
+                boxShadow: { xs: "none", sm: "0 18px 42px rgba(17, 24, 39, 0.22)" },
                 position: "relative",
                 animation: "panelSlideInLeft 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"
             }}
@@ -353,7 +353,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
 
             {/* Header with Search */}
             <Box sx={{
-                p: "15px",
+                p: { xs: "12px", sm: "15px" },
                 borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                 flexShrink: 0,
                 position: "relative",
@@ -363,7 +363,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                 <Box sx={{ display: "flex", alignItems: "center", gap: "10px", mb: "10px" }}>
 
                     <Typography sx={{
-                        fontSize: "18px",
+                        fontSize: { xs: "16px", sm: "18px" },
                         fontWeight: "800",
                         background: "linear-gradient(135deg, #ffffff, #a9b8cf)",
                         WebkitBackgroundClip: "text",
@@ -395,7 +395,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                             border: "1px solid rgba(255, 255, 255, 0.12)",
                             borderRadius: "12px",
                             color: "white",
-                            fontSize: "13px",
+                            fontSize: { xs: "12px", sm: "13px" },
                             "& fieldset": { border: "none" },
                             "&:hover": {
                                 borderColor: "#60a5fa",
@@ -428,10 +428,10 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                         className={`left-tab ${tab.id}`}
                         sx={{
                             flex: 1,
-                            padding: "12px",
+                            padding: { xs: "10px 8px", sm: "12px" },
                             textAlign: "center",
                             cursor: "pointer",
-                            fontSize: "13px",
+                            fontSize: { xs: "12px", sm: "13px" },
                             fontWeight: "600",
                             color: activeTab === tab.id ? "white" : "#9aa8bd",
                             background: activeTab === tab.id
@@ -491,8 +491,9 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
             <Box sx={{
                 flex: 1,
                 overflowY: "auto",
-                p: "15px",
+                p: { xs: "12px", sm: "15px" },
                 position: "relative",
+                WebkitOverflowScrolling: "touch",
                 "&::-webkit-scrollbar": {
                     width: "4px",
                 },
@@ -510,9 +511,9 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                 scrollBehavior: "smooth"
             }}>
                 <Typography sx={{
-                    fontSize: "13px",
+                    fontSize: { xs: "12px", sm: "13px" },
                     color: "#8fb2e8",
-                    mb: "15px",
+                    mb: { xs: "12px", sm: "15px" },
                     textTransform: "uppercase",
                     fontWeight: "700",
                     letterSpacing: "0.5px",
@@ -578,7 +579,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                     onMouseLeave={() => setHoveredSymbol(null)}
                                     onClick={() => handleSymbolSelect(symbol)}
                                     sx={{
-                                        padding: "12px",
+                                        padding: { xs: "10px", sm: "12px" },
                                         borderRadius: "8px",
                                         cursor: isDragging ? "grabbing" : "grab",
                                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -631,14 +632,14 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
-                                        mr: "8px",
+                                        mr: { xs: "6px", sm: "8px" },
                                         color: isDragging ? "#bfdbfe" : "rgba(255,255,255,0.28)",
                                         transition: "all 0.2s ease",
                                         "&:hover": {
                                             color: "#93c5fd",
                                         },
                                     }}>
-                                        <DragIndicatorIcon sx={{ fontSize: "18px" }} />
+                                        <DragIndicatorIcon sx={{ fontSize: { xs: "16px", sm: "18px" } }} />
                                     </Box>
 
                                     {/* Star button for watchlist */}
@@ -678,7 +679,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                             <Typography sx={{
                                                 fontWeight: "800",
                                                 color: "white",
-                                                fontSize: "15px",
+                                                fontSize: { xs: "14px", sm: "15px" },
                                                 letterSpacing: "0.5px"
                                             }}>
                                                 {symbol}
@@ -686,9 +687,9 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                         </Box>
 
                                         <Typography sx={{
-                                            fontSize: "11px",
+                                            fontSize: { xs: "10px", sm: "11px" },
                                             color: "#9ca3af",
-                                            mb: "8px",
+                                            mb: { xs: "6px", sm: "8px" },
                                             whiteSpace: "nowrap",
                                             overflow: "hidden",
                                             textOverflow: "ellipsis"
@@ -708,7 +709,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                                 <Typography sx={{
                                                     fontWeight: "700",
                                                     color: "green",
-                                                    fontSize: "14px",
+                                                    fontSize: { xs: "13px", sm: "14px" },
                                                     animation: priceAnimation?.direction === "up" ? "priceUp 0.5s ease" : "none",
                                                 }}>
                                                     {formatPrice(symbolItem?.Ask)}
@@ -717,7 +718,7 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                                                 <Typography sx={{
                                                     fontWeight: "700",
                                                     color: "red",
-                                                    fontSize: "14px",
+                                                    fontSize: { xs: "13px", sm: "14px" },
                                                     animation: priceAnimation?.direction === "down" ? "priceDown 0.5s ease" : "none",
                                                 }}>
                                                     {formatPrice(symbolItem?.Bid)}

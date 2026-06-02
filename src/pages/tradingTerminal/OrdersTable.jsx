@@ -366,6 +366,7 @@ function OrdersTable() {
 
     const renderMarketTable = () => (
         <Table size="small" sx={{
+            minWidth: 680,
             borderCollapse: 'separate',
             borderSpacing: '0 4px'
         }}>
@@ -526,6 +527,7 @@ function OrdersTable() {
 
     const renderPositionsTable = () => (
         <Table size="small" sx={{
+            minWidth: 1040,
             borderCollapse: 'separate',
             borderSpacing: '0 4px'
         }}>
@@ -847,6 +849,7 @@ function OrdersTable() {
 
         return (
             <Table size="small" sx={{
+                minWidth: 640,
                 borderCollapse: 'separate',
                 borderSpacing: '0 4px'
             }}>
@@ -989,7 +992,7 @@ function OrdersTable() {
     };
 
     const renderPendingTable = () => (
-        <Table size="small" sx={{ borderCollapse: 'separate', borderSpacing: '0 4px' }}>
+        <Table size="small" sx={{ minWidth: 920, borderCollapse: 'separate', borderSpacing: '0 4px' }}>
             <TableHead>
                 <TableRow sx={{
                     background: "linear-gradient(135deg, rgba(26, 31, 46, 0.9), rgba(14, 18, 28, 0.9))",
@@ -1091,7 +1094,9 @@ function OrdersTable() {
             flexDirection: "column",
             height: "100%",
             background: "linear-gradient(180deg, #0a0e17 0%, #0f131e 100%)",
-            position: "relative"
+            position: "relative",
+            minHeight: 0,
+            overflow: "hidden"
         }}>
             {/* Animated background */}
             <Box sx={{
@@ -1110,7 +1115,7 @@ function OrdersTable() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "15px 15px 0 15px",
+                padding: { xs: "12px 12px 0 12px", md: "15px 15px 0 15px" },
                 flexShrink: 0
             }}>
                 <Box sx={{ width: "100%", display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between" }}>
@@ -1149,7 +1154,7 @@ function OrdersTable() {
                         Updated: {new Date(lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Typography> */}
                     <Box sx={{
-                        display: "flex",
+                        display: { xs: "none", sm: "flex" },
                         alignItems: "center",
                         gap: "15px",
                         animation: "fadeInRight 0.5s ease"
@@ -1291,7 +1296,7 @@ function OrdersTable() {
             <Box sx={{
                 flex: 1,
                 overflowY: "auto",
-                padding: "15px",
+                padding: { xs: "12px", md: "15px" },
                 position: "relative",
                 "&::-webkit-scrollbar": {
                     width: "4px",
@@ -1310,7 +1315,9 @@ function OrdersTable() {
             }}>
                 <TableContainer sx={{
                     background: "transparent",
-                    boxShadow: "none"
+                    boxShadow: "none",
+                    overflowX: "auto",
+                    WebkitOverflowScrolling: "touch"
                 }}>
                     {activeTab === "market" && renderMarketTable()}
                     {activeTab === "analysis" && <AnalysisPanel />}

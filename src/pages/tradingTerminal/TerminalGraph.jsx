@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useSelector } from 'react-redux';
-import { createChart, CandlestickSeries, LineStyle } from 'lightweight-charts';
+import { createChart, BarSeries, CandlestickSeries, LineSeries, LineStyle, LineType } from 'lightweight-charts';
 import { Box, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { useQuotes } from '../../context/QuotesContext';
 
@@ -20,8 +20,142 @@ const HISTORY_MAX_CHUNK_RANGE = 365 * 24 * 60 * 60;
 const INITIAL_FAST_LOAD_BARS = 240;
 const HISTORY_CACHE_TTL_MS = 5 * 60 * 1000;
 const HISTORY_CACHE_MAX_ENTRIES = 48;
+const GRAPH_TYPE_STORAGE_KEY = 'terminalGraphType';
+const DEFAULT_GRAPH_TYPE = 'candles';
+
+const GRAPH_TYPES = [
+    { id: 'bars', label: 'Bars' },
+    { id: 'candles', label: 'Candles' },
+    { id: 'hollow-candles', label: 'Hollow Candles' },
+    {
+        id: 'volume-candles',
+        label: 'Volume Candles',
+        disabled: true,
+        disabledReason: 'Volume candles need volume data and a custom series or overlay.',
+    },
+    { id: 'line', label: 'Line' },
+    { id: 'line-markers', label: 'Line with Markers' },
+    { id: 'step-line', label: 'Step Line' },
+];
 
 const terminalHistoryCache = new Map();
+const graphTypeOptionsById = new Map(GRAPH_TYPES.map((option) => [option.id, option]));
+
+function readStoredGraphType() {
+    if (typeof window === 'undefined') return DEFAULT_GRAPH_TYPE;
+
+    const storedGraphType = window.localStorage.getItem(GRAPH_TYPE_STORAGE_KEY);
+    const graphTypeOption = graphTypeOptionsById.get(storedGraphType);
+    if (!graphTypeOption || graphTypeOption.disabled) return DEFAULT_GRAPH_TYPE;
+    return graphTypeOption.id;
+}
+
+function getSeriesPalette(settings) {
+    return {
+        upColor: settings?.upColor || '#16a085',
+        downColor: settings?.downColor || '#ef334e',
+    };
+}
+
+function getSeriesDefinitionForGraphType(graphType) {
+    switch (graphType) {
+        case 'bars':
+            return BarSeries;
+        case 'line':
+        case 'line-markers':
+        case 'step-line':
+            return LineSeries;
+        case 'hollow-candles':
+        case 'candles':
+        default:
+            return CandlestickSeries;
+    }
+}
+
+function getSeriesOptionsForGraphType(graphType, settings) {
+    const { upColor, downColor } = getSeriesPalette(settings);
+
+    switch (graphType) {
+        case 'bars':
+            return {
+                upColor,
+                downColor,
+                openVisible: true,
+                thinBars: false,
+            };
+        case 'hollow-candles':
+            return {
+                upColor: 'rgba(0, 0, 0, 0)',
+                downColor,
+                borderVisible: true,
+                borderUpColor: upColor,
+                borderDownColor: downColor,
+                wickUpColor: upColor,
+                wickDownColor: downColor,
+            };
+        case 'line':
+            return {
+                color: upColor,
+                lineWidth: 2,
+                lineType: LineType.Simple,
+                pointMarkersVisible: false,
+                crosshairMarkerVisible: true,
+            };
+        case 'line-markers':
+            return {
+                color: upColor,
+                lineWidth: 2,
+                lineType: LineType.Simple,
+                pointMarkersVisible: true,
+                pointMarkersRadius: 3,
+                crosshairMarkerVisible: true,
+            };
+        case 'step-line':
+            return {
+                color: upColor,
+                lineWidth: 2,
+                lineType: LineType.WithSteps,
+                pointMarkersVisible: false,
+                crosshairMarkerVisible: true,
+            };
+        case 'candles':
+        default:
+            return {
+                upColor,
+                downColor,
+                borderUpColor: upColor,
+                borderDownColor: downColor,
+                wickUpColor: upColor,
+                wickDownColor: downColor,
+            };
+    }
+}
+
+function toSeriesDataPoint(candle, graphType) {
+    const normalizedCandle = toChartCandle(candle);
+    if (!normalizedCandle) return null;
+
+    switch (graphType) {
+        case 'line':
+        case 'line-markers':
+        case 'step-line':
+            return {
+                time: normalizedCandle.time,
+                value: normalizedCandle.close,
+            };
+        case 'bars':
+        case 'hollow-candles':
+        case 'candles':
+        default:
+            return normalizedCandle;
+    }
+}
+
+function toSeriesData(candles, graphType) {
+    return candles
+        .map((candle) => toSeriesDataPoint(candle, graphType))
+        .filter(Boolean);
+}
 
 function buildHistoryCacheKey(symbol, timeframe) {
     if (!symbol || !timeframe) return "";
@@ -317,6 +451,7 @@ function TerminalGraph() {
     const entryPriceLinesRef = useRef([]);
     const currentCandleRef = useRef(null);
     const chartCandlesRef = useRef([]);
+    const seriesGraphTypeRef = useRef(DEFAULT_GRAPH_TYPE);
     const abortRef = useRef(null);
     const historyAbortRef = useRef(null);
     const requestIdRef = useRef(0);
@@ -331,6 +466,7 @@ function TerminalGraph() {
     chartSettingsRef.current = visualChartSettings;
 
     const [activeTimeframe, setActiveTimeframe] = useState(TIMEFRAMES[1]); // 5M default
+    const [activeGraphType, setActiveGraphType] = useState(readStoredGraphType);
     const [loading, setLoading] = useState(false);
     const [loadingOlder, setLoadingOlder] = useState(false);
     const [error, setError] = useState(null);
@@ -365,6 +501,18 @@ function TerminalGraph() {
         });
         entryPriceLinesRef.current = [];
     }, []);
+
+    const createMainSeries = useCallback((chart, graphType) => (
+        chart.addSeries(
+            getSeriesDefinitionForGraphType(graphType),
+            getSeriesOptionsForGraphType(graphType, chartSettingsRef.current)
+        )
+    ), []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(GRAPH_TYPE_STORAGE_KEY, activeGraphType);
+    }, [activeGraphType]);
 
     const fetchChartCandles = useCallback(async ({ symbol, from, to, period, signal }) => {
         const url = `${import.meta.env.VITE_BASE_URL}/user/analytics/chart`
@@ -401,7 +549,7 @@ function TerminalGraph() {
         currentCandleRef.current = nextCandles[nextCandles.length - 1] || null;
         historyCursorRef.current = historyCursor ?? nextCandles[0]?.time ?? null;
 
-        series.setData(nextCandles);
+        series.setData(toSeriesData(nextCandles, seriesGraphTypeRef.current || activeGraphType));
         setDrawingRenderVersion((value) => value + 1);
 
         if (
@@ -420,7 +568,7 @@ function TerminalGraph() {
         }
 
         return nextCandles;
-    }, []);
+    }, [activeGraphType]);
 
     const loadOlderHistory = useCallback(async () => {
         if (
@@ -706,17 +854,11 @@ function TerminalGraph() {
 
                 resizeChart(Math.floor(width), Math.floor(height));
 
-                const series = chart.addSeries(CandlestickSeries, {
-                    upColor: initialSettings?.upColor || '#16a085',
-                    downColor: initialSettings?.downColor || '#ef334e',
-                    borderUpColor: initialSettings?.upColor || '#16a085',
-                    borderDownColor: initialSettings?.downColor || '#ef334e',
-                    wickUpColor: initialSettings?.upColor || '#16a085',
-                    wickDownColor: initialSettings?.downColor || '#ef334e',
-                });
+                const series = createMainSeries(chart, activeGraphType);
 
                 chartRef.current = chart;
                 seriesRef.current = series;
+                seriesGraphTypeRef.current = activeGraphType;
 
                 if (typeof ResizeObserver !== "undefined") {
                     resizeObserver = new ResizeObserver(([entry]) => {
@@ -751,7 +893,44 @@ function TerminalGraph() {
             seriesRef.current = null;
             setChartReady(false);
         };
-    }, [hasChartSymbol, removeEntryPriceLines]);
+    }, [activeGraphType, createMainSeries, hasChartSymbol, removeEntryPriceLines]);
+
+    useEffect(() => {
+        if (!chartReady || !chartRef.current || !seriesRef.current) return;
+        if (seriesGraphTypeRef.current === activeGraphType) return;
+
+        const chart = chartRef.current;
+        const previousSeries = seriesRef.current;
+        const visibleTimeRange = chart.timeScale().getVisibleRange?.();
+
+        removeEntryPriceLines(previousSeries);
+
+        try {
+            chart.removeSeries(previousSeries);
+        } catch {
+            // Ignore stale series removal during rapid symbol switches.
+        }
+
+        const nextSeries = createMainSeries(chart, activeGraphType);
+        seriesRef.current = nextSeries;
+        seriesGraphTypeRef.current = activeGraphType;
+
+        const loadedCandles = chartCandlesRef.current;
+        if (loadedCandles.length > 0) {
+            nextSeries.setData(toSeriesData(loadedCandles, activeGraphType));
+        }
+
+        if (
+            visibleTimeRange?.from !== undefined
+            && visibleTimeRange?.to !== undefined
+        ) {
+            requestAnimationFrame(() => {
+                chartRef.current?.timeScale().setVisibleRange(visibleTimeRange);
+            });
+        }
+
+        setDrawingRenderVersion((value) => value + 1);
+    }, [activeGraphType, chartReady, createMainSeries, removeEntryPriceLines]);
 
     useEffect(() => {
         if (!seriesRef.current || !chartReady) return;
@@ -790,7 +969,7 @@ function TerminalGraph() {
             });
             entryPriceLinesRef.current = entryPriceLinesRef.current.filter((priceLine) => !nextLines.includes(priceLine));
         };
-    }, [activeMT5AccountPositionsDetails, chartReady, chartSymbol, removeEntryPriceLines]);
+    }, [activeGraphType, activeMT5AccountPositionsDetails, chartReady, chartSymbol, removeEntryPriceLines]);
 
     useEffect(() => {
         if (!drawingStorageKey) {
@@ -890,15 +1069,8 @@ function TerminalGraph() {
             }
         });
 
-        series.applyOptions({
-            upColor: visualChartSettings.upColor || '#16a085',
-            downColor: visualChartSettings.downColor || '#ef334e',
-            borderUpColor: visualChartSettings.upColor || '#16a085',
-            borderDownColor: visualChartSettings.downColor || '#ef334e',
-            wickUpColor: visualChartSettings.upColor || '#16a085',
-            wickDownColor: visualChartSettings.downColor || '#ef334e',
-        });
-    }, [visualChartSettings]);
+        series.applyOptions(getSeriesOptionsForGraphType(activeGraphType, visualChartSettings));
+    }, [activeGraphType, visualChartSettings]);
 
     // Listen to zoom and refresh events from the toolbar
     useEffect(() => {
@@ -1126,7 +1298,10 @@ function TerminalGraph() {
             };
             currentCandleRef.current = updated;
             chartCandlesRef.current = mergeCandles(chartCandlesRef.current, [updated]);
-            seriesRef.current.update(updated);
+            const seriesPoint = toSeriesDataPoint(updated, seriesGraphTypeRef.current || activeGraphType);
+            if (seriesPoint) {
+                seriesRef.current.update(seriesPoint);
+            }
         } else if (candleTime > prev.time) {
             const newCandle = {
                 time: candleTime,
@@ -1138,9 +1313,12 @@ function TerminalGraph() {
             };
             currentCandleRef.current = newCandle;
             chartCandlesRef.current = mergeCandles(chartCandlesRef.current, [newCandle]);
-            seriesRef.current.update(newCandle);
+            const seriesPoint = toSeriesDataPoint(newCandle, seriesGraphTypeRef.current || activeGraphType);
+            if (seriesPoint) {
+                seriesRef.current.update(seriesPoint);
+            }
         }
-    }, [quoteData, chartSymbol, activeTimeframe.candleSec]);
+    }, [quoteData, chartSymbol, activeGraphType, activeTimeframe.candleSec]);
 
     const renderedDrawings = useMemo(() => {
         if (!chartReady || drawingRenderVersion < 0) return [];
@@ -1199,11 +1377,11 @@ function TerminalGraph() {
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: visualChartSettings.backgroundColor || '#ffffff' }}>
             {/* Toolbar */}
             <Box sx={{
-                display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap',
-                padding: '7px 12px', borderBottom: '1px solid #e6edf5',
+                display: 'flex', alignItems: 'center', columnGap: '4px', rowGap: '6px', flexWrap: 'wrap',
+                padding: { xs: '8px 10px', sm: '7px 12px' }, borderBottom: '1px solid #e6edf5',
                 flexShrink: 0, background: '#ffffff',
             }}>
-                <Typography sx={{ color: '#172033', fontWeight: 800, fontSize: '14px', mr: 1 }}>
+                <Typography sx={{ color: '#172033', fontWeight: 800, fontSize: { xs: '13px', sm: '14px' }, mr: { xs: 0, sm: 1 }, width: { xs: '100%', sm: 'auto' } }}>
                     {chartSymbol}
                 </Typography>
                 {TIMEFRAMES.map(tf => (
@@ -1211,8 +1389,8 @@ function TerminalGraph() {
                         key={tf.label}
                         onClick={() => setActiveTimeframe(tf)}
                         sx={{
-                            padding: '3px 9px', borderRadius: '4px', cursor: 'pointer',
-                            fontSize: '11px', fontWeight: 600, userSelect: 'none',
+                            padding: { xs: '3px 8px', sm: '3px 9px' }, borderRadius: '4px', cursor: 'pointer',
+                            fontSize: { xs: '10px', sm: '11px' }, fontWeight: 600, userSelect: 'none',
                             color: activeTimeframe.label === tf.label ? '#fff' : '#667085',
                             background: activeTimeframe.label === tf.label
                                 ? 'linear-gradient(135deg, #1f7ae0, #2563eb)'
@@ -1231,11 +1409,58 @@ function TerminalGraph() {
                         {tf.label}
                     </Box>
                 ))}
+                <Tooltip title="Switch chart style. Volume Candles needs volume data and a custom series or overlay, so it is unavailable in the current feed.">
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'space-between', sm: 'flex-start' }, gap: '6px', ml: { xs: 0, sm: '4px' }, width: { xs: '100%', sm: 'auto' } }}>
+                        <Typography sx={{ color: '#667085', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em' }}>
+                            Style
+                        </Typography>
+                        <Box
+                            component="select"
+                            aria-label="Select chart style"
+                            value={activeGraphType}
+                            onChange={(event) => setActiveGraphType(event.target.value)}
+                            sx={{
+                                minWidth: { xs: '0', sm: '154px' },
+                                width: { xs: '100%', sm: 'auto' },
+                                height: '28px',
+                                px: '10px',
+                                borderRadius: '999px',
+                                border: '1px solid #dfe7f1',
+                                background: '#f8fbff',
+                                color: '#172033',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                outline: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                '&:hover': {
+                                    borderColor: '#1f7ae0',
+                                    background: 'rgba(31,122,224,0.04)',
+                                },
+                                '&:focus': {
+                                    borderColor: '#1f7ae0',
+                                    boxShadow: '0 0 0 3px rgba(31,122,224,0.12)',
+                                },
+                            }}
+                        >
+                            {GRAPH_TYPES.map((graphTypeOption) => (
+                                <option
+                                    key={graphTypeOption.id}
+                                    value={graphTypeOption.id}
+                                    disabled={graphTypeOption.disabled}
+                                >
+                                    {graphTypeOption.label}
+                                </option>
+                            ))}
+                        </Box>
+                    </Box>
+                </Tooltip>
                 <Box sx={{
                     width: "1px",
                     height: "20px",
                     background: "#dfe7f1",
                     mx: "6px",
+                    display: { xs: "none", sm: "block" },
                 }} />
                 {DRAWING_TOOLS.map((tool) => (
                     <Tooltip key={tool.id} title={tool.id === "select" ? "Use chart normally" : `Draw ${tool.label}`}>
@@ -1245,10 +1470,10 @@ function TerminalGraph() {
                                 setActiveDrawingTool(tool.id);
                             }}
                             sx={{
-                                padding: "3px 9px",
+                                padding: { xs: "3px 8px", sm: "3px 9px" },
                                 borderRadius: "999px",
                                 cursor: "pointer",
-                                fontSize: "11px",
+                                fontSize: { xs: "10px", sm: "11px" },
                                 fontWeight: 800,
                                 userSelect: "none",
                                 color: activeDrawingTool === tool.id ? "#fff" : "#44546a",
@@ -1289,10 +1514,10 @@ function TerminalGraph() {
                     <Box
                         onClick={handleUndoDrawing}
                         sx={{
-                            padding: "3px 9px",
+                            padding: { xs: "3px 8px", sm: "3px 9px" },
                             borderRadius: "999px",
                             cursor: drawings.length ? "pointer" : "not-allowed",
-                            fontSize: "11px",
+                            fontSize: { xs: "10px", sm: "11px" },
                             fontWeight: 800,
                             color: drawings.length ? "#667085" : "#a8b2c1",
                             background: "#f4f7fb",
@@ -1308,10 +1533,10 @@ function TerminalGraph() {
                     <Box
                         onClick={handleClearDrawings}
                         sx={{
-                            padding: "3px 9px",
+                            padding: { xs: "3px 8px", sm: "3px 9px" },
                             borderRadius: "999px",
                             cursor: drawings.length ? "pointer" : "not-allowed",
-                            fontSize: "11px",
+                            fontSize: { xs: "10px", sm: "11px" },
                             fontWeight: 800,
                             color: drawings.length ? "#ef334e" : "#a8b2c1",
                             background: drawings.length ? "rgba(239,51,78,0.06)" : "#f4f7fb",
