@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Box, Typography, IconButton, Tooltip, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Grid } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Box, Typography, IconButton, Tooltip, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Grid, useMediaQuery } from "@mui/material";
 import { useSelector, useDispatch } from "react-redux";
 import { setChartSettings, resetChartSettings } from "../../globalState/terminalState/terminalSlice";
 import TradingViewWidget from "./TerminalGraph";
@@ -14,6 +14,24 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
+const ORDERS_PANEL_HEIGHT_STORAGE_KEY = "terminalOrdersPanelHeight";
+const DEFAULT_ORDERS_PANEL_HEIGHT = 280;
+const MIN_ORDERS_PANEL_HEIGHT = 220;
+const MIN_CHART_SECTION_HEIGHT_DESKTOP = 320;
+const MIN_CHART_SECTION_HEIGHT_MOBILE = 260;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function readStoredNumber(storageKey, fallback) {
+  if (typeof window === "undefined") return fallback;
+
+  const rawValue = window.localStorage.getItem(storageKey);
+  const parsedValue = Number(rawValue);
+  return Number.isFinite(parsedValue) ? parsedValue : fallback;
+}
+
 function CenterPanel() {
   const dispatch = useDispatch();
   const [chartData, setChartData] = useState({ price: 0 });
@@ -21,6 +39,17 @@ function CenterPanel() {
   const { selectedSymbol, chartSettings } = useSelector(state => state.terminal);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isChartCollapsed, setIsChartCollapsed] = useState(false);
+  const [ordersPanelHeight, setOrdersPanelHeight] = useState(() => (
+    readStoredNumber(ORDERS_PANEL_HEIGHT_STORAGE_KEY, DEFAULT_ORDERS_PANEL_HEIGHT)
+  ));
+  const [isResizingOrdersPanel, setIsResizingOrdersPanel] = useState(false);
+  const canResizeChartArea = useMediaQuery("(min-width:768px)");
+
+  const centerPanelRef = useRef(null);
+  const ordersPanelResizeRef = useRef({
+    startY: 0,
+    startHeight: DEFAULT_ORDERS_PANEL_HEIGHT,
+  });
 
   const handleQuoteData = (data) => {
     if (!data || !Array.isArray(data) || !selectedSymbol) return;
@@ -103,13 +132,102 @@ function CenterPanel() {
     };
   }, []);
 
+  const getOrdersPanelMaxHeight = useCallback(() => {
+    const containerHeight = centerPanelRef.current?.getBoundingClientRect().height;
+    const minimumChartHeight = canResizeChartArea
+      ? MIN_CHART_SECTION_HEIGHT_DESKTOP
+      : MIN_CHART_SECTION_HEIGHT_MOBILE;
+
+    if (!containerHeight) {
+      return Math.max(MIN_ORDERS_PANEL_HEIGHT, DEFAULT_ORDERS_PANEL_HEIGHT);
+    }
+
+    return Math.max(
+      MIN_ORDERS_PANEL_HEIGHT,
+      Math.floor(containerHeight - minimumChartHeight)
+    );
+  }, [canResizeChartArea]);
+
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ORDERS_PANEL_HEIGHT_STORAGE_KEY, String(ordersPanelHeight));
+  }, [ordersPanelHeight]);
+
+  useEffect(() => {
+    const clampOrdersPanelHeight = () => {
+      setOrdersPanelHeight((currentHeight) => (
+        clamp(currentHeight, MIN_ORDERS_PANEL_HEIGHT, getOrdersPanelMaxHeight())
+      ));
+    };
+
+    clampOrdersPanelHeight();
+
+    if (typeof ResizeObserver !== "undefined" && centerPanelRef.current) {
+      const observer = new ResizeObserver(clampOrdersPanelHeight);
+      observer.observe(centerPanelRef.current);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", clampOrdersPanelHeight);
+    return () => {
+      window.removeEventListener("resize", clampOrdersPanelHeight);
+    };
+  }, [getOrdersPanelMaxHeight]);
+
+  useEffect(() => {
+    if (!isResizingOrdersPanel) return undefined;
+
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    const handlePointerMove = (event) => {
+      const deltaY = event.clientY - ordersPanelResizeRef.current.startY;
+      const nextHeight = ordersPanelResizeRef.current.startHeight - deltaY;
+      setOrdersPanelHeight(
+        clamp(nextHeight, MIN_ORDERS_PANEL_HEIGHT, getOrdersPanelMaxHeight())
+      );
+    };
+
+    const stopResizing = () => {
+      setIsResizingOrdersPanel(false);
+    };
+
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResizing);
+    window.addEventListener("pointercancel", stopResizing);
+
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResizing);
+      window.removeEventListener("pointercancel", stopResizing);
+    };
+  }, [getOrdersPanelMaxHeight, isResizingOrdersPanel]);
+
+  useEffect(() => {
+    if (isResizingOrdersPanel) return undefined;
+
     const resizeTimer = setTimeout(() => {
       window.dispatchEvent(new Event("resize"));
     }, 320);
 
     return () => clearTimeout(resizeTimer);
-  }, [isChartCollapsed]);
+  }, [isChartCollapsed, isResizingOrdersPanel, ordersPanelHeight]);
+
+  const handleOrdersPanelResizeStart = useCallback((event) => {
+    if (event.button !== 0 || isChartCollapsed || !canResizeChartArea) return;
+
+    event.preventDefault();
+    ordersPanelResizeRef.current = {
+      startY: event.clientY,
+      startHeight: ordersPanelHeight,
+    };
+    setIsResizingOrdersPanel(true);
+  }, [canResizeChartArea, isChartCollapsed, ordersPanelHeight]);
 
   // Refresh chart
   const handleRefreshChart = () => {
@@ -131,10 +249,13 @@ function CenterPanel() {
   return (
     <Box
       className="center-panel"
+      ref={centerPanelRef}
       sx={{
         flex: 1,
         display: "flex",
         flexDirection: "column",
+        minWidth: 0,
+        minHeight: 0,
         background: "#ffffff",
         border: "1px solid #dfe7f1",
         borderRadius: { xs: 0, md: "18px" },
@@ -162,10 +283,10 @@ function CenterPanel() {
 
       <Box sx={{
         flex: isChartCollapsed ? "0 0 auto" : "1 1 0",
-        minHeight: isChartCollapsed ? "86px" : { xs: "260px", md: "360px" },
+        minHeight: isChartCollapsed ? "86px" : { xs: "260px", md: "320px" },
         display: "flex",
         flexDirection: "column",
-        transition: "flex-basis 0.35s ease, min-height 0.35s ease",
+        transition: isResizingOrdersPanel ? "none" : "flex-basis 0.35s ease, min-height 0.35s ease",
         overflow: "hidden",
         position: "relative"
       }}>
@@ -366,13 +487,13 @@ function CenterPanel() {
         {/* Chart Container */}
         <Box sx={{
           flex: isChartCollapsed ? "0 0 0px" : "1 1 0",
-          minHeight: isChartCollapsed ? 0 : { xs: "160px", md: "240px" },
+          minHeight: isChartCollapsed ? 0 : { xs: "150px", md: "210px" },
           background: "#ffffff",
           position: "relative",
           overflow: "hidden",
           opacity: isChartCollapsed ? 0 : 1,
           pointerEvents: isChartCollapsed ? "none" : "auto",
-          transition: "flex-basis 0.35s ease, min-height 0.35s ease, opacity 0.2s ease"
+          transition: isResizingOrdersPanel ? "opacity 0.2s ease" : "flex-basis 0.35s ease, min-height 0.35s ease, opacity 0.2s ease"
         }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}>
             <TradingViewWidget />
@@ -439,11 +560,46 @@ function CenterPanel() {
             borderBottom: "1px solid #d6e3f2",
             boxShadow: isChartCollapsed ? "0 8px 18px rgba(18, 32, 54, 0.08)" : "none",
             position: "relative",
-            zIndex: 12
+            zIndex: 12,
+            cursor: !isChartCollapsed && canResizeChartArea ? "row-resize" : "default",
+            touchAction: !isChartCollapsed && canResizeChartArea ? "none" : "auto"
           }}
+          onPointerDown={handleOrdersPanelResizeStart}
         >
+          {!isChartCollapsed && canResizeChartArea && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "5px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                pointerEvents: "none"
+              }}
+            >
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    width: "22px",
+                    height: "3px",
+                    borderRadius: "999px",
+                    background: isResizingOrdersPanel
+                      ? "linear-gradient(135deg, #1f7ae0, #16a085)"
+                      : "rgba(20, 74, 143, 0.28)",
+                    boxShadow: isResizingOrdersPanel
+                      ? "0 0 0 3px rgba(31, 122, 224, 0.12)"
+                      : "none",
+                  }}
+                />
+              ))}
+            </Box>
+          )}
           <Tooltip title={isChartCollapsed ? "Expand chart" : "Collapse chart"}>
             <Button
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => setIsChartCollapsed((value) => !value)}
               size="small"
               startIcon={isChartCollapsed ? <KeyboardArrowDownIcon /> : <KeyboardArrowUpIcon />}
@@ -482,9 +638,9 @@ function CenterPanel() {
 
       {/* Orders Table */}
       <Box sx={{
-        flex: isChartCollapsed ? "1 1 0" : "0 0 280px",
-        height: isChartCollapsed ? "auto" : "280px",
-        minHeight: isChartCollapsed ? "220px" : "280px",
+        flex: isChartCollapsed ? "1 1 0" : `0 0 ${ordersPanelHeight}px`,
+        height: isChartCollapsed ? "auto" : `${ordersPanelHeight}px`,
+        minHeight: `${MIN_ORDERS_PANEL_HEIGHT}px`,
         background: "#ffffff",
         borderTop: "1px solid #e6edf5",
         display: "flex",
@@ -493,7 +649,7 @@ function CenterPanel() {
         position: "relative",
         zIndex: 10,
         boxShadow: "0 -10px 24px rgba(18, 32, 54, 0.06)",
-        transition: "flex-basis 0.35s ease, min-height 0.35s ease, height 0.35s ease",
+        transition: isResizingOrdersPanel ? "none" : "flex-basis 0.35s ease, min-height 0.35s ease, height 0.35s ease",
         overflow: "hidden"
       }}>
         <OrdersTable />

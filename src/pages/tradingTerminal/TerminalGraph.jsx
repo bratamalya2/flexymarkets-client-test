@@ -17,6 +17,52 @@ const TIMEFRAMES = [
 const HISTORY_LEFT_LOAD_THRESHOLD_BARS = 35;
 const HISTORY_FETCH_THROTTLE_MS = 750;
 const HISTORY_MAX_CHUNK_RANGE = 365 * 24 * 60 * 60;
+const INITIAL_FAST_LOAD_BARS = 240;
+const HISTORY_CACHE_TTL_MS = 5 * 60 * 1000;
+const HISTORY_CACHE_MAX_ENTRIES = 48;
+
+const terminalHistoryCache = new Map();
+
+function buildHistoryCacheKey(symbol, timeframe) {
+    if (!symbol || !timeframe) return "";
+    return [
+        symbol,
+        timeframe.label,
+        timeframe.period,
+        timeframe.candleSec,
+        timeframe.range,
+    ].join("|");
+}
+
+function readHistoryCache(cacheKey) {
+    if (!cacheKey) return null;
+
+    const cachedEntry = terminalHistoryCache.get(cacheKey);
+    if (!cachedEntry) return null;
+
+    if ((Date.now() - cachedEntry.updatedAt) > HISTORY_CACHE_TTL_MS) {
+        terminalHistoryCache.delete(cacheKey);
+        return null;
+    }
+
+    return cachedEntry;
+}
+
+function writeHistoryCache(cacheKey, candles) {
+    if (!cacheKey || !Array.isArray(candles) || candles.length === 0) return;
+
+    terminalHistoryCache.set(cacheKey, {
+        candles,
+        updatedAt: Date.now(),
+    });
+
+    if (terminalHistoryCache.size <= HISTORY_CACHE_MAX_ENTRIES) return;
+
+    const oldestKey = terminalHistoryCache.keys().next().value;
+    if (oldestKey) {
+        terminalHistoryCache.delete(oldestKey);
+    }
+}
 
 function normalizeCandles(raw) {
     const rows = Array.isArray(raw)
@@ -299,6 +345,10 @@ function TerminalGraph() {
         () => chartSymbol ? `${DRAWING_STORAGE_PREFIX}:${chartSymbol}` : null,
         [chartSymbol]
     );
+    const chartHistoryCacheKey = useMemo(
+        () => buildHistoryCacheKey(chartRequestSymbol, activeTimeframe),
+        [activeTimeframe, chartRequestSymbol]
+    );
 
     const removeEntryPriceLines = useCallback((series = seriesRef.current) => {
         if (!series) {
@@ -332,6 +382,45 @@ function TerminalGraph() {
 
         return mergeCandles(normalizeCandles(result.data));
     }, [token]);
+
+    const applyChartCandles = useCallback((candles, {
+        historyCursor = null,
+        fitContent = false,
+        preserveVisibleRange = false,
+    } = {}) => {
+        const chart = chartRef.current;
+        const series = seriesRef.current;
+        if (!series) return [];
+
+        const nextCandles = mergeCandles(candles);
+        const visibleTimeRange = preserveVisibleRange
+            ? chart?.timeScale().getVisibleRange?.()
+            : null;
+
+        chartCandlesRef.current = nextCandles;
+        currentCandleRef.current = nextCandles[nextCandles.length - 1] || null;
+        historyCursorRef.current = historyCursor ?? nextCandles[0]?.time ?? null;
+
+        series.setData(nextCandles);
+        setDrawingRenderVersion((value) => value + 1);
+
+        if (
+            visibleTimeRange?.from !== undefined
+            && visibleTimeRange?.to !== undefined
+        ) {
+            suppressHistoryLoadUntilRef.current = Date.now() + 250;
+            requestAnimationFrame(() => {
+                chartRef.current?.timeScale().setVisibleRange(visibleTimeRange);
+            });
+        } else if (fitContent && nextCandles.length > 0) {
+            requestAnimationFrame(() => {
+                suppressHistoryLoadUntilRef.current = Date.now() + 800;
+                chartRef.current?.timeScale().fitContent();
+            });
+        }
+
+        return nextCandles;
+    }, []);
 
     const loadOlderHistory = useCallback(async () => {
         if (
@@ -390,17 +479,14 @@ function TerminalGraph() {
             const addedOlderCandles = mergedCandles.length > existingCandles.length;
 
             if (addedOlderCandles) {
-                chartCandlesRef.current = mergedCandles;
-                series.setData(mergedCandles);
-                currentCandleRef.current = mergedCandles[mergedCandles.length - 1] || null;
-                setDrawingRenderVersion((value) => value + 1);
-
-                if (visibleTimeRange?.from !== undefined && visibleTimeRange?.to !== undefined) {
-                    suppressHistoryLoadUntilRef.current = Date.now() + 250;
-                    requestAnimationFrame(() => {
-                        chartRef.current?.timeScale().setVisibleRange(visibleTimeRange);
-                    });
-                }
+                applyChartCandles(mergedCandles, {
+                    historyCursor: from,
+                    preserveVisibleRange: Boolean(
+                        visibleTimeRange?.from !== undefined
+                        && visibleTimeRange?.to !== undefined
+                    ),
+                });
+                writeHistoryCache(chartHistoryCacheKey, mergedCandles);
             } else if (from === 0) {
                 noMoreHistoryRef.current = true;
             }
@@ -427,6 +513,8 @@ function TerminalGraph() {
         fetchChartCandles,
         loading,
         token,
+        applyChartCandles,
+        chartHistoryCacheKey,
     ]);
 
     const getChartPointFromPointer = useCallback((event) => {
@@ -862,52 +950,121 @@ function TerminalGraph() {
         const requestId = requestIdRef.current + 1;
         requestIdRef.current = requestId;
         historyRequestIdRef.current += 1;
+        const chart = chartRef.current;
+        const cachedHistory = readHistoryCache(chartHistoryCacheKey);
+        const hasCachedHistory = Array.isArray(cachedHistory?.candles) && cachedHistory.candles.length > 0;
 
-        setLoading(true);
+        setLoading(!hasCachedHistory);
         setLoadingOlder(false);
         setError(null);
         currentCandleRef.current = null;
-        chartCandlesRef.current = [];
         historyCursorRef.current = null;
         noMoreHistoryRef.current = false;
         suppressHistoryLoadUntilRef.current = Date.now() + 800;
-        seriesRef.current.setData([]);
+        lastHistoryFetchAtRef.current = 0;
+
+        if (hasCachedHistory) {
+            applyChartCandles(cachedHistory.candles, {
+                historyCursor: cachedHistory.candles[0]?.time ?? null,
+                fitContent: true,
+            });
+        } else {
+            chartCandlesRef.current = [];
+            seriesRef.current.setData([]);
+        }
 
         const to = Math.floor(Date.now() / 1000);
-        const from = to - activeTimeframe.range;
+        const fullFrom = to - activeTimeframe.range;
+        const initialLoadRange = Math.min(
+            activeTimeframe.range,
+            activeTimeframe.candleSec * INITIAL_FAST_LOAD_BARS
+        );
+        const initialFrom = Math.max(fullFrom, to - initialLoadRange);
 
-        fetchChartCandles({
-            symbol: chartRequestSymbol,
-            from,
-            to,
-            period: activeTimeframe.period,
-            signal: controller.signal,
-        })
-            .then(candles => {
+        const loadSymbolHistory = async () => {
+            try {
+                const initialCandles = await fetchChartCandles({
+                    symbol: chartRequestSymbol,
+                    from: initialFrom,
+                    to,
+                    period: activeTimeframe.period,
+                    signal: controller.signal,
+                });
+
                 if (requestId !== requestIdRef.current || controller.signal.aborted) return;
 
-                if (seriesRef.current) {
-                    seriesRef.current.setData(candles);
-                    if (candles.length > 0) {
-                        requestAnimationFrame(() => {
-                            suppressHistoryLoadUntilRef.current = Date.now() + 800;
-                            chartRef.current?.timeScale().fitContent();
-                        });
-                    }
+                const visibleTimeRange = hasCachedHistory
+                    ? chart?.timeScale().getVisibleRange?.()
+                    : null;
+                const seededCandles = hasCachedHistory
+                    ? mergeCandles(cachedHistory.candles, initialCandles)
+                    : initialCandles;
+
+                applyChartCandles(seededCandles, {
+                    historyCursor: seededCandles[0]?.time ?? initialFrom,
+                    fitContent: !hasCachedHistory,
+                    preserveVisibleRange: Boolean(
+                        hasCachedHistory
+                        && visibleTimeRange?.from !== undefined
+                        && visibleTimeRange?.to !== undefined
+                    ),
+                });
+                writeHistoryCache(chartHistoryCacheKey, seededCandles);
+                setLoading(false);
+
+                if (!seededCandles.length) {
+                    setError(`No chart data for ${chartSymbol} in this period`);
+                    return;
                 }
 
-                chartCandlesRef.current = candles;
-                historyCursorRef.current = candles[0]?.time ?? from;
-                currentCandleRef.current = candles[candles.length - 1] || null;
-                setLoading(false);
-                if (candles.length === 0) setError(`No chart data for ${chartSymbol} in this period`);
-            })
-            .catch(err => {
+                if (initialFrom <= fullFrom) {
+                    historyCursorRef.current = seededCandles[0]?.time ?? fullFrom;
+                    return;
+                }
+
+                const backfillRequestId = historyRequestIdRef.current + 1;
+                historyRequestIdRef.current = backfillRequestId;
+                historyAbortRef.current = controller;
+                setLoadingOlder(true);
+
+                const olderCandles = await fetchChartCandles({
+                    symbol: chartRequestSymbol,
+                    from: fullFrom,
+                    to: initialFrom - activeTimeframe.candleSec,
+                    period: activeTimeframe.period,
+                    signal: controller.signal,
+                });
+
+                if (
+                    requestId !== requestIdRef.current
+                    || backfillRequestId !== historyRequestIdRef.current
+                    || controller.signal.aborted
+                ) {
+                    return;
+                }
+
+                const mergedCandles = mergeCandles(olderCandles, seededCandles);
+                applyChartCandles(mergedCandles, {
+                    historyCursor: fullFrom,
+                    preserveVisibleRange: true,
+                });
+                writeHistoryCache(chartHistoryCacheKey, mergedCandles);
+            } catch (err) {
                 if (err?.name !== 'AbortError' && requestId === requestIdRef.current) {
                     setError(err?.message || 'Failed to load chart data');
                     setLoading(false);
                 }
-            });
+            } finally {
+                if (historyAbortRef.current === controller) {
+                    historyAbortRef.current = null;
+                }
+                if (requestId === requestIdRef.current && !controller.signal.aborted) {
+                    setLoadingOlder(false);
+                }
+            }
+        };
+
+        loadSymbolHistory();
 
         return () => {
             controller.abort();
@@ -918,7 +1075,17 @@ function TerminalGraph() {
                 abortRef.current = null;
             }
         };
-    }, [chartSymbol, chartRequestSymbol, activeTimeframe, token, refreshKey, chartReady, fetchChartCandles]);
+    }, [
+        chartSymbol,
+        chartRequestSymbol,
+        activeTimeframe,
+        token,
+        refreshKey,
+        chartReady,
+        fetchChartCandles,
+        applyChartCandles,
+        chartHistoryCacheKey,
+    ]);
 
     // Real-time last-candle updates from the quotes socket
     useEffect(() => {
@@ -928,8 +1095,12 @@ function TerminalGraph() {
         const tick = quoteData.find(q => getBaseSymbolName(q) === selectedNorm);
         if (!tick) return;
 
-        const price = (parseFloat(tick.Bid) + parseFloat(tick.Ask)) / 2;
-        if (isNaN(price)) return;
+        // Match the live candle to the same quote basis the platform exposes.
+        // MT5-style charts are typically bid-based, while the sidebar shows both.
+        const bidPrice = parseFiniteNumber(tick?.Bid);
+        const askPrice = parseFiniteNumber(tick?.Ask);
+        const price = bidPrice ?? askPrice;
+        if (price === null) return;
 
         const now = Math.floor(Date.now() / 1000);
         const prev = currentCandleRef.current;

@@ -89,7 +89,7 @@ function reorderItem(list, sourceItem, targetItem) {
     return nextList;
 }
 
-function LeftPanel() {
+function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
 
     const { data, isLoading } = useWatchListQuery()
     const [addSymbolToWatchList] = useAddSymbolToWatchListMutation()
@@ -323,7 +323,9 @@ function LeftPanel() {
     return (
         <Box
             sx={{
-                width: { xs: "100%", md: "270px" },
+                width,
+                height: "100%",
+                minWidth: 0,
                 background: "linear-gradient(180deg, #111827 0%, #0d1422 100%)",
                 border: "1px solid rgba(255, 255, 255, 0.06)",
                 borderRadius: "20px",
