@@ -31,6 +31,46 @@ import { setActiveMT5AccountPositionsDetails } from "../../globalState/mt5State/
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AnalysisPanel from "./AnalysisPanel";
 
+function getLocalTimezoneLabel(date) {
+    try {
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZoneName: "short",
+        });
+        const zonePart = formatter
+            .formatToParts(date)
+            .find((part) => part.type === "timeZoneName");
+
+        if (zonePart?.value) return zonePart.value;
+    } catch {
+        // Fall through to offset formatting below.
+    }
+
+    const totalOffsetMinutes = -date.getTimezoneOffset();
+    const sign = totalOffsetMinutes >= 0 ? "+" : "-";
+    const absoluteMinutes = Math.abs(totalOffsetMinutes);
+    const hours = String(Math.floor(absoluteMinutes / 60)).padStart(2, "0");
+    const minutes = String(absoluteMinutes % 60).padStart(2, "0");
+
+    return `GMT${sign}${hours}:${minutes}`;
+}
+
+function formatCurrentTimeLabel(date) {
+    return [
+        date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            weekday: "short",
+        }),
+        date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        }),
+        getLocalTimezoneLabel(date),
+    ].join(" | ");
+}
+
 
 function OrdersTable() {
 
@@ -347,16 +387,7 @@ function OrdersTable() {
     useEffect(() => {
         const updateTime = () => {
             const now = new Date();
-            const timeStr = now.toLocaleDateString('en-US', {
-                month: 'short',
-                day: '2-digit',
-                weekday: 'short'
-            }) + ' | ' + now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            }) + ' GMT+2';
+            const timeStr = formatCurrentTimeLabel(now);
 
             setCurrentTime(timeStr);
 
