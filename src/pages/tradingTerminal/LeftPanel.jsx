@@ -6,8 +6,7 @@ import {
     InputAdornment,
     List,
     ListItem,
-    IconButton,
-    Badge
+    IconButton
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -469,20 +468,6 @@ function LeftPanel({ width = { xs: "100%", md: "270px" } }) {
                     >
                         <tab.icon sx={{ fontSize: "14px" }} />
                         {tab.label}
-                        {tab.id === "watchlist" && (
-                            <Badge
-                                badgeContent={watchlist.length}
-                                sx={{
-                                    "& .MuiBadge-badge": {
-                                        background: "#2563eb",
-                                        color: "white",
-                                        fontSize: "9px",
-                                        fontWeight: "bold",
-                                        animation: "badgeBounce 2s infinite"
-                                    }
-                                }}
-                            />
-                        )}
                     </Box>
                 ))}
             </Box>
