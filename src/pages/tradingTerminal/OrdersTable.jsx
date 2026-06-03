@@ -110,6 +110,14 @@ function OrdersTable() {
         position?.Position ?? position?.PositionID ?? position?.Ticket
     );
 
+    const getPendingOrderTicket = (order) => (
+        order?.Order ?? order?.OrderID ?? order?.Ticket
+    );
+
+    const getPendingOrderType = (order) => (
+        order?.Type ?? order?.Action
+    );
+
     const getRawSymbolName = (symbol) => {
         const rawSymbol = symbol?.groupedSym ?? symbol?.Symbol ?? symbol?.name ?? symbol;
         return rawSymbol ? String(rawSymbol).trim() : "";
@@ -1020,20 +1028,37 @@ function OrdersTable() {
                     </TableRow>
                 ) : (
                     listData.map((order, index) => {
-                        const typeLabel = order.Action == 2 ? "Buy Limit"
-                            : order.Action == 3 ? "Sell Limit"
-                            : order.Action == 4 ? "Buy Stop"
-                            : order.Action == 5 ? "Sell Stop"
-                            : `Type ${order.Action}`;
-                        const typeColor = [2, 4].includes(Number(order.Action)) ? "#4CAF50" : "#f44336";
+                        const pendingOrderTicket = getPendingOrderTicket(order);
+                        const pendingOrderType = getPendingOrderType(order);
+                        const typeLabel = pendingOrderType == 2 ? "Buy Limit"
+                            : pendingOrderType == 3 ? "Sell Limit"
+                            : pendingOrderType == 4 ? "Buy Stop"
+                            : pendingOrderType == 5 ? "Sell Stop"
+                            : `Type ${pendingOrderType ?? "—"}`;
+                        const typeColor = [2, 4].includes(Number(pendingOrderType)) ? "#4CAF50" : "#f44336";
 
                         const handleCancelOrder = async () => {
+                            if (!pendingOrderTicket) {
+                                dispatch(setNotification({
+                                    open: true,
+                                    message: "Pending order ticket is missing for this row.",
+                                    severity: "error"
+                                }));
+                                return;
+                            }
+
                             try {
                                 const response = await closeLimitOrder({
                                     login,
-                                    order: order.Order,
+                                    order: pendingOrderTicket,
+                                    ticket: pendingOrderTicket,
                                     symbol: order.Symbol,
-                                    type: String(order.Action)
+                                    type: pendingOrderType !== undefined && pendingOrderType !== null
+                                        ? String(pendingOrderType)
+                                        : undefined,
+                                    action: pendingOrderType !== undefined && pendingOrderType !== null
+                                        ? String(pendingOrderType)
+                                        : undefined,
                                 }).unwrap();
                                 if (response?.status) {
                                     dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
@@ -1045,7 +1070,7 @@ function OrdersTable() {
 
                         return (
                             <TableRow
-                                key={order.Order ?? index}
+                                key={pendingOrderTicket ?? index}
                                 sx={{
                                     background: "rgba(14, 18, 28, 0.7)",
                                     backdropFilter: "blur(5px)",
@@ -1055,7 +1080,7 @@ function OrdersTable() {
                                     "&:hover": { background: "rgba(26, 31, 46, 0.9)" }
                                 }}
                             >
-                                <TableCell sx={{ color: "#9ca3af", fontSize: "12px", borderBottom: "none", padding: "12px 8px" }}>{order.Order}</TableCell>
+                                <TableCell sx={{ color: "#9ca3af", fontSize: "12px", borderBottom: "none", padding: "12px 8px" }}>{pendingOrderTicket ?? "—"}</TableCell>
                                 <TableCell sx={{ color: "white", fontSize: "13px", fontWeight: 700, borderBottom: "none", padding: "12px 8px" }}>{order.Symbol}</TableCell>
                                 <TableCell sx={{ color: typeColor, fontSize: "12px", fontWeight: 700, borderBottom: "none", padding: "12px 8px" }}>{typeLabel}</TableCell>
                                 <TableCell sx={{ color: "white", fontSize: "13px", borderBottom: "none", padding: "12px 8px" }}>{order.VolumeInitial ? order.VolumeInitial / 10000 : order.Volume}</TableCell>
