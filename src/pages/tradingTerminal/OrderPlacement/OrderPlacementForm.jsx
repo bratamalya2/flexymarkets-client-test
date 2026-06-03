@@ -17,10 +17,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Selector from "../../../components/Selector";
 import Toggle from "../../../components/Toggle";
 import LiveBuySellCard from "./LiveBuySellCard";
-import { useLimitTradeRequestMutation, usePlaceOrderMutation } from "../../../globalState/trade/tradeApis";
+import { tradeStateApis } from "../../../globalState/trade/tradeApis";
 import { setNotification } from "../../../globalState/notificationState/notificationStateSlice";
 import { orderPlacementFormSchema } from "./orderPlacementFormSchema";
 import Loader from "../../../components/Loader";
+import {
+  executeTerminalTradeSocketAction,
+  TERMINAL_TRADE_SOCKET_EVENTS
+} from "../../../socketENV/terminalTradeSocketENV";
 
 const item = ["Regular form", "One-click form", "Risk calculator form"];
 const toggleItem = [{ name: "Market" }, { name: "Pending" }];
@@ -34,10 +38,13 @@ function OrderPlacementForm({ data }) {
   const { selectedSymbol } = useSelector((state) => state.terminal);
 
   const { activeMT5AccountLogin } = useSelector((state) => state.mt5);
+  const { token } = useSelector((state) => state.auth);
 
   const [formType, setFormType] = useState(item[0]);
   const [active, setActive] = useState(toggleItem[0]?.name);
   const [openPrice, setOpenPrice] = useState("");
+  const [placeOrderLoading, setPlaceOrderLoading] = useState(false);
+  const [limitTradeRequestLoading, setLimitTradeRequestLoading] = useState(false);
 
   const defaultValues = {
     symbol: selectedSymbol?.groupedSym,
@@ -73,9 +80,6 @@ function OrderPlacementForm({ data }) {
     }
   }, [selectedSymbol, activeMT5AccountLogin, reset]);
 
-  const [placeOrder, { isLoading: placeOrderLoading }] = usePlaceOrderMutation();
-  const [limitTradeRequest, { isLoading: limitTradeRequestLoading }] = useLimitTradeRequestMutation();
-
   const currentType = String(watch("type"));
   const isBuy = currentType === "0" || currentType === "2";
   const isSell = currentType === "1" || currentType === "3";
@@ -109,13 +113,26 @@ function OrderPlacementForm({ data }) {
 
     if (active === "Pending") delete payload.typeFill;
 
+    const isMarketTrade = active === "Market";
+    const setLoadingState = isMarketTrade ? setPlaceOrderLoading : setLimitTradeRequestLoading;
+
+    setLoadingState(true);
     try {
-      const response =
-        active === "Market"
-          ? await placeOrder(payload).unwrap()
-          : await limitTradeRequest(payload).unwrap();
+      const response = await executeTerminalTradeSocketAction({
+        token,
+        event: isMarketTrade
+          ? TERMINAL_TRADE_SOCKET_EVENTS.PLACE_MARKET
+          : TERMINAL_TRADE_SOCKET_EVENTS.PLACE_LIMIT,
+        payload,
+      });
 
       if (response?.status) {
+        dispatch(
+          tradeStateApis.util.invalidateTags([
+            { type: "openOrderList", id: payload.login || "PARTIAL-LIST" },
+            { type: "closedOrderList", id: payload.login || "PARTIAL-LIST" },
+          ])
+        );
         dispatch(
           setNotification({
             open: true,
@@ -137,6 +154,8 @@ function OrderPlacementForm({ data }) {
           severity: "error",
         })
       );
+    } finally {
+      setLoadingState(false);
     }
   };
 

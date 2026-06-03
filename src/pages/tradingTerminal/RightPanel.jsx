@@ -6,9 +6,13 @@ import { useSelector, useDispatch } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
-import { useLimitTradeRequestMutation, usePlaceOrderMutation } from "../../globalState/trade/tradeApis";
+import { tradeStateApis } from "../../globalState/trade/tradeApis";
 import { tradeSchema } from "./tradeSchema";
 import { useQuotes } from "../../context/QuotesContext";
+import {
+  executeTerminalTradeSocketAction,
+  TERMINAL_TRADE_SOCKET_EVENTS
+} from "../../socketENV/terminalTradeSocketENV";
 
 
 function RightPanel() {
@@ -16,15 +20,14 @@ function RightPanel() {
   const [activeTab, setActiveTab] = useState("Market");
   const [priceAnimation, setPriceAnimation] = useState("none");
   const [isPriceManuallySet, setIsPriceManuallySet] = useState(false);
+  const [placeOrderLoading, setPlaceOrderLoading] = useState(false);
+  const [limitTradeRequestLoading, setLimitTradeRequestLoading] = useState(false);
 
   // Redux state
   const { selectedSymbol } = useSelector((state) => state.terminal);
   const { activeMT5AccountLogin, activeMT5AccountDetails } = useSelector((state) => state.mt5);
+  const { token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-
-  // API Mutations
-  const [placeOrder, { isLoading: placeOrderLoading }] = usePlaceOrderMutation();
-  const [limitTradeRequest, { isLoading: limitTradeRequestLoading }] = useLimitTradeRequestMutation();
 
   const { quoteData } = useQuotes();
 
@@ -224,13 +227,26 @@ function RightPanel() {
 
     if (activeTab === "Limit") delete payload.typeFill;
 
+    const isMarketTrade = activeTab === "Market";
+    const setLoadingState = isMarketTrade ? setPlaceOrderLoading : setLimitTradeRequestLoading;
+
+    setLoadingState(true);
     try {
-      const response =
-        activeTab === "Market"
-          ? await placeOrder(payload).unwrap()
-          : await limitTradeRequest(payload).unwrap();
+      const response = await executeTerminalTradeSocketAction({
+        token,
+        event: isMarketTrade
+          ? TERMINAL_TRADE_SOCKET_EVENTS.PLACE_MARKET
+          : TERMINAL_TRADE_SOCKET_EVENTS.PLACE_LIMIT,
+        payload,
+      });
 
       if (response?.status) {
+        dispatch(
+          tradeStateApis.util.invalidateTags([
+            { type: "openOrderList", id: payload.login || "PARTIAL-LIST" },
+            { type: "closedOrderList", id: payload.login || "PARTIAL-LIST" },
+          ])
+        );
         dispatch(
           setNotification({
             open: true,
@@ -254,6 +270,8 @@ function RightPanel() {
           severity: "error",
         })
       );
+    } finally {
+      setLoadingState(false);
     }
   };
 

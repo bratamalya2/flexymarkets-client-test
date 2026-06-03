@@ -25,11 +25,15 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useQuotes } from "../../context/QuotesContext";
 import useDynamicQuery from "../../hooks/useDynamicQuery";
 import { useDispatch, useSelector } from "react-redux";
-import { useCloseOrderMutation, useCloseLimitOrderMutation, useUpdatePositionProtectionMutation } from "../../globalState/trade/tradeApis";
+import { tradeStateApis } from "../../globalState/trade/tradeApis";
 import { setNotification } from "../../globalState/notificationState/notificationStateSlice";
 import { setActiveMT5AccountPositionsDetails } from "../../globalState/mt5State/mt5StateSlice";
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AnalysisPanel from "./AnalysisPanel";
+import {
+    executeTerminalTradeSocketAction,
+    TERMINAL_TRADE_SOCKET_EVENTS
+} from "../../socketENV/terminalTradeSocketENV";
 
 function getLocalTimezoneLabel(date) {
     try {
@@ -80,6 +84,9 @@ function OrdersTable() {
     const [timeAnimation, setTimeAnimation] = useState('none');
     const [historySort, setHistorySort] = useState({ key: null, direction: "asc" });
     const [editingProtection, setEditingProtection] = useState(null);
+    const [closeOrderLoading, setCloseOrderLoading] = useState(false);
+    const [closeLimitOrderLoading, setCloseLimitOrderLoading] = useState(false);
+    const [updatePositionProtectionLoading, setUpdatePositionProtectionLoading] = useState(false);
 
     const { quoteData } = useQuotes();
 
@@ -103,10 +110,6 @@ function OrdersTable() {
     const { data } = useDynamicQuery(activeTab, activeMT5AccountPositionsDetails, token, login);
 
     const listData = data?.data
-
-    const [closeOrder, { isLoading: closeOrderLoading }] = useCloseOrderMutation()
-    const [closeLimitOrder, { isLoading: closeLimitOrderLoading }] = useCloseLimitOrderMutation()
-    const [updatePositionProtection, { isLoading: updatePositionProtectionLoading }] = useUpdatePositionProtectionMutation()
 
     const historyHeaderCellSx = {
         color: "#4CAF50",
@@ -301,9 +304,20 @@ function OrdersTable() {
         dispatch(setActiveMT5AccountPositionsDetails(nextPositions));
     };
 
+    const removeLocalPosition = (positionTicket) => {
+        if (!Array.isArray(activeMT5AccountPositionsDetails)) return;
+
+        const nextPositions = activeMT5AccountPositionsDetails.filter((position) => (
+            String(getPositionTicket(position)) !== String(positionTicket)
+        ));
+
+        dispatch(setActiveMT5AccountPositionsDetails(nextPositions));
+    };
+
     const handleSaveProtection = async (position) => {
         const positionTicket = getPositionTicket(position);
 
+        setUpdatePositionProtectionLoading(true);
         try {
             const priceTp = parseProtectionPrice(getProtectionInputValue(position, "priceTp"), "TP");
             const priceSl = parseProtectionPrice(getProtectionInputValue(position, "priceSl"), "SL");
@@ -315,8 +329,17 @@ function OrdersTable() {
                 priceSl
             };
 
-            const response = await updatePositionProtection(payload).unwrap();
+            const response = await executeTerminalTradeSocketAction({
+                token,
+                event: TERMINAL_TRADE_SOCKET_EVENTS.UPDATE_POSITION_PROTECTION,
+                payload,
+            });
             if (response?.status) {
+                dispatch(
+                    tradeStateApis.util.invalidateTags([
+                        { type: "openOrderList", id: payload.login || "PARTIAL-LIST" },
+                    ])
+                );
                 updateLocalPositionProtection(positionTicket, priceTp, priceSl);
                 setEditingProtection(null);
                 dispatch(setNotification({ open: true, message: response?.message || "Position TP/SL updated.", severity: "success" }));
@@ -324,6 +347,8 @@ function OrdersTable() {
         } catch (error) {
             const message = error?.data?.message || error?.message || "Failed to update TP/SL. Please try again later.";
             dispatch(setNotification({ open: true, message, severity: "error" }));
+        } finally {
+            setUpdatePositionProtectionLoading(false);
         }
     };
 
@@ -639,15 +664,29 @@ function OrdersTable() {
                             }
 
 
+                            setCloseOrderLoading(true);
                             try {
-                                const response = await closeOrder(closeData).unwrap();
+                                const response = await executeTerminalTradeSocketAction({
+                                    token,
+                                    event: TERMINAL_TRADE_SOCKET_EVENTS.CLOSE_POSITION,
+                                    payload: closeData,
+                                });
                                 if (response?.status) {
+                                    dispatch(
+                                        tradeStateApis.util.invalidateTags([
+                                            { type: "closedOrderList", id: closeData?.login || "PARTIAL-LIST" },
+                                            { type: "openOrderList", id: closeData?.login || "PARTIAL-LIST" },
+                                        ])
+                                    );
+                                    removeLocalPosition(closeData.position);
                                     dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
                                 }
                             } catch (error) {
                                 if (!error?.data?.status) {
                                     dispatch(setNotification({ open: true, message: error?.data?.message || "Failed to submit. Please try again later.", severity: "error" }));
                                 }
+                            } finally {
+                                setCloseOrderLoading(false);
                             }
 
                         }
@@ -1078,8 +1117,9 @@ function OrdersTable() {
                                 return;
                             }
 
+                            setCloseLimitOrderLoading(true);
                             try {
-                                const response = await closeLimitOrder({
+                                const cancelPayload = {
                                     login,
                                     order: pendingOrderTicket,
                                     ticket: pendingOrderTicket,
@@ -1090,12 +1130,24 @@ function OrdersTable() {
                                     action: pendingOrderType !== undefined && pendingOrderType !== null
                                         ? String(pendingOrderType)
                                         : undefined,
-                                }).unwrap();
+                                };
+                                const response = await executeTerminalTradeSocketAction({
+                                    token,
+                                    event: TERMINAL_TRADE_SOCKET_EVENTS.CANCEL_PENDING,
+                                    payload: cancelPayload,
+                                });
                                 if (response?.status) {
+                                    dispatch(
+                                        tradeStateApis.util.invalidateTags([
+                                            { type: "openOrderList", id: cancelPayload.login || "PARTIAL-LIST" },
+                                        ])
+                                    );
                                     dispatch(setNotification({ open: true, message: response?.message, severity: "success" }));
                                 }
                             } catch (err) {
                                 dispatch(setNotification({ open: true, message: err?.data?.message || "Failed to cancel order.", severity: "error" }));
+                            } finally {
+                                setCloseLimitOrderLoading(false);
                             }
                         };
 
