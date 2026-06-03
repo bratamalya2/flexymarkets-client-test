@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useSelector } from 'react-redux';
-import { createChart, BarSeries, CandlestickSeries, LineSeries, LineStyle, LineType } from 'lightweight-charts';
+import { createChart, BarSeries, CandlestickSeries, HistogramSeries, LineSeries, LineStyle, LineType } from 'lightweight-charts';
 import { Box, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { useQuotes } from '../../context/QuotesContext';
 
@@ -22,11 +22,13 @@ const HISTORY_CACHE_TTL_MS = 5 * 60 * 1000;
 const HISTORY_CACHE_MAX_ENTRIES = 48;
 const GRAPH_TYPE_STORAGE_KEY = 'terminalGraphType';
 const DEFAULT_GRAPH_TYPE = 'candles';
+const VOLUME_GRAPH_TYPE = 'volume-candles';
 
 const GRAPH_TYPES = [
     { id: 'bars', label: 'Bars' },
     { id: 'candles', label: 'Candles' },
     { id: 'hollow-candles', label: 'Hollow Candles' },
+    { id: VOLUME_GRAPH_TYPE, label: 'Volume Candles' },
     { id: 'line', label: 'Line' },
     { id: 'line-markers', label: 'Line with Markers' },
     { id: 'step-line', label: 'Step Line' },
@@ -59,6 +61,7 @@ function getSeriesDefinitionForGraphType(graphType) {
         case 'line-markers':
         case 'step-line':
             return LineSeries;
+        case VOLUME_GRAPH_TYPE:
         case 'hollow-candles':
         case 'candles':
         default:
@@ -112,6 +115,7 @@ function getSeriesOptionsForGraphType(graphType, settings) {
                 pointMarkersVisible: false,
                 crosshairMarkerVisible: true,
             };
+        case VOLUME_GRAPH_TYPE:
         case 'candles':
         default:
             return {
@@ -123,6 +127,19 @@ function getSeriesOptionsForGraphType(graphType, settings) {
                 wickDownColor: downColor,
             };
     }
+}
+
+function getVolumeSeriesOptions(settings) {
+    const { upColor } = getSeriesPalette(settings);
+    return {
+        color: colorWithAlpha(upColor, 0.3),
+        base: 0,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        priceFormat: {
+            type: 'volume',
+        },
+    };
 }
 
 function toSeriesDataPoint(candle, graphType) {
@@ -137,6 +154,7 @@ function toSeriesDataPoint(candle, graphType) {
                 time: normalizedCandle.time,
                 value: normalizedCandle.close,
             };
+        case VOLUME_GRAPH_TYPE:
         case 'bars':
         case 'hollow-candles':
         case 'candles':
@@ -148,6 +166,33 @@ function toSeriesDataPoint(candle, graphType) {
 function toSeriesData(candles, graphType) {
     return candles
         .map((candle) => toSeriesDataPoint(candle, graphType))
+        .filter(Boolean);
+}
+
+function getVolumeBarColor(candle, settings) {
+    const { upColor, downColor } = getSeriesPalette(settings);
+    return candle.close >= candle.open
+        ? colorWithAlpha(upColor, 0.42)
+        : colorWithAlpha(downColor, 0.42);
+}
+
+function toVolumeSeriesDataPoint(candle, settings) {
+    const normalizedCandle = toChartCandle(candle);
+    if (!normalizedCandle) return null;
+
+    const volume = Number(normalizedCandle.volume);
+    if (!Number.isFinite(volume) || volume < 0) return null;
+
+    return {
+        time: normalizedCandle.time,
+        value: volume,
+        color: getVolumeBarColor(normalizedCandle, settings),
+    };
+}
+
+function toVolumeSeriesData(candles, settings) {
+    return candles
+        .map((candle) => toVolumeSeriesDataPoint(candle, settings))
         .filter(Boolean);
 }
 
@@ -239,12 +284,13 @@ function normalizeCandles(raw) {
         return key !== undefined ? row[key] : undefined;
     };
 
-    const finalizeCandle = ({ time, open, high, low, close }) => ({
+    const finalizeCandle = ({ time, open, high, low, close, volume }) => ({
         time,
         open,
         high: Math.max(high, open, close),
         low: Math.min(low, open, close),
         close,
+        volume: Number.isFinite(volume) ? volume : null,
     });
 
     const first = rows[0];
@@ -257,14 +303,16 @@ function normalizeCandles(raw) {
                 high: parseNumber(c[2]),
                 low: parseNumber(c[3]),
                 close: parseNumber(c[4]),
+                volume: parseNumber(c[5]),
             }))
             .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
     }
 
     if (!Array.isArray(first) && typeof first !== "object" && rows.length >= 5) {
+        const chunkSize = rows.length % 6 === 0 ? 6 : 5;
         const chunkedRows = [];
-        for (let index = 0; index <= rows.length - 5; index += 5) {
-            chunkedRows.push(rows.slice(index, index + 5));
+        for (let index = 0; index <= rows.length - chunkSize; index += chunkSize) {
+            chunkedRows.push(rows.slice(index, index + chunkSize));
         }
 
         return chunkedRows
@@ -274,6 +322,7 @@ function normalizeCandles(raw) {
                 high: parseNumber(c[2]),
                 low: parseNumber(c[3]),
                 close: parseNumber(c[4]),
+                volume: parseNumber(c[5]),
             }))
             .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
     }
@@ -286,6 +335,7 @@ function normalizeCandles(raw) {
                 const high = parseNumber(c[2]);
                 const low = parseNumber(c[3]);
                 const close = parseNumber(c[4]);
+                const volume = parseNumber(c[5]);
 
                 if (high < low) {
                     return finalizeCandle({
@@ -294,10 +344,11 @@ function normalizeCandles(raw) {
                         low: parseNumber(c[2]),
                         open: parseNumber(c[3]),
                         close,
+                        volume,
                     });
                 }
 
-                return finalizeCandle({ time, open, high, low, close });
+                return finalizeCandle({ time, open, high, low, close, volume });
             })
             .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
     }
@@ -309,6 +360,7 @@ function normalizeCandles(raw) {
             high: parseNumber(getValue(c, ["high", "High", "HIGH", "h", "H"])),
             low: parseNumber(getValue(c, ["low", "Low", "LOW", "l", "L"])),
             close: parseNumber(getValue(c, ["close", "Close", "CLOSE", "c", "C"])),
+            volume: parseNumber(getValue(c, ["volume", "Volume", "tick_volume", "TickVolume", "VolumeTick", "real_volume", "RealVolume"])),
         }))
         .filter(c => c.time > 0 && c.open > 0 && c.high > 0 && c.low > 0 && c.close > 0);
 }
@@ -319,6 +371,8 @@ function toChartCandle(candle) {
     const high = Number(candle?.high);
     const low = Number(candle?.low);
     const close = Number(candle?.close);
+    const volume = Number(String(candle?.volume ?? "").replace(/,/g, ""));
+    const offset = Number(candle?._offset);
 
     if (![time, open, high, low, close].every(Number.isFinite)) return null;
     if (time <= 0 || open <= 0 || high <= 0 || low <= 0 || close <= 0) return null;
@@ -329,6 +383,8 @@ function toChartCandle(candle) {
         high: Math.max(high, open, close),
         low: Math.min(low, open, close),
         close,
+        volume: Number.isFinite(volume) ? Math.max(0, volume) : null,
+        ...(Number.isFinite(offset) ? { _offset: offset } : {}),
     };
 }
 
@@ -442,6 +498,8 @@ function TerminalGraph() {
     const drawingOverlayRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
+    const volumeSeriesRef = useRef(null);
+    const volumePaneIndexRef = useRef(null);
     const entryPriceLinesRef = useRef([]);
     const currentCandleRef = useRef(null);
     const chartCandlesRef = useRef([]);
@@ -496,6 +554,73 @@ function TerminalGraph() {
         entryPriceLinesRef.current = [];
     }, []);
 
+    const removeVolumePane = useCallback((chart = chartRef.current) => {
+        if (!chart) {
+            volumeSeriesRef.current = null;
+            volumePaneIndexRef.current = null;
+            return;
+        }
+
+        const volumeSeries = volumeSeriesRef.current;
+        if (volumeSeries) {
+            try {
+                chart.removeSeries(volumeSeries);
+            } catch {
+                // The pane can already be gone during rapid chart teardown.
+            }
+        }
+
+        const paneIndex = volumePaneIndexRef.current;
+        volumeSeriesRef.current = null;
+        volumePaneIndexRef.current = null;
+
+        if (Number.isInteger(paneIndex) && paneIndex > 0) {
+            try {
+                chart.removePane(paneIndex);
+            } catch {
+                // Ignore stale pane removals after a quick graph-type switch.
+            }
+        }
+
+        try {
+            chart.panes?.()[0]?.setStretchFactor?.(1);
+        } catch {
+            // Pane stretching is best-effort only.
+        }
+    }, []);
+
+    const ensureVolumePane = useCallback(() => {
+        const chart = chartRef.current;
+        if (!chart) return null;
+
+        if (volumeSeriesRef.current) return volumeSeriesRef.current;
+
+        let paneIndex = Number.isInteger(volumePaneIndexRef.current) ? volumePaneIndexRef.current : 1;
+        let volumePane = chart.panes?.()[paneIndex];
+
+        if (!volumePane) {
+            volumePane = chart.addPane(false);
+            paneIndex = chart.panes().length - 1;
+        }
+
+        volumePaneIndexRef.current = paneIndex;
+
+        try {
+            chart.panes?.()[0]?.setStretchFactor?.(3);
+            volumePane?.setStretchFactor?.(1);
+        } catch {
+            // Stretch factors are optional polish if the runtime supports them.
+        }
+
+        const volumeSeries = volumePane.addSeries(
+            HistogramSeries,
+            getVolumeSeriesOptions(chartSettingsRef.current)
+        );
+
+        volumeSeriesRef.current = volumeSeries;
+        return volumeSeries;
+    }, []);
+
     const createMainSeries = useCallback((chart, graphType) => (
         chart.addSeries(
             getSeriesDefinitionForGraphType(graphType),
@@ -525,6 +650,13 @@ function TerminalGraph() {
         return mergeCandles(normalizeCandles(result.data));
     }, [token]);
 
+    const syncVolumeSeriesData = useCallback((candles) => {
+        const volumeSeries = volumeSeriesRef.current;
+        if (!volumeSeries) return;
+
+        volumeSeries.setData(toVolumeSeriesData(candles, chartSettingsRef.current));
+    }, []);
+
     const applyChartCandles = useCallback((candles, {
         historyCursor = null,
         fitContent = false,
@@ -544,6 +676,7 @@ function TerminalGraph() {
         historyCursorRef.current = historyCursor ?? nextCandles[0]?.time ?? null;
 
         series.setData(toSeriesData(nextCandles, seriesGraphTypeRef.current || activeGraphType));
+        syncVolumeSeriesData(nextCandles);
         setDrawingRenderVersion((value) => value + 1);
 
         if (
@@ -562,7 +695,7 @@ function TerminalGraph() {
         }
 
         return nextCandles;
-    }, [activeGraphType]);
+    }, [activeGraphType, syncVolumeSeriesData]);
 
     const loadOlderHistory = useCallback(async () => {
         if (
@@ -882,12 +1015,15 @@ function TerminalGraph() {
             resizeObserver?.disconnect();
             removeResizeListener?.();
             removeEntryPriceLines(seriesRef.current);
+            removeVolumePane(chartRef.current || chart);
             chart?.remove();
             chartRef.current = null;
             seriesRef.current = null;
+            volumeSeriesRef.current = null;
+            volumePaneIndexRef.current = null;
             setChartReady(false);
         };
-    }, [createMainSeries, hasChartSymbol, removeEntryPriceLines]);
+    }, [createMainSeries, hasChartSymbol, removeEntryPriceLines, removeVolumePane]);
 
     useEffect(() => {
         if (!chartReady || !chartRef.current || !seriesRef.current) return;
@@ -925,6 +1061,19 @@ function TerminalGraph() {
 
         setDrawingRenderVersion((value) => value + 1);
     }, [activeGraphType, chartReady, createMainSeries, removeEntryPriceLines]);
+
+    useEffect(() => {
+        if (!chartReady || !chartRef.current) return;
+
+        if (activeGraphType === VOLUME_GRAPH_TYPE) {
+            ensureVolumePane();
+            syncVolumeSeriesData(chartCandlesRef.current);
+        } else {
+            removeVolumePane();
+        }
+
+        setDrawingRenderVersion((value) => value + 1);
+    }, [activeGraphType, chartReady, ensureVolumePane, removeVolumePane, syncVolumeSeriesData]);
 
     useEffect(() => {
         if (!seriesRef.current || !chartReady) return;
@@ -1064,7 +1213,9 @@ function TerminalGraph() {
         });
 
         series.applyOptions(getSeriesOptionsForGraphType(activeGraphType, visualChartSettings));
-    }, [activeGraphType, visualChartSettings]);
+        volumeSeriesRef.current?.applyOptions(getVolumeSeriesOptions(visualChartSettings));
+        syncVolumeSeriesData(chartCandlesRef.current);
+    }, [activeGraphType, visualChartSettings, syncVolumeSeriesData]);
 
     // Listen to zoom and refresh events from the toolbar
     useEffect(() => {
@@ -1137,6 +1288,7 @@ function TerminalGraph() {
         } else {
             chartCandlesRef.current = [];
             seriesRef.current.setData([]);
+            syncVolumeSeriesData([]);
         }
 
         const to = Math.floor(Date.now() / 1000);
@@ -1288,6 +1440,7 @@ function TerminalGraph() {
                 high: Math.max(prev.high, price),
                 low: Math.min(prev.low, price),
                 close: price,
+                volume: prev.volume,
                 _offset: timezoneOffset,
             };
             currentCandleRef.current = updated;
@@ -1296,6 +1449,10 @@ function TerminalGraph() {
             if (seriesPoint) {
                 seriesRef.current.update(seriesPoint);
             }
+            const volumePoint = toVolumeSeriesDataPoint(updated, chartSettingsRef.current);
+            if (volumePoint) {
+                volumeSeriesRef.current?.update(volumePoint);
+            }
         } else if (candleTime > prev.time) {
             const newCandle = {
                 time: candleTime,
@@ -1303,6 +1460,7 @@ function TerminalGraph() {
                 high: price,
                 low: price,
                 close: price,
+                volume: 0,
                 _offset: timezoneOffset,
             };
             currentCandleRef.current = newCandle;
@@ -1310,6 +1468,10 @@ function TerminalGraph() {
             const seriesPoint = toSeriesDataPoint(newCandle, seriesGraphTypeRef.current || activeGraphType);
             if (seriesPoint) {
                 seriesRef.current.update(seriesPoint);
+            }
+            const volumePoint = toVolumeSeriesDataPoint(newCandle, chartSettingsRef.current);
+            if (volumePoint) {
+                volumeSeriesRef.current?.update(volumePoint);
             }
         }
     }, [quoteData, chartSymbol, activeGraphType, activeTimeframe.candleSec]);

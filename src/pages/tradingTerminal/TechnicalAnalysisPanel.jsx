@@ -591,7 +591,7 @@ function TechnicalAnalysisPanel() {
                                 </Typography>
                             </Box>
                             <Typography sx={{ color: "#9fb0c8", fontSize: "12px", mb: "10px" }}>
-                                Current chart API response does not include volume, so these indicators are disabled for now.
+                                The current chart response for this symbol and timeframe does not include volume, so these indicators are disabled for now.
                             </Typography>
                             <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mb: "10px" }} />
                             <Box sx={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
